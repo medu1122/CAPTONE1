@@ -1,0 +1,12 @@
+{
+    "name": "greengrow-backend",
+    "private": true,
+    "version": "0.0.0",
+    "type": "commonjs",
+    "scripts": {
+      "dev": "echo \"BE dev placeholder\"",
+      "build": "echo \"BE build placeholder\"",
+      "start": "echo \"BE start placeholder\""
+    }
+  }
+  
