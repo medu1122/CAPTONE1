@@ -1,7 +1,7 @@
-import React from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
+// Removed lucide-react import to fix build error
 
-const Header: React.FC = () => {
+export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -10,12 +10,10 @@ const Header: React.FC = () => {
           <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
             <span className="text-white text-lg">🌱</span>
           </div>
-          <span className="text-xl font-semibold text-white drop-shadow-lg">
-            GreenGrow
-          </span>
+          <span className="text-xl font-semibold text-white drop-shadow-lg">GreenGrow</span>
         </div>
-
-        {/* Nav */}
+        
+        {/* Navigation Menu */}
         <nav className="hidden md:flex items-center space-x-8">
           <a href="#features" className="text-white/90 hover:text-white transition-colors drop-shadow-md">
             Features
@@ -33,13 +31,10 @@ const Header: React.FC = () => {
             About Us
           </a>
         </nav>
-
-        {/* CTAs */}
+        
+        {/* CTA Buttons */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            className="hidden sm:inline-flex border-white/30 text-white hover:bg-white/10 hover:text-white"
-          >
+          <Button variant="outline" className="hidden sm:inline-flex border-white/30 text-white hover:bg-white/10 hover:text-white">
             Sign In
           </Button>
           <Button className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
@@ -49,6 +44,4 @@ const Header: React.FC = () => {
       </div>
     </header>
   );
-};
-
-export default Header;
+}
