@@ -1,0 +1,297 @@
+CONTEXT
+
+Dự án GreenGrow – tính năng ChatAnalyzePage (FE đã có). Cần code backend Node.js + Express (ESM) để FE gửi text/ảnh và nhận về AnalysisResult duy nhất nuôi 3 khối UI: Phân tích tổng quan, Phân tích hình ảnh, Gợi ý sản phẩm.
+
+GOAL
+
+Tạo API POST /api/v1/analyze (multipart) trả về AnalysisResult đúng schema FE đang dùng.
+
+Giai đoạn 1: mock kết quả (chưa cần gọi provider, chưa bắt buộc lưu DB).
+
+Giai đoạn 2 (optional): lưu snapshot vào MongoDB (analyses), sẵn sàng thay mock bằng provider (Plant.id / GPT / v.v.).
+
+TECH & RÀNG BUỘC
+
+Runtime: Node.js + Express, ESM ("type":"module").
+
+MongoDB + Mongoose (chỉ khi bật lưu lịch sử).
+
+Multer memoryStorage, limit ảnh ≤ 5MB, mime jpeg|png|webp.
+
+Middleware: cors, helmet, morgan, error handler JSON.
+
+Versioned routes: prefix /api/v1.
+
+Không sửa FE; giữ schema đầu ra đúng y nguyên.
+
+FOLDER HIỆN CÓ (GIỮ NGUYÊN)
+src/
+  app.js
+  server.js
+  routes.js
+  config/
+    db.js
+  common/
+    constants.js
+    middleware/
+      auth.js
+      error.js
+      rateLimit.js
+      upload.js
+    utils/
+      http.js
+      jwt.js
+    libs/
+      axios.js
+      cloudinary.js
+  modules/
+    auth/
+      auth.model.js
+      auth.controller.js
+      auth.service.js
+      auth.validation.js
+      auth.routes.js
+    analyze/
+      analyze.controller.js
+      analyze.service.js
+      analyze.validation.js
+      analyze.routes.js
+    analyses/
+      analysis.model.js
+    plants/
+      plant.model.js
+      plant.controller.js
+      plant.routes.js
+    posts/
+      post.model.js
+      post.controller.js
+      post.routes.js
+    alerts/
+      alert.model.js
+      alert.service.js
+      alert.cron.js
+      alert.routes.js
+    health/
+      health.routes.js
+      API CONTRACT (BẮT BUỘC)
+
+      Endpoint: POST /api/v1/analyze
+      Headers: Authorization: Bearer <token> (nếu bật auth, cho phép tắt lúc mock)
+      Body (multipart/form-data):
+      
+      image (optional) – file jpg|png|webp, ≤ 5MB
+      
+      text (optional) – string mô tả
+      
+      (optional) lat, lon – number
+      
+      Response: AnalysisResult (JSON duy nhất)
+      
+      {
+        "plant": { "commonName": "string", "scientificName": "string" },
+        "disease": { "name": "string", "description": "string" },
+        "confidence": 0.0,
+        "care": ["string"],
+        "products": [
+          { "name": "string", "imageUrl": "string", "price": "string", "note": "string" }
+        ],
+        "imageInsights": {
+          "imageUrl": "string",
+          "boxes": [
+            { "top": 0, "left": 0, "width": 0, "height": 0, "label": "string" }
+          ]
+        }
+      }
+      
+      
+      Lưu ý bắt buộc:
+      
+      disease có thể null nếu không chắc (khi đó confidence ≤ 0.5).
+      
+      products[].price là string (vd: "125.000đ").
+      
+      boxes là % (0–100).
+      
+      Error JSON: { "message": "..." } với mã: 400 (thiếu cả image & text), 413 (file quá lớn), 415 (mime sai), 401 (nếu bật auth), 502 (provider lỗi).
+      
+      JSON SCHEMA (DÙNG LÀM “SỰ THẬT” KHI CODE)
+      {
+        "type": "object",
+        "required": ["plant","confidence","care","products","imageInsights"],
+        "properties": {
+          "plant": {
+            "type": "object",
+            "required": ["commonName","scientificName"],
+            "properties": {
+              "commonName": { "type": "string" },
+              "scientificName": { "type": "string" }
+            }
+          },
+          "disease": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "required": ["name","description"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            ]
+          },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "care": { "type": "array", "items": { "type": "string" } },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name","imageUrl","price","note"],
+              "properties": {
+                "name": { "type": "string" },
+                "imageUrl": { "type": "string" },
+                "price": { "type": "string" },
+                "note": { "type": "string" }
+              }
+            }
+          },
+          "imageInsights": {
+            "type": "object",
+            "required": ["imageUrl","boxes"],
+            "properties": {
+              "imageUrl": { "type": "string" },
+              "boxes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["top","left","width","height","label"],
+                  "properties": {
+                    "top": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "left": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "width": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "height": { "type": "number", "minimum": 0, "maximum": 100 },
+                    "label": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+      
+      TASKS — IMPLEMENT STEP BY STEP
+      0) package.json
+      
+      Đảm bảo "type": "module".
+      
+      Scripts:
+      
+      "dev": "nodemon src/server.js",
+      "start": "node src/server.js"
+      
+      1) app.js & routes.js
+      
+      app.js: mount middleware cors, helmet, morgan, express.json, express.urlencoded, cuối cùng error.
+      
+      Mount routes dưới /api/v1.
+      
+      routes.js: map auth, analyze, health. (các module khác để sau)
+      
+      2) common/middleware/upload.js
+      
+      Multer memoryStorage, limit 5MB, whitelist mime image/jpeg|image/png|image/webp.
+      
+      Export uploadImage.single("image").
+      
+      3) modules/analyze/analyze.validation.js
+      
+      Joi schema: yêu cầu ít nhất một trong image|text.
+      
+      Nếu có text: max 500 chars.
+      
+      4) modules/analyze/analyze.service.js (GIAI ĐOẠN 1: MOCK)
+      
+      Export analyzeService({ text, imageUrl }) → trả mock AnalysisResult đúng schema:
+      
+      Nếu không chắc: disease: null, confidence ≤ 0.5.
+      
+      imageInsights.imageUrl: nếu không có ảnh, dùng placeholder.
+      
+      boxes: số thực trong [0..100].
+      
+      5) modules/analyze/analyze.controller.js
+      
+      Nhận req.body.text, req.file (ảnh).
+      
+      Nếu cả 2 đều thiếu → 400.
+      
+      Nếu có file → tạo imageUrl tạm (data URL base64) để test nhanh; NOTE: để TODO Cloudinary.
+      
+      Gọi analyzeService({ text, imageUrl }).
+      
+      res.json(result) — đúng y AnalysisResult (không bọc thêm field).
+      
+      6) modules/analyze/analyze.routes.js
+      
+      POST / → uploadImage.single("image") → (tạm không requireAuth) → controller.
+      
+      Sau khi ổn có thể bật requireAuth.
+      
+      7) common/middleware/error.js
+      
+      Trả JSON { message }, status từ err.status || 500.
+      
+      8) modules/health/health.routes.js
+      
+      GET / trả { ok:true, time: new Date().toISOString() }.
+      
+      9) (GIAI ĐOẠN 2 – OPTIONAL) Lưu lịch sử
+      
+      analyses/analysis.model.js: schema snapshot đúng y AnalysisResult + trường input (text/imageUrl) + userId + timestamps.
+      
+      Trong analyze.controller, sau khi có result thì lưu vào DB. Không đổi output API.
+      
+      .ENV (tham khảo)
+      PORT=4000
+      MONGO_URI=mongodb+srv://... (khi bật lưu DB)
+      JWT_SECRET=...           (khi bật auth)
+      CLOUDINARY_*             (nếu upload ảnh thật)
+      
+      ACCEPTANCE CRITERIA
+      
+      POST /api/v1/analyze trả về một JSON object đúng AnalysisResult (đúng tên trường & kiểu).
+      
+      FE ChatAnalyzePage thay mockApi bằng endpoint này và không cần sửa UI vẫn chạy:
+      
+      Overview: show plant, disease|null, confidence, care[].
+      
+      ImageAnalysis: show imageInsights.imageUrl + overlay boxes theo %.
+      
+      ProductList: show products[].name,imageUrl,price(string),note.
+      
+      Lỗi trả JSON {message} với mã HTTP phù hợp.
+      
+      CURL TESTS
+      # 1) text-only
+      curl -s -X POST http://localhost:4000/api/v1/analyze \
+        -H "Content-Type: application/json" \
+        -d '{"text":"lá có đốm nâu rải rác"}' | jq
+      
+      # 2) image multipart
+      curl -s -X POST http://localhost:4000/api/v1/analyze \
+        -F "image=@/path/to/leaf.jpg" \
+        -F "text=lá có đốm" | jq
+      
+      # 3) missing both -> 400
+      curl -i -X POST http://localhost:4000/api/v1/analyze
+      
+      NOTES / DO NOTS
+      
+      Không đổi tên field trong AnalysisResult.
+      
+      products.price luôn là string (để FE render đúng).
+      
+      boxes là %.
+      
+      Tạm không gọi provider thật; khi thay, đảm bảo map về schema không đổi.

@@ -1,0 +1,37 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import morgan from 'morgan';
+import routes from './routes.js';
+import { errorMiddleware } from './common/middleware/error.js';
+import { connectDB } from './config/db.js';
+
+// Initialize express app
+const app = express();
+
+// Connect to database (commented out for testing)
+// connectDB();
+
+// Apply middleware
+app.use(helmet());
+app.use(compression());
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(morgan('dev'));
+
+// Mount API routes under /api/v1
+app.use('/api/v1', routes);
+
+// Root health check (quick status check)
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'GreenGrow API is running' });
+});
+
+// Apply error middleware
+app.use(errorMiddleware);
+
+export default app;

@@ -2,11 +2,34 @@
     "name": "greengrow-backend",
     "private": true,
     "version": "0.0.0",
-    "type": "commonjs",
+    "type": "module",
     "scripts": {
-      "dev": "echo \"BE dev placeholder\"",
-      "build": "echo \"BE build placeholder\"",
-      "start": "echo \"BE start placeholder\""
+        "dev": "nodemon src/server.js",
+        "build": "echo \"No build step required for backend\"",
+        "start": "node src/server.js"
+    },
+    "main": "index.js",
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "axios": "^1.12.2",
+        "bcryptjs": "^3.0.2",
+        "compression": "^1.8.1",
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.2",
+        "express": "^5.1.0",
+        "helmet": "^8.1.0",
+        "joi": "^18.0.1",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.18.2",
+        "morgan": "^1.10.1",
+        "multer": "^2.0.2",
+        "rate-limiter-flexible": "^8.0.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.10"
     }
-  }
-  
+}
