@@ -18,6 +18,31 @@ export const authMiddleware = async (req, res, next) => {
   }
 };
 
+export const authOptional = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+      } catch (error) {
+        // Token is invalid, but we continue without user
+        req.user = null;
+      }
+    } else {
+      req.user = null;
+    }
+    
+    next();
+  } catch (error) {
+    // Continue without user even if there's an error
+    req.user = null;
+    next();
+  }
+};
+
 export default {
   authMiddleware,
+  authOptional,
 };
