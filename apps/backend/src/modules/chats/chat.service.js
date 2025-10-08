@@ -1,31 +1,41 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import ChatMessage from './chat.model.js';
+import ChatSession from '../chatSessions/chatSession.model.js';
 import { CHAT_ROLES, CHAT_LIMITS, CHAT_ERRORS } from './chat.constants.js';
 import { httpError } from '../../common/utils/http.js';
 
 /**
  * Create a new chat session
  * @param {object} params - Parameters
- * @param {string} params.userId - User ID (optional)
+ * @param {string} params.userId - User ID (required)
+ * @param {object} params.options - Session options
  * @returns {Promise<object>} Session creation result
  */
-export const createSession = async ({ userId = null }) => {
+export const createSession = async ({ userId, options = {} }) => {
   try {
-    const sessionId = crypto.randomUUID();
-    
-    // Ensure sessionId is unique (very unlikely collision, but safety check)
-    const existingSession = await ChatMessage.findOne({ sessionId });
-    if (existingSession) {
-      // Retry with new UUID (extremely rare case)
-      return createSession({ userId });
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
     }
 
-    return {
+    const sessionId = crypto.randomUUID();
+    
+    // Create session record
+    const session = await ChatSession.create({
       sessionId,
-      userId,
+      user: userId,
+      title: options.title || null,
+      meta: options.meta || {},
+    });
+
+    return {
+      sessionId: session.sessionId,
+      title: session.title,
+      createdAt: session.createdAt,
+      meta: session.meta,
     };
   } catch (error) {
+    if (error.statusCode) throw error;
     throw httpError(500, 'Failed to create session');
   }
 };
@@ -34,36 +44,86 @@ export const createSession = async ({ userId = null }) => {
  * Append a message to a chat session
  * @param {object} params - Parameters
  * @param {string} params.sessionId - Session ID
- * @param {string} params.userId - User ID (optional)
+ * @param {string} params.userId - User ID (required)
  * @param {string} params.role - Message role
  * @param {string} params.message - Message content
+ * @param {Array} params.attachments - File attachments (optional)
+ * @param {object} params.related - Related resources (optional)
  * @param {object} params.meta - Additional metadata (optional)
  * @returns {Promise<object>} Created message
  */
-export const appendMessage = async ({ sessionId, userId = null, role, message, meta = {} }) => {
+export const appendMessage = async ({ 
+  sessionId, 
+  userId, 
+  role, 
+  message, 
+  attachments = [], 
+  related = null, 
+  meta = {} 
+}) => {
   try {
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
+    }
+
     const chatMessage = new ChatMessage({
       sessionId,
       user: userId,
       role,
       message,
+      attachments,
+      related,
       meta,
     });
 
     const savedMessage = await chatMessage.save();
+    
+    // Update session statistics
+    await updateSessionStats(sessionId);
+    
     return savedMessage;
   } catch (error) {
     if (error.name === 'ValidationError') {
       throw httpError(400, error.message);
     }
+    if (error.statusCode) throw error;
     throw httpError(500, 'Failed to save message');
+  }
+};
+
+/**
+ * Update session statistics
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<void>}
+ */
+export const updateSessionStats = async (sessionId) => {
+  try {
+    // Count messages for this session
+    const messagesCount = await ChatMessage.countDocuments({ sessionId });
+
+    // Get the last message timestamp
+    const lastMessage = await ChatMessage.findOne({ sessionId })
+      .sort({ createdAt: -1 })
+      .select('createdAt');
+
+    // Update session statistics
+    await ChatSession.findOneAndUpdate(
+      { sessionId },
+      {
+        messagesCount,
+        lastMessageAt: lastMessage ? lastMessage.createdAt : new Date(),
+      }
+    );
+  } catch (error) {
+    // Don't throw error for stats update, just log it
+    console.error('Failed to update session stats:', error);
   }
 };
 
 /**
  * List chat sessions for a user
  * @param {object} params - Parameters
- * @param {string} params.userId - User ID
+ * @param {string} params.userId - User ID (required)
  * @param {number} params.page - Page number
  * @param {number} params.limit - Items per page
  * @returns {Promise<object>} Sessions list with pagination
@@ -71,45 +131,20 @@ export const appendMessage = async ({ sessionId, userId = null, role, message, m
 export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAULT_PAGE, limit = CHAT_LIMITS.PAGINATION.DEFAULT_LIMIT }) => {
   try {
     if (!userId) {
-      return {
-        sessions: [],
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          pages: 0,
-        },
-      };
+      throw httpError(400, 'User ID is required');
     }
 
     const skip = (page - 1) * limit;
     
-    // Aggregate to get sessions with message counts and last message time
-    const sessions = await ChatMessage.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(userId) } },
-      {
-        $group: {
-          _id: '$sessionId',
-          lastMessageAt: { $max: '$createdAt' },
-          messagesCount: { $sum: 1 },
-          firstMessage: { $first: '$message' },
-        },
-      },
-      { $sort: { lastMessageAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $project: {
-          sessionId: '$_id',
-          lastMessageAt: 1,
-          messagesCount: 1,
-          firstMessage: 1,
-          _id: 0,
-        },
-      },
+    // Get sessions from ChatSession collection
+    const [sessions, total] = await Promise.all([
+      ChatSession.find({ user: userId })
+        .sort({ lastMessageAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ChatSession.countDocuments({ user: userId }),
     ]);
-
-    const total = await ChatMessage.distinct('sessionId', { user: userId }).then(sessions => sessions.length);
 
     return {
       sessions,
@@ -129,7 +164,7 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
  * Get chat history for a session
  * @param {object} params - Parameters
  * @param {string} params.sessionId - Session ID
- * @param {string} params.userId - User ID (optional)
+ * @param {string} params.userId - User ID (required)
  * @param {number} params.page - Page number
  * @param {number} params.limit - Items per page
  * @param {string} params.q - Search query (optional)
@@ -139,7 +174,7 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
  */
 export const getHistory = async ({ 
   sessionId, 
-  userId = null, 
+  userId, 
   page = CHAT_LIMITS.PAGINATION.DEFAULT_PAGE, 
   limit = CHAT_LIMITS.PAGINATION.DEFAULT_LIMIT,
   q = null,
@@ -147,15 +182,17 @@ export const getHistory = async ({
   to = null 
 }) => {
   try {
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
+    }
+
     const skip = (page - 1) * limit;
     
-    // Build query
-    const query = { sessionId };
-    
-    // Add user filter if userId provided
-    if (userId) {
-      query.user = userId;
-    }
+    // Build query - now always include user filter
+    const query = { 
+      sessionId,
+      user: userId
+    };
     
     // Add search filter
     if (q && q.trim()) {
@@ -196,17 +233,19 @@ export const getHistory = async ({
  * Delete a chat session
  * @param {object} params - Parameters
  * @param {string} params.sessionId - Session ID
- * @param {string} params.userId - User ID (optional)
+ * @param {string} params.userId - User ID (required)
  * @returns {Promise<object>} Deletion result
  */
-export const deleteSession = async ({ sessionId, userId = null }) => {
+export const deleteSession = async ({ sessionId, userId }) => {
   try {
-    const query = { sessionId };
-    
-    // Add user filter if userId provided
-    if (userId) {
-      query.user = userId;
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
     }
+
+    const query = { 
+      sessionId,
+      user: userId
+    };
 
     const result = await ChatMessage.deleteMany(query);
     
@@ -228,17 +267,19 @@ export const deleteSession = async ({ sessionId, userId = null }) => {
  * Delete a specific message
  * @param {object} params - Parameters
  * @param {string} params.messageId - Message ID
- * @param {string} params.userId - User ID (optional)
+ * @param {string} params.userId - User ID (required)
  * @returns {Promise<object>} Deletion result
  */
-export const deleteMessage = async ({ messageId, userId = null }) => {
+export const deleteMessage = async ({ messageId, userId }) => {
   try {
-    const query = { _id: messageId };
-    
-    // Add user filter if userId provided
-    if (userId) {
-      query.user = userId;
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
     }
+
+    const query = { 
+      _id: messageId,
+      user: userId
+    };
 
     const message = await ChatMessage.findOneAndDelete(query);
     
@@ -289,6 +330,7 @@ export const generateAssistantReply = async ({ sessionId, messages }) => {
 export default {
   createSession,
   appendMessage,
+  updateSessionStats,
   listSessions,
   getHistory,
   deleteSession,

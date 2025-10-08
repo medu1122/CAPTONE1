@@ -1,0 +1,115 @@
+### Enhanced Auth API Test Examples
+### Sử dụng với REST Client extension trong VS Code
+
+@baseUrl = http://localhost:4000/api/v1/auth
+@accessToken = Bearer your-access-token-here
+@refreshToken = your-refresh-token-here
+
+### 1. Register New User
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123"
+}
+
+### 2. Login User
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePass123"
+}
+
+### 3. Refresh Access Token
+POST {{baseUrl}}/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 4. Get User Profile
+GET {{baseUrl}}/profile
+Authorization: {{accessToken}}
+
+### 5. Logout (Revoke Refresh Token)
+POST {{baseUrl}}/logout
+Authorization: {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 6. Logout from All Devices
+POST {{baseUrl}}/logout-all
+Authorization: {{accessToken}}
+
+### 7. Test Validation - Weak Password
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "weak"
+}
+
+### 8. Test Validation - Invalid Email
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "invalid-email",
+  "password": "SecurePass123"
+}
+
+### 9. Test Validation - Missing Fields
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "name": "Test User"
+}
+
+### 10. Test Login with Wrong Password
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "wrongpassword"
+}
+
+### 11. Test Access Protected Route Without Token
+GET {{baseUrl}}/profile
+
+### 12. Test Access Protected Route with Invalid Token
+GET {{baseUrl}}/profile
+Authorization: Bearer invalid-token
+
+### 13. Test Refresh with Invalid Token
+POST {{baseUrl}}/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "invalid-refresh-token"
+}
+
+### 14. Test Register with Existing Email
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "name": "Another User",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123"
+}
+
+### 15. Health Check
+GET http://localhost:4000/api/v1/health

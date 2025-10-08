@@ -14,17 +14,22 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      index: true,
     },
-    password: {
+    passwordHash: {
       type: String,
       required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
     role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'blocked'],
+      default: 'active',
     },
     profileImage: {
       type: String,
@@ -42,20 +47,29 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Unique index on email (additional explicit index)
+userSchema.index({ email: 1 }, { unique: true });
+
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('passwordHash')) {
     return next();
   }
   
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
+  const salt = await bcrypt.genSalt(saltRounds);
+  this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
   next();
 });
 
 // Compare password
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return await bcrypt.compare(enteredPassword, this.passwordHash);
+};
+
+// Check if user is active
+userSchema.methods.isActive = function () {
+  return this.status === 'active';
 };
 
 const User = mongoose.model('User', userSchema);

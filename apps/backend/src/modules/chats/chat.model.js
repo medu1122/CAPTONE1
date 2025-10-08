@@ -1,6 +1,40 @@
 import mongoose from 'mongoose';
 import { CHAT_ROLES, CHAT_LIMITS } from './chat.constants.js';
 
+const attachmentSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: true,
+  },
+  filename: {
+    type: String,
+    required: true,
+  },
+  mimeType: {
+    type: String,
+    required: true,
+  },
+  size: {
+    type: Number,
+    required: true,
+  },
+}, { _id: false });
+
+const relatedSchema = new mongoose.Schema({
+  analysisId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Analysis',
+  },
+  plantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plant',
+  },
+  postId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+  },
+}, { _id: false });
+
 const chatMessageSchema = new mongoose.Schema(
   {
     sessionId: {
@@ -26,6 +60,14 @@ const chatMessageSchema = new mongoose.Schema(
       required: [true, 'Message is required'],
       trim: true,
       maxlength: [CHAT_LIMITS.MESSAGE_MAX_LENGTH, `Message cannot exceed ${CHAT_LIMITS.MESSAGE_MAX_LENGTH} characters`],
+    },
+    attachments: {
+      type: [attachmentSchema],
+      default: [],
+    },
+    related: {
+      type: relatedSchema,
+      default: null,
     },
     meta: {
       type: mongoose.Schema.Types.Mixed,

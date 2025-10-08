@@ -3,31 +3,48 @@ import { httpError } from '../utils/http.js';
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
     
-    if (!token) {
-      return next(httpError(401, 'Authentication required'));
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(httpError(401, 'Authentication required. Please provide a valid access token.'));
     }
     
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const accessToken = authHeader.split(' ')[1];
+    
+    if (!accessToken) {
+      return next(httpError(401, 'Access token is required'));
+    }
+    
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
     req.user = decoded;
     
     next();
   } catch (error) {
-    return next(httpError(401, 'Invalid or expired token'));
+    if (error.name === 'TokenExpiredError') {
+      return next(httpError(401, 'Access token has expired. Please refresh your token.'));
+    } else if (error.name === 'JsonWebTokenError') {
+      return next(httpError(401, 'Invalid access token'));
+    }
+    return next(httpError(401, 'Authentication failed'));
   }
 };
 
 export const authOptional = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization;
     
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-      } catch (error) {
-        // Token is invalid, but we continue without user
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const accessToken = authHeader.split(' ')[1];
+      
+      if (accessToken) {
+        try {
+          const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+          req.user = decoded;
+        } catch (error) {
+          // Token is invalid or expired, but we continue without user
+          req.user = null;
+        }
+      } else {
         req.user = null;
       }
     } else {

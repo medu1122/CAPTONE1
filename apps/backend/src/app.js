@@ -11,8 +11,8 @@ import { connectDB } from './config/db.js';
 // Initialize express app
 const app = express();
 
-// Connect to database (commented out for testing)
-// connectDB();
+// Connect to database
+connectDB();
 
 // Apply middleware
 app.use(helmet());

@@ -1,13 +1,186 @@
-# React + TypeScript + Vite
+# Frontend - Plant Analysis Chat Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern React + TypeScript + Vite application for plant analysis and chat functionality. This application provides an intuitive interface for users to analyze plants through chat interactions and view detailed analysis results.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19.1.1** - Modern React with latest features
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first CSS framework
+- **React Router DOM** - Client-side routing
+- **Radix UI** - Accessible component primitives
+- **Lucide React** - Beautiful icons
 
-## Expanding the ESLint configuration
+## 📁 Project Structure
+
+```
+src/
+├── components/           # Reusable UI components
+│   └── ui/              # Base UI components (Button, Card, Input, Toast)
+├── pages/               # Page components
+│   ├── Home/            # Landing page
+│   │   ├── components/
+│   │   │   ├── CommunityMarketplace.tsx
+│   │   │   ├── FarmerCommunity.tsx
+│   │   │   ├── FeatureHighlights.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── HeroSection.tsx
+│   │   │   └── HowItWorks.tsx
+│   │   └── index.tsx
+│   ├── AuthPage/        # Authentication page
+│   │   ├── components/
+│   │   │   ├── AuthCard.tsx
+│   │   │   ├── LoginFrom.tsx
+│   │   │   ├── RegisterFrom.tsx
+│   │   │   └── VerificationScreen.tsx
+│   │   ├── AuthPage.tsx
+│   │   └── index.tsx
+│   └── ChatAnalyzePage/ # Main chat analysis page
+│       ├── components/
+│       │   ├── analysis/    # Analysis result components
+│       │   │   ├── ImageAnalysisCard.tsx
+│       │   │   ├── OverviewCard.tsx
+│       │   │   └── ProductListCard.tsx
+│       │   ├── chat/        # Chat interface components
+│       │   │   ├── ChatHeader.tsx
+│       │   │   ├── ChatInput.tsx
+│       │   │   └── ChatMessages.tsx
+│       │   ├── history/     # Chat history components
+│       │   │   └── HistorySidebar.tsx
+│       │   └── layout/      # Layout components
+│       │       └── Header.tsx
+│       ├── hooks/           # Custom React hooks
+│       │   ├── useChat.ts
+│       │   └── useChatHistory.ts
+│       ├── lib/             # Utility libraries
+│       │   ├── mockApi.ts
+│       │   └── storage.ts
+│       ├── types/           # TypeScript type definitions
+│       │   └── analyze.types.ts
+│       ├── ChatAnalyzePage.tsx
+│       └── index.tsx
+├── assets/              # Static assets
+│   ├── icons/           # Icon files
+│   └── images/          # Image files
+├── lib/                 # Utility functions
+│   └── utils.ts
+├── App.tsx              # Main app component
+├── App.css              # Global styles
+├── index.css            # Base styles
+└── main.tsx             # Application entry point
+```
+
+## 🎯 Key Features
+
+### 1. **Home Page**
+- Hero section with compelling call-to-action
+- Feature highlights showcasing app capabilities
+- How it works section explaining the process
+- Community marketplace integration
+- Farmer community section
+
+### 2. **Authentication Page**
+- **Login Form**: Email/password authentication with validation
+- **Registration Form**: Complete signup with password strength indicator
+- **Email Verification**: Post-registration email verification flow
+- **Dark/Light Mode**: System preference detection with manual toggle
+- **Toast Notifications**: Success/error feedback system
+- **Form Validation**: Real-time validation with error messages
+- **Password Security**: Strength meter and requirements checklist
+
+### 3. **Chat Analysis Page**
+- **Real-time Chat Interface**: Interactive chat with plant analysis AI
+- **Analysis Results Panel**: Detailed analysis with:
+  - Overview cards with key insights
+  - Image analysis results
+  - Product recommendations
+- **Chat History**: Persistent conversation history with:
+  - Sidebar navigation
+  - Conversation management (create, rename, delete)
+  - Keyboard shortcuts (Ctrl+B to toggle sidebar)
+- **Responsive Design**: Mobile-first approach with adaptive layouts
+
+### 4. **Component Architecture**
+- **Modular Design**: Separated concerns with dedicated component folders
+- **Custom Hooks**: Reusable logic with `useChat` and `useChatHistory`
+- **Type Safety**: Comprehensive TypeScript definitions
+- **State Management**: Local storage integration for persistence
+
+## 🛠️ Development
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+```bash
+npm install
+```
+
+### Development Server
+```bash
+npm run dev
+```
+
+### Build for Production
+```bash
+npm run build
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+### Preview Production Build
+```bash
+npm run preview
+```
+
+## 🎨 Styling & UI
+
+- **Tailwind CSS**: Utility-first styling approach
+- **Responsive Design**: Mobile-first responsive layouts
+- **Component Library**: Custom UI components built on Radix UI
+- **Icons**: Lucide React icon library
+- **Animations**: Tailwind CSS animations
+
+## 🔧 Configuration
+
+### Vite Configuration
+- Path aliases configured (`@` points to `src/`)
+- React SWC plugin for fast compilation
+- TypeScript support
+
+### ESLint Configuration
+- TypeScript-aware linting rules
+- React-specific linting
+- Modern ESLint flat config format
+
+## 📱 Routing
+
+The application uses React Router DOM with the following routes:
+- `/` → Redirects to `/home`
+- `/home` → Landing page
+- `/auth` → Authentication page (login/register)
+- `/login` → Authentication page (login focused)
+- `/register` → Authentication page (register focused)
+- `/chat` → Chat analysis page
+- `/ChatAnalyzePage` → Alternative chat page route
+- `*` → 404 Not Found page
+
+## 🚀 Performance Features
+
+- **Code Splitting**: Automatic route-based code splitting
+- **Fast Refresh**: Hot module replacement for development
+- **Tree Shaking**: Unused code elimination
+- **TypeScript**: Compile-time type checking
+- **SWC**: Fast compilation with Rust-based tooling
+
+## 🔧 Advanced Configuration
+
+### Expanding the ESLint configuration
 
 If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 

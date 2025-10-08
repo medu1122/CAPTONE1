@@ -10,11 +10,18 @@ import { CHAT_SUCCESS } from './chat.constants.js';
  */
 export const startSession = async (req, res, next) => {
   try {
-    const userId = req.user?.id || null;
-    const result = await chatService.createSession({ userId });
+    const userId = req.user.id;
+    const { title, meta } = req.body;
+    const result = await chatService.createSession({ 
+      userId, 
+      options: { title, meta } 
+    });
     
     const { statusCode, body } = httpSuccess(201, CHAT_SUCCESS.SESSION_CREATED, {
       sessionId: result.sessionId,
+      title: result.title,
+      createdAt: result.createdAt,
+      meta: result.meta,
     });
     
     res.status(statusCode).json(body);
@@ -31,14 +38,16 @@ export const startSession = async (req, res, next) => {
  */
 export const sendMessage = async (req, res, next) => {
   try {
-    const { sessionId, role, message, meta } = req.body;
-    const userId = req.user?.id || null;
+    const { sessionId, role, message, attachments, related, meta } = req.body;
+    const userId = req.user.id;
     
     const savedMessage = await chatService.appendMessage({
       sessionId,
       userId,
       role,
       message,
+      attachments,
+      related,
       meta,
     });
     
@@ -47,6 +56,8 @@ export const sendMessage = async (req, res, next) => {
       sessionId: savedMessage.sessionId,
       role: savedMessage.role,
       message: savedMessage.message,
+      attachments: savedMessage.attachments,
+      related: savedMessage.related,
       createdAt: savedMessage.createdAt,
     });
     
@@ -65,7 +76,7 @@ export const sendMessage = async (req, res, next) => {
 export const getHistory = async (req, res, next) => {
   try {
     const { sessionId, page, limit, q, from, to } = req.query;
-    const userId = req.user?.id || null;
+    const userId = req.user.id;
     
     const result = await chatService.getHistory({
       sessionId,
@@ -98,7 +109,7 @@ export const getHistory = async (req, res, next) => {
 export const listSessions = async (req, res, next) => {
   try {
     const { page, limit } = req.query;
-    const userId = req.user?.id || null;
+    const userId = req.user.id;
     
     const result = await chatService.listSessions({
       userId,
@@ -126,7 +137,7 @@ export const listSessions = async (req, res, next) => {
 export const deleteSession = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
-    const userId = req.user?.id || null;
+    const userId = req.user.id;
     
     const result = await chatService.deleteSession({ sessionId, userId });
     
@@ -150,7 +161,7 @@ export const deleteSession = async (req, res, next) => {
 export const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user?.id || null;
+    const userId = req.user.id;
     
     const result = await chatService.deleteMessage({ messageId, userId });
     

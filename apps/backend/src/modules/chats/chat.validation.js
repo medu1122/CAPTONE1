@@ -6,7 +6,26 @@ import { CHAT_ROLES, CHAT_LIMITS } from './chat.constants.js';
  * Validate start session request
  */
 export const validateStartSession = (req, res, next) => {
-  // No body validation needed for session creation
+  const schema = Joi.object({
+    title: Joi.string()
+      .allow(null, '')
+      .max(200)
+      .trim()
+      .messages({
+        'string.max': 'Title cannot exceed 200 characters',
+      }),
+    meta: Joi.object()
+      .default({})
+      .messages({
+        'object.base': 'Meta must be an object',
+      }),
+  });
+  
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return next(httpError(400, error.details[0].message));
+  }
+  
   next();
 };
 
@@ -14,11 +33,45 @@ export const validateStartSession = (req, res, next) => {
  * Validate send message request
  */
 export const validateSendMessage = (req, res, next) => {
-  const schema = Joi.object({
-    sessionId: Joi.string().required().messages({
-      'string.empty': 'Session ID is required',
-      'any.required': 'Session ID is required',
+  const attachmentSchema = Joi.object({
+    url: Joi.string().required().messages({
+      'string.empty': 'Attachment URL is required',
+      'any.required': 'Attachment URL is required',
     }),
+    filename: Joi.string().required().messages({
+      'string.empty': 'Attachment filename is required',
+      'any.required': 'Attachment filename is required',
+    }),
+    mimeType: Joi.string().required().messages({
+      'string.empty': 'Attachment mime type is required',
+      'any.required': 'Attachment mime type is required',
+    }),
+    size: Joi.number().required().min(1).messages({
+      'number.base': 'Attachment size must be a number',
+      'number.min': 'Attachment size must be greater than 0',
+      'any.required': 'Attachment size is required',
+    }),
+  });
+
+  const relatedSchema = Joi.object({
+    analysisId: Joi.string().optional(),
+    plantId: Joi.string().optional(),
+    postId: Joi.string().optional(),
+  }).min(1).messages({
+    'object.min': 'Related must have at least one reference',
+  });
+
+  const schema = Joi.object({
+    sessionId: Joi.string()
+      .required()
+      .length(36)
+      .pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+      .messages({
+        'string.empty': 'Session ID is required',
+        'string.length': 'Session ID must be a valid UUID',
+        'string.pattern.base': 'Session ID must be a valid UUID v4',
+        'any.required': 'Session ID is required',
+      }),
     role: Joi.string()
       .valid(...Object.values(CHAT_ROLES))
       .default(CHAT_ROLES.USER)
@@ -34,6 +87,18 @@ export const validateSendMessage = (req, res, next) => {
         'string.min': 'Message cannot be empty',
         'string.max': `Message cannot exceed ${CHAT_LIMITS.MESSAGE_MAX_LENGTH} characters`,
         'any.required': 'Message is required',
+      }),
+    attachments: Joi.array()
+      .items(attachmentSchema)
+      .default([])
+      .messages({
+        'array.base': 'Attachments must be an array',
+      }),
+    related: Joi.object()
+      .allow(null)
+      .default(null)
+      .messages({
+        'object.base': 'Related must be an object',
       }),
     meta: Joi.object().default({}).messages({
       'object.base': 'Meta must be an object',

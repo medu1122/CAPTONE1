@@ -45,7 +45,10 @@ src/
     ├── auth/             # User authentication
     ├── analyze/          # Plant analysis (AI)
     ├── analyses/         # Analysis history
-    ├── chats/            # Chat history (NEW)
+    ├── chats/            # Chat history
+    ├── chatSessions/     # Chat session management (NEW)
+    ├── emailVerification/# Email verification (NEW)
+    ├── passwordReset/    # Password reset (NEW)
     ├── plants/           # Plant management
     ├── posts/            # Community posts
     ├── alerts/           # Weather alerts
@@ -134,6 +137,9 @@ http://localhost:4000/api/v1
 |--------|----------|-------------|---------------|
 | POST | `/auth/register` | Đăng ký user mới | ❌ |
 | POST | `/auth/login` | Đăng nhập | ❌ |
+| POST | `/auth/refresh` | Refresh access token | ❌ |
+| POST | `/auth/logout` | Đăng xuất | ✅ |
+| POST | `/auth/logout-all` | Đăng xuất tất cả thiết bị | ✅ |
 | GET | `/auth/profile` | Lấy thông tin profile | ✅ |
 
 ### 2. Plant Analysis (`/analyze`)
@@ -191,17 +197,43 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 3. Chat History (`/chat`) - NEW
+### 3. Email Verification (`/email-verification`) - NEW
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | `/chat/sessions/start` | Tạo session chat mới | ❌ |
-| POST | `/chat/messages` | Gửi tin nhắn | ❌ |
-| GET | `/chat/history` | Lấy lịch sử chat | ❌ |
-| GET | `/chat/sessions` | Danh sách session | ❌ |
-| DELETE | `/chat/sessions/:id` | Xóa session | ❌ |
-| DELETE | `/chat/messages/:id` | Xóa tin nhắn | ❌ |
+| POST | `/email-verification/create-token` | Tạo verification token | ❌ |
+| POST | `/email-verification/verify` | Xác thực email | ❌ |
+| GET | `/email-verification/status` | Kiểm tra trạng thái xác thực | ✅ |
+| POST | `/email-verification/resend` | Gửi lại email xác thực | ✅ |
 
-### 4. Plants (`/plants`)
+### 4. Password Reset (`/password-reset`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/password-reset/request` | Yêu cầu reset password | ❌ |
+| POST | `/password-reset/validate-token` | Xác thực reset token | ❌ |
+| POST | `/password-reset/reset` | Reset password | ❌ |
+| GET | `/password-reset/pending-resets` | Kiểm tra reset đang chờ | ✅ |
+
+### 5. Chat Sessions (`/chat-sessions`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/chat-sessions` | Tạo session mới | ✅ |
+| GET | `/chat-sessions` | Danh sách sessions | ✅ |
+| GET | `/chat-sessions/:sessionId` | Chi tiết session | ✅ |
+| PUT | `/chat-sessions/:sessionId/title` | Cập nhật tiêu đề | ✅ |
+| PUT | `/chat-sessions/:sessionId/meta` | Cập nhật metadata | ✅ |
+| DELETE | `/chat-sessions/:sessionId` | Xóa session | ✅ |
+
+### 6. Chat History (`/chat`) - ENHANCED
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/chat/sessions/start` | Tạo session chat mới | ✅ |
+| POST | `/chat/messages` | Gửi tin nhắn (với attachments) | ✅ |
+| GET | `/chat/history` | Lấy lịch sử chat | ✅ |
+| GET | `/chat/sessions` | Danh sách session | ✅ |
+| DELETE | `/chat/sessions/:id` | Xóa session | ✅ |
+| DELETE | `/chat/messages/:id` | Xóa tin nhắn | ✅ |
+
+### 7. Plants (`/plants`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/plants` | Lấy danh sách cây | ❌ |
@@ -210,7 +242,7 @@ lon: 106.660172 (optional)
 | PUT | `/plants/:id` | Cập nhật cây | ✅ |
 | DELETE | `/plants/:id` | Xóa cây | ✅ |
 
-### 5. Posts (`/posts`)
+### 8. Posts (`/posts`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/posts` | Lấy danh sách bài đăng | ❌ |
@@ -219,7 +251,7 @@ lon: 106.660172 (optional)
 | PUT | `/posts/:id` | Cập nhật bài đăng | ✅ |
 | DELETE | `/posts/:id` | Xóa bài đăng | ✅ |
 
-### 6. Alerts (`/alerts`)
+### 9. Alerts (`/alerts`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/alerts` | Lấy danh sách cảnh báo | ✅ |
@@ -227,7 +259,7 @@ lon: 106.660172 (optional)
 | PUT | `/alerts/:id` | Cập nhật cảnh báo | ✅ |
 | DELETE | `/alerts/:id` | Xóa cảnh báo | ✅ |
 
-### 7. Health Check (`/health`)
+### 10. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -239,9 +271,10 @@ lon: 106.660172 (optional)
 {
   _id: ObjectId,
   name: String (required),
-  email: String (required, unique),
-  password: String (required, hashed),
+  email: String (required, unique, indexed),
+  passwordHash: String (required, hashed, select: false),
   role: String (enum: ['user', 'admin']),
+  status: String (enum: ['active', 'blocked']),
   profileImage: String,
   isVerified: Boolean,
   resetPasswordToken: String,
@@ -251,7 +284,60 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 2. Plant Collection
+### 2. Auth Tokens Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  user: ObjectId (ref: 'User', required),
+  refreshTokenHash: String (required, unique),
+  userAgent: String,
+  ip: String,
+  expiresAt: Date (TTL index),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3. Email Verifications Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  user: ObjectId (ref: 'User', required),
+  tokenHash: String (required, unique),
+  expiresAt: Date (TTL index, 24 hours),
+  createdAt: Date,
+  used: Boolean (default: false)
+}
+```
+
+### 4. Password Resets Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  user: ObjectId (ref: 'User', required),
+  tokenHash: String (required, unique),
+  expiresAt: Date (TTL index, 1 hour),
+  createdAt: Date,
+  used: Boolean (default: false)
+}
+```
+
+### 5. Chat Sessions Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  sessionId: String (required, unique, UUID v4),
+  user: ObjectId (ref: 'User', required),
+  title: String (nullable, max 200 chars),
+  lastMessageAt: Date (indexed),
+  messagesCount: Number (default: 0),
+  meta: Object (nullable),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 6. Plant Collection
 ```javascript
 {
   _id: ObjectId,
@@ -285,7 +371,7 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 3. Post Collection
+### 7. Post Collection
 ```javascript
 {
   _id: ObjectId,
@@ -309,21 +395,32 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 4. ChatMessage Collection (NEW)
+### 8. ChatMessage Collection (ENHANCED)
 ```javascript
 {
   _id: ObjectId,
   sessionId: String (required, indexed),
-  user: ObjectId (ref: 'User', optional),
+  user: ObjectId (ref: 'User', required),
   role: String (enum: ['user', 'assistant', 'system']),
   message: String (required, max: 8000),
+  attachments: [{
+    url: String (required),
+    filename: String (required),
+    mimeType: String (required),
+    size: Number (required)
+  }],
+  related: {
+    analysisId: ObjectId (ref: 'Analysis'),
+    plantId: ObjectId (ref: 'Plant'),
+    postId: ObjectId (ref: 'Post')
+  },
   meta: Mixed (optional),
   createdAt: Date (indexed),
   updatedAt: Date
 }
 ```
 
-### 5. Alert Collection
+### 9. Alert Collection
 ```javascript
 {
   _id: ObjectId,
@@ -348,62 +445,26 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 6. Analysis Collection
+### 10. Analysis Collection (ENHANCED)
 ```javascript
 {
   _id: ObjectId,
-  user: ObjectId (ref: 'User'),
-  image: {
+  user: ObjectId (ref: 'User', required, indexed),
+  source: String (required, enum: ['plantid', 'manual', 'ai']),
+  inputImages: [{
     url: String,
-    publicId: String
-  },
-  query: {
-    text: String,
-    imageBase64: String
-  },
-  result: {
-    plantIdentification: {
-      isPlant: Boolean,
-      probability: Number,
-      suggestions: [{
-        id: String,
-        name: String,
-        commonNames: [String],
-        scientificName: String,
-        probability: Number,
-        details: {
-          wikiDescription: String,
-          taxonomy: Object,
-          url: String
-        }
-      }]
+    base64: String,
+    metadata: Object
+  }],
+  resultTop: {
+    plant: {
+      commonName: String,
+      scientificName: String
     },
-    healthAssessment: {
-      isHealthy: Boolean,
-      diseases: [{
-        name: String,
-        probability: Number,
-        description: String,
-        treatment: String
-      }]
-    },
-    careInstructions: {
-      watering: String,
-      sunlight: String,
-      soil: String,
-      fertilizer: String,
-      pruning: String
-    },
-    products: [{
-      name: String,
-      description: String,
-      category: String,
-      price: Number,
-      url: String,
-      imageUrl: String
-    }]
+    confidence: Number,
+    summary: String
   },
-  status: String (enum: ['pending', 'completed', 'failed']),
+  raw: Mixed (nullable),
   createdAt: Date,
   updatedAt: Date
 }
@@ -631,9 +692,13 @@ GET /api/v1/health
 ## 🔮 Roadmap
 
 ### Completed Features ✅
-- ✅ User authentication (JWT)
+- ✅ User authentication (JWT with refresh tokens)
+- ✅ Email verification system
+- ✅ Password reset functionality
+- ✅ Chat sessions management
+- ✅ Enhanced chat messages (attachments, related)
 - ✅ Plant analysis API (mock)
-- ✅ Chat history system
+- ✅ Enhanced analysis model
 - ✅ Plant management CRUD
 - ✅ Community posts
 - ✅ Weather alerts system
@@ -641,18 +706,20 @@ GET /api/v1/health
 - ✅ Rate limiting
 - ✅ Error handling
 - ✅ Input validation
+- ✅ Database optimization (indexes, TTL)
 
 ### Planned Features 🚧
 - 🔄 Real AI integration (Plant.id API)
 - 🔄 Cloudinary image storage
 - 🔄 WebSocket for real-time chat
-- 🔄 Email notifications
+- 🔄 Email notifications (nodemailer integration)
 - 🔄 Push notifications
 - 🔄 Analytics dashboard
 - 🔄 API documentation (Swagger)
 - 🔄 Unit tests
 - 🔄 Integration tests
 - 🔄 Performance monitoring
+- 🔄 Migration scripts for existing data
 
 ## 🤝 Contributing
 
