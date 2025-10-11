@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { EyeIcon, EyeOffIcon, CheckIcon, XIcon } from 'lucide-react'
+import { authService } from '../../../services/authService'
 interface RegisterFormProps {
   isDarkMode: boolean
   showToast: (message: string, type: 'success' | 'error' | 'info') => void
@@ -164,12 +165,37 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
     setLoading(true)
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Real API call
+      const response = await authService.register({
+        name: fullName,
+        email,
+        password,
+      })
+      
       showToast('Đăng ký thành công!', 'success')
       onRegistrationSuccess(email)
-    } catch (error) {
-      showToast('Đăng ký thất bại. Vui lòng thử lại.', 'error')
+      
+    } catch (error: any) {
+      console.error('Registration error:', error)
+      
+      // Handle different types of errors
+      if (error.response?.status === 400) {
+        // Validation errors
+        const apiErrors = error.response.data.errors
+        if (apiErrors) {
+          setErrors(apiErrors)
+        } else {
+          showToast(error.response.data.message || 'Thông tin không hợp lệ', 'error')
+        }
+      } else if (error.response?.status === 409) {
+        showToast('Email này đã được sử dụng', 'error')
+      } else if (error.response?.status === 429) {
+        showToast('Quá nhiều lần thử, vui lòng đợi một chút', 'error')
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        showToast('Không thể kết nối đến server', 'error')
+      } else {
+        showToast('Đăng ký thất bại. Vui lòng thử lại.', 'error')
+      }
     } finally {
       setLoading(false)
     }

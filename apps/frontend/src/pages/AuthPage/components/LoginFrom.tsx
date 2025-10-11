@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../contexts/AuthContext'
 interface LoginFormProps {
   isDarkMode: boolean
   showToast: (message: string, type: 'success' | 'error' | 'info') => void
@@ -8,6 +10,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   isDarkMode,
   showToast,
 }) => {
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -58,13 +62,37 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     }
     setLoading(true)
     try {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      // For demo purposes, let's pretend login was successful
+      // Use AuthContext login
+      await login(email, password)
+      
       showToast('Đăng nhập thành công!', 'success')
-      // In a real app, we would redirect or update auth state here
-    } catch (error) {
-      showToast('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.', 'error')
+      
+      // Redirect to chat page after successful login
+      setTimeout(() => {
+        navigate('/chat')
+      }, 1000)
+      
+    } catch (error: any) {
+      console.error('Login error:', error)
+      
+      // Handle different types of errors
+      if (error.response?.status === 400) {
+        // Validation errors
+        const apiErrors = error.response.data.errors
+        if (apiErrors) {
+          setErrors(apiErrors)
+        } else {
+          showToast(error.response.data.message || 'Thông tin không hợp lệ', 'error')
+        }
+      } else if (error.response?.status === 401) {
+        showToast('Email hoặc mật khẩu không đúng', 'error')
+      } else if (error.response?.status === 429) {
+        showToast('Quá nhiều lần thử, vui lòng đợi một chút', 'error')
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        showToast('Không thể kết nối đến server', 'error')
+      } else {
+        showToast('Đăng nhập thất bại. Vui lòng thử lại.', 'error')
+      }
     } finally {
       setLoading(false)
     }

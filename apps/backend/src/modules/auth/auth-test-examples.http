@@ -1,13 +1,26 @@
-### Enhanced Auth API Test Examples
-### Sử dụng với REST Client extension trong VS Code
+### Enhanced Authentication API Test Examples
+### Use with VS Code REST Client or Postman
 
-@baseUrl = http://localhost:4000/api/v1/auth
-@accessToken = Bearer your-access-token-here
-@refreshToken = your-refresh-token-here
+@baseUrl = http://localhost:4000/api/v1
+@contentType = application/json
 
-### 1. Register New User
-POST {{baseUrl}}/register
-Content-Type: application/json
+### Variables
+@accessToken = 
+@refreshToken = 
+@userId = 
+
+### ===========================================
+### 1. HEALTH CHECK
+### ===========================================
+
+GET {{baseUrl}}/health
+
+### ===========================================
+### 2. USER REGISTRATION
+### ===========================================
+
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
 
 {
   "name": "John Doe",
@@ -15,101 +28,214 @@ Content-Type: application/json
   "password": "SecurePass123"
 }
 
-### 2. Login User
-POST {{baseUrl}}/login
-Content-Type: application/json
+### ===========================================
+### 3. USER LOGIN
+### ===========================================
+
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
 
 {
   "email": "john.doe@example.com",
   "password": "SecurePass123"
 }
 
-### 3. Refresh Access Token
-POST {{baseUrl}}/refresh
-Content-Type: application/json
+### ===========================================
+### 4. GET USER PROFILE (Protected)
+### ===========================================
+
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{accessToken}}
+
+### ===========================================
+### 5. REFRESH ACCESS TOKEN
+### ===========================================
+
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
 
 {
   "refreshToken": "{{refreshToken}}"
 }
 
-### 4. Get User Profile
-GET {{baseUrl}}/profile
-Authorization: {{accessToken}}
+### ===========================================
+### 6. LOGOUT CURRENT DEVICE
+### ===========================================
 
-### 5. Logout (Revoke Refresh Token)
-POST {{baseUrl}}/logout
-Authorization: {{accessToken}}
-Content-Type: application/json
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
 
 {
   "refreshToken": "{{refreshToken}}"
 }
 
-### 6. Logout from All Devices
-POST {{baseUrl}}/logout-all
-Authorization: {{accessToken}}
+### ===========================================
+### 7. LOGOUT ALL DEVICES
+### ===========================================
 
-### 7. Test Validation - Weak Password
-POST {{baseUrl}}/register
-Content-Type: application/json
+POST {{baseUrl}}/auth/logout-all
+Authorization: Bearer {{accessToken}}
+
+### ===========================================
+### 8. ERROR SCENARIOS - INVALID CREDENTIALS
+### ===========================================
+
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
 
 {
-  "name": "Test User",
-  "email": "test@example.com",
-  "password": "weak"
+  "email": "john.doe@example.com",
+  "password": "WrongPassword"
 }
 
-### 8. Test Validation - Invalid Email
-POST {{baseUrl}}/register
-Content-Type: application/json
+### ===========================================
+### 9. ERROR SCENARIOS - DUPLICATE EMAIL
+### ===========================================
+
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
 
 {
-  "name": "Test User",
+  "name": "Jane Doe",
+  "email": "john.doe@example.com",
+  "password": "AnotherPass123"
+}
+
+### ===========================================
+### 10. ERROR SCENARIOS - WEAK PASSWORD
+### ===========================================
+
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Weak User",
+  "email": "weak@example.com",
+  "password": "123"
+}
+
+### ===========================================
+### 11. ERROR SCENARIOS - INVALID EMAIL
+### ===========================================
+
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Invalid User",
   "email": "invalid-email",
-  "password": "SecurePass123"
+  "password": "ValidPass123"
 }
 
-### 9. Test Validation - Missing Fields
-POST {{baseUrl}}/register
-Content-Type: application/json
+### ===========================================
+### 12. ERROR SCENARIOS - MISSING FIELDS
+### ===========================================
+
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
 
 {
-  "name": "Test User"
+  "name": "Incomplete User"
 }
 
-### 10. Test Login with Wrong Password
-POST {{baseUrl}}/login
-Content-Type: application/json
+### ===========================================
+### 13. ERROR SCENARIOS - EXPIRED TOKEN
+### ===========================================
+
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer expired_token_here
+
+### ===========================================
+### 14. ERROR SCENARIOS - INVALID TOKEN FORMAT
+### ===========================================
+
+GET {{baseUrl}}/auth/profile
+Authorization: InvalidFormat
+
+### ===========================================
+### 15. ERROR SCENARIOS - MISSING TOKEN
+### ===========================================
+
+GET {{baseUrl}}/auth/profile
+
+### ===========================================
+### 16. RATE LIMITING TEST (Run multiple times quickly)
+### ===========================================
+
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
 
 {
   "email": "john.doe@example.com",
-  "password": "wrongpassword"
-}
-
-### 11. Test Access Protected Route Without Token
-GET {{baseUrl}}/profile
-
-### 12. Test Access Protected Route with Invalid Token
-GET {{baseUrl}}/profile
-Authorization: Bearer invalid-token
-
-### 13. Test Refresh with Invalid Token
-POST {{baseUrl}}/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "invalid-refresh-token"
-}
-
-### 14. Test Register with Existing Email
-POST {{baseUrl}}/register
-Content-Type: application/json
-
-{
-  "name": "Another User",
-  "email": "john.doe@example.com",
   "password": "SecurePass123"
 }
 
-### 15. Health Check
-GET http://localhost:4000/api/v1/health
+### ===========================================
+### 17. CHAT INTEGRATION TEST (Requires valid token)
+### ===========================================
+
+POST {{baseUrl}}/chat/sessions/start
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "My Plant Chat Session",
+  "meta": {
+    "plantType": "indoor",
+    "difficulty": "beginner"
+  }
+}
+
+### ===========================================
+### 18. CHAT MESSAGE TEST (Requires valid token)
+### ===========================================
+
+POST {{baseUrl}}/chat/messages
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "sessionId": "your-session-id-here",
+  "role": "user",
+  "message": "Hello, I need help with my plant",
+  "attachments": [],
+  "related": null,
+  "meta": {}
+}
+
+### ===========================================
+### 19. EMAIL VERIFICATION TEST
+### ===========================================
+
+POST {{baseUrl}}/email-verification/create-token
+Content-Type: {{contentType}}
+
+{
+  "userId": "{{userId}}"
+}
+
+### ===========================================
+### 20. PASSWORD RESET TEST
+### ===========================================
+
+POST {{baseUrl}}/password-reset/request
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com"
+}
+
+### ===========================================
+### NOTES:
+### ===========================================
+### 1. Copy accessToken and refreshToken from login response
+### 2. Copy userId from register response
+### 3. Test rate limiting by running requests quickly
+### 4. Test error scenarios to verify proper error handling
+### 5. All protected routes require valid Bearer token
+### 6. Rate limiting applies to all auth endpoints
+### 7. Password must meet complexity requirements
+### 8. Email must be valid format and unique
+### 9. Tokens expire based on JWT_ACCESS_EXPIRES setting
+### 10. Refresh tokens expire based on JWT_REFRESH_EXPIRES_DAYS setting
