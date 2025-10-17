@@ -4,6 +4,7 @@ import { ChatAnalyzePage } from './pages/ChatAnalyzePage/ChatAnalyzePage'
 import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { AuthProvider } from './contexts/AuthContext'
+import { ChatAnalyzeProvider } from './contexts/ChatAnalyzeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 
@@ -22,7 +23,9 @@ function App() {
             path="/chat" 
             element={
               <ProtectedRoute>
-                <ChatAnalyzePage />
+                <ChatAnalyzeProvider>
+                  <ChatAnalyzePage />
+                </ChatAnalyzeProvider>
               </ProtectedRoute>
             } 
           />
@@ -30,7 +33,9 @@ function App() {
             path="/ChatAnalyzePage" 
             element={
               <ProtectedRoute>
-                <ChatAnalyzePage />
+                <ChatAnalyzeProvider>
+                  <ChatAnalyzePage />
+                </ChatAnalyzeProvider>
               </ProtectedRoute>
             } 
           />

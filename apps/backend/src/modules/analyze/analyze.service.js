@@ -1,4 +1,5 @@
 import { httpError } from '../../common/utils/http.js';
+import { getPlantCareInfo } from '../plants/plant.service.js';
 
 /**
  * Mock analysis service that returns AnalysisResult according to the required schema
@@ -50,8 +51,24 @@ export const analyzeService = async ({ text, imageUrl }) => {
       };
     }
     
-    // Care instructions
-    const care = [
+    // Get plant care information from database
+    let plantCareInfo = null;
+    try {
+      plantCareInfo = await getPlantCareInfo({ plantName });
+    } catch (error) {
+      console.warn('Failed to get plant care info:', error.message);
+    }
+
+    // Use database care instructions if available, otherwise use default
+    const care = plantCareInfo?.careInstructions ? [
+      `Tưới nước: ${plantCareInfo.careInstructions.watering}`,
+      `Ánh sáng: ${plantCareInfo.careInstructions.sunlight}`,
+      `Đất trồng: ${plantCareInfo.careInstructions.soil}`,
+      `Nhiệt độ: ${plantCareInfo.careInstructions.temperature}`,
+      ...(plantCareInfo.growthStages?.map(stage => 
+        `${stage.stage}: ${stage.description} (${stage.duration})`
+      ) || [])
+    ] : [
       'Tưới nước khi đất khô 2-3cm trên bề mặt',
       'Đặt cây ở nơi có ánh sáng gián tiếp, tránh ánh nắng trực tiếp',
       'Bón phân hữu cơ 2-3 tuần một lần trong mùa sinh trưởng',
@@ -125,7 +142,13 @@ export const analyzeService = async ({ text, imageUrl }) => {
       confidence: confidence,
       care: care,
       products: products,
-      imageInsights: imageInsights
+      imageInsights: imageInsights,
+      // Add enhanced plant information if available
+      plantInfo: plantCareInfo ? {
+        category: plantCareInfo.category,
+        commonDiseases: plantCareInfo.commonDiseases,
+        growthStages: plantCareInfo.growthStages
+      } : null
     };
     
   } catch (error) {

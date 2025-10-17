@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import react from '@vitejs/plugin-react-swc'
+import { Buffer } from 'buffer'
 
 // https://vite.dev/config/
 // __dirname is not available in ESM; recreate it
@@ -15,4 +16,18 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    global: 'globalThis',
+    'process.env': '{}',
+    'process': '{}',
+    'Buffer': Buffer,
+  },
+  optimizeDeps: {
+    include: ['cloudinary'],
+  },
+  server: {
+    fs: {
+      allow: ['..']
+    }
+  }
 })

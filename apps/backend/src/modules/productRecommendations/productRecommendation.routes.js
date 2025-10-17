@@ -11,7 +11,7 @@ import {
   validateSearchQuery,
   validateCreateProduct 
 } from './productRecommendation.validation.js';
-import { authenticate } from '../../common/middleware/auth.js';
+import { authMiddleware } from '../../common/middleware/auth.js';
 
 const router = express.Router();
 
@@ -48,6 +48,6 @@ router.get('/:productId', getProductRecommendationById);
  * @desc Create new product recommendation
  * @access Private
  */
-router.post('/', authenticate, validateCreateProduct, createProductRecommendation);
+router.post('/', authMiddleware, validateCreateProduct, createProductRecommendation);
 
 export default router;

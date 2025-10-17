@@ -1,6 +1,5 @@
-const { httpSuccess } = require('../../common/utils/http');
-const Post = require('./post.model');
-const { httpError } = require('../../common/utils/http');
+import { httpSuccess, httpError } from '../../common/utils/http.js';
+import Post from './post.model.js';
 
 /**
  * Create a new post
@@ -222,7 +221,7 @@ const toggleLike = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   createPost,
   getAllPosts,
   getPostById,

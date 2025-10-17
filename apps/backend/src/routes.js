@@ -9,6 +9,8 @@ import chatSessionRoutes from './modules/chatSessions/chatSession.routes.js';
 import weatherRoutes from './modules/weather/weather.routes.js';
 import productRecommendationRoutes from './modules/productRecommendations/productRecommendation.routes.js';
 import aiAssistantRoutes from './modules/aiAssistant/ai.routes.js';
+import chatAnalyzeRoutes from './modules/chatAnalyze/chatAnalyze.routes.js';
+import plantRoutes from './modules/plants/plant.routes.js';
 
 const router = express.Router();
 
@@ -23,5 +25,7 @@ router.use('/chat-sessions', chatSessionRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/products', productRecommendationRoutes);
 router.use('/ai', aiAssistantRoutes);
+router.use('/chat-analyze', chatAnalyzeRoutes);
+router.use('/plants', plantRoutes);
 
 export default router;

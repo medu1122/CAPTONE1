@@ -4,6 +4,7 @@ import ChatMessage from './chat.model.js';
 import ChatSession from '../chatSessions/chatSession.model.js';
 import { CHAT_ROLES, CHAT_LIMITS, CHAT_ERRORS } from './chat.constants.js';
 import { httpError } from '../../common/utils/http.js';
+import { getPlantCareInfo } from '../plants/plant.service.js';
 
 /**
  * Create a new chat session
@@ -298,33 +299,116 @@ export const deleteMessage = async ({ messageId, userId }) => {
 };
 
 /**
- * Generate assistant reply (TODO: Integrate with LLM)
+ * Generate assistant reply with plant context
  * @param {object} params - Parameters
  * @param {string} params.sessionId - Session ID
  * @param {Array} params.messages - Messages array
  * @returns {Promise<object>} Assistant reply
  */
 export const generateAssistantReply = async ({ sessionId, messages }) => {
-  // TODO: Integrate with LLM service
-  // This is a placeholder implementation
-  // Expected implementation:
-  // 1. Process messages array
-  // 2. Call LLM service (OpenAI, Claude, etc.)
-  // 3. Return structured response with metadata
-  
-  return {
-    role: CHAT_ROLES.ASSISTANT,
-    message: "(assistant reply placeholder - LLM integration pending)",
-    meta: {
-      provider: 'placeholder',
-      model: 'placeholder',
-      tokens: {
-        prompt: 0,
-        completion: 0,
-        total: 0,
+  try {
+    // Get the last user message
+    const lastUserMessage = messages.filter(msg => msg.role === CHAT_ROLES.USER).pop();
+    
+    if (!lastUserMessage) {
+      return {
+        role: CHAT_ROLES.ASSISTANT,
+        message: "Xin chào! Tôi là trợ lý GreenGrow. Bạn cần hỗ trợ gì về cây trồng?",
+        meta: {
+          provider: 'greengrow',
+          model: 'context-aware',
+          tokens: { prompt: 0, completion: 0, total: 0 },
+        },
+      };
+    }
+
+    const userQuery = lastUserMessage.message.toLowerCase();
+    let plantContext = null;
+    let responseMessage = "";
+
+    // Check if user is asking about specific plants
+    const plantKeywords = ['cây', 'plant', 'trồng', 'chăm sóc', 'lan', 'cà chua', 'dưa hấu', 'lúa', 'ngô'];
+    const hasPlantKeywords = plantKeywords.some(keyword => userQuery.includes(keyword));
+
+    if (hasPlantKeywords) {
+      // Try to extract plant name from query
+      const possiblePlantNames = ['lan', 'cà chua', 'dưa hấu', 'lúa', 'ngô', 'khoai', 'cà rốt', 'rau'];
+      const mentionedPlant = possiblePlantNames.find(plant => userQuery.includes(plant));
+      
+      if (mentionedPlant) {
+        try {
+          plantContext = await getPlantCareInfo({ plantName: mentionedPlant });
+        } catch (error) {
+          console.warn('Failed to get plant context:', error.message);
+        }
+      }
+    }
+
+    // Generate contextual response
+    if (plantContext) {
+      responseMessage = `Về cây ${plantContext.name} (${plantContext.scientificName}):\n\n`;
+      responseMessage += `**Hướng dẫn chăm sóc:**\n`;
+      responseMessage += `- Tưới nước: ${plantContext.careInstructions.watering}\n`;
+      responseMessage += `- Ánh sáng: ${plantContext.careInstructions.sunlight}\n`;
+      responseMessage += `- Đất trồng: ${plantContext.careInstructions.soil}\n`;
+      responseMessage += `- Nhiệt độ: ${plantContext.careInstructions.temperature}\n\n`;
+      
+      if (plantContext.commonDiseases && plantContext.commonDiseases.length > 0) {
+        responseMessage += `**Bệnh thường gặp:**\n`;
+        plantContext.commonDiseases.forEach(disease => {
+          responseMessage += `- ${disease.name}: ${disease.symptoms}\n`;
+          responseMessage += `  Cách điều trị: ${disease.treatment}\n\n`;
+        });
+      }
+      
+      if (plantContext.growthStages && plantContext.growthStages.length > 0) {
+        responseMessage += `**Các giai đoạn phát triển:**\n`;
+        plantContext.growthStages.forEach(stage => {
+          responseMessage += `- ${stage.stage}: ${stage.description} (${stage.duration})\n`;
+        });
+      }
+    } else if (userQuery.includes('trồng cây gì') || userQuery.includes('cây gì')) {
+      responseMessage = `Tôi có thể tư vấn về nhiều loại cây trồng như:\n`;
+      responseMessage += `- Cây cảnh: Lan, Monstera, Fiddle Leaf Fig\n`;
+      responseMessage += `- Rau củ: Cà chua, Dưa hấu, Cà rốt\n`;
+      responseMessage += `- Cây ăn quả: Xoài, Cam, Chanh\n`;
+      responseMessage += `- Cây lương thực: Lúa, Ngô, Khoai\n\n`;
+      responseMessage += `Bạn muốn tìm hiểu về loại cây nào cụ thể?`;
+    } else {
+      responseMessage = `Tôi có thể giúp bạn:\n`;
+      responseMessage += `- Tư vấn chăm sóc cây trồng\n`;
+      responseMessage += `- Phân tích bệnh cây qua hình ảnh\n`;
+      responseMessage += `- Gợi ý sản phẩm phù hợp\n`;
+      responseMessage += `- Hướng dẫn trồng cây theo mùa\n\n`;
+      responseMessage += `Bạn cần hỗ trợ gì cụ thể?`;
+    }
+
+    return {
+      role: CHAT_ROLES.ASSISTANT,
+      message: responseMessage,
+      meta: {
+        provider: 'greengrow',
+        model: 'context-aware',
+        tokens: { prompt: 0, completion: 0, total: 0 },
+        plantContext: plantContext ? {
+          name: plantContext.name,
+          category: plantContext.category
+        } : null,
       },
-    },
-  };
+    };
+  } catch (error) {
+    console.error('Error generating assistant reply:', error);
+    return {
+      role: CHAT_ROLES.ASSISTANT,
+      message: "Xin lỗi, đã xảy ra lỗi khi xử lý câu hỏi của bạn. Vui lòng thử lại sau.",
+      meta: {
+        provider: 'greengrow',
+        model: 'error-fallback',
+        tokens: { prompt: 0, completion: 0, total: 0 },
+        error: error.message,
+      },
+    };
+  }
 };
 
 export default {

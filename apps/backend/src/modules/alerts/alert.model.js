@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const alertSchema = new mongoose.Schema(
   {
@@ -67,4 +67,4 @@ alertSchema.index({ 'location.coordinates': '2dsphere' });
 
 const Alert = mongoose.model('Alert', alertSchema);
 
-module.exports = Alert;
+export default Alert;

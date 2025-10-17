@@ -17,7 +17,27 @@ connectDB();
 // Apply middleware
 app.use(helmet());
 app.use(compression());
-app.use(cors());
+
+// CORS configuration for SSE support
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Cache-Control',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  exposedHeaders: [
+    'Content-Type',
+    'Cache-Control',
+    'Connection'
+  ]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

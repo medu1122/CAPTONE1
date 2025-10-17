@@ -1,5 +1,6 @@
 import express from 'express';
 import chatController from './chat.controller.js';
+import { streamChatResponse } from './chat.stream.controller.js';
 import { 
   validateStartSession,
   validateSendMessage,
@@ -58,5 +59,12 @@ router.delete('/sessions/:sessionId', validateSessionId, chatController.deleteSe
  * @access Private (requires auth)
  */
 router.delete('/messages/:messageId', validateMessageId, chatController.deleteMessage);
+
+/**
+ * @route GET /api/chat/stream
+ * @desc Stream chat responses with Server-Sent Events
+ * @access Private (requires auth)
+ */
+router.get('/stream', streamChatResponse);
 
 export default router;

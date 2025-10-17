@@ -55,6 +55,7 @@ src/
     ├── weather/          # Weather data & alerts (NEW)
     ├── productRecommendations/ # Product recommendations (NEW)
     ├── aiAssistant/      # AI Assistant & GPT integration (NEW)
+    ├── chatAnalyze/      # Chat Analyze AI Layer (NEW)
     └── health/           # Health check
 ```
 
@@ -71,6 +72,8 @@ src/
 - **AI Integration**: GPT-3.5-turbo, Context-aware responses
 - **Weather**: OpenWeather API với caching
 - **Content Moderation**: Spam detection, Agricultural relevance
+- **Real-time Streaming**: Server-Sent Events (SSE) cho Chat Analyze
+- **Streaming**: Progressive AI responses, Real-time analysis
 
 ## 🚀 Cài Đặt
 
@@ -159,6 +162,7 @@ http://localhost:4000/api/v1
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/analyze` | Phân tích cây trồng từ ảnh/text | ❌ |
+| GET | `/analyze/stream` | **NEW** - Real-time analysis streaming (SSE) | ❌ |
 
 **Request Format:**
 ```bash
@@ -245,6 +249,7 @@ lon: 106.660172 (optional)
 | GET | `/chat/sessions` | Danh sách session | ✅ |
 | DELETE | `/chat/sessions/:id` | Xóa session | ✅ |
 | DELETE | `/chat/messages/:id` | Xóa tin nhắn | ✅ |
+| GET | `/chat/stream` | **NEW** - Real-time chat streaming (SSE) | ✅ |
 
 ### 7. Plants (`/plants`)
 | Method | Endpoint | Description | Auth Required |
@@ -294,7 +299,16 @@ lon: 106.660172 (optional)
 | POST | `/ai/analyze-image-need` | Phân tích nhu cầu xử lý ảnh | ❌ |
 | POST | `/ai/analyze-product-need` | Phân tích nhu cầu gợi ý sản phẩm | ❌ |
 
-### 13. Health Check (`/health`)
+### 13. Chat Analyze (`/chat-analyze`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/chat-analyze` | Main chat analyze endpoint | ❌ |
+| POST | `/chat-analyze/text` | Text-only processing | ❌ |
+| POST | `/chat-analyze/image` | Image-only processing | ❌ |
+| POST | `/chat-analyze/image-text` | Image + text processing | ❌ |
+| GET | `/chat-analyze/status` | System status | ❌ |
+
+### 14. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -575,6 +589,191 @@ lon: 106.660172 (optional)
   updatedAt: Date
 }
 ```
+
+## 🚀 Real-time Streaming (SSE)
+
+### Server-Sent Events (SSE) Endpoints
+
+Backend hỗ trợ **Server-Sent Events** cho real-time streaming của Chat Analyze và Plant Analysis.
+
+#### **1. Chat Stream**
+```bash
+GET /api/v1/chat/stream?message=Cách chăm sóc cây lan?&imageUrl=https://example.com/plant.jpg
+```
+
+**Query Parameters:**
+- `message` (string, optional): User message
+- `imageUrl` (string, optional): Image URL for analysis
+- `weather` (string, optional): Weather context (JSON string)
+- `sessionId` (string, optional): Chat session ID
+
+#### **2. Analyze Stream**
+```bash
+GET /api/v1/analyze/stream?image=https://example.com/plant.jpg&lat=10.762622&lon=106.660172
+```
+
+**Query Parameters:**
+- `image` (string, optional): Image data/URL
+- `text` (string, optional): Text description
+- `lat` (number, optional): Latitude
+- `lon` (number, optional): Longitude
+
+### SSE Event Types
+
+#### **Connection Events**
+```javascript
+// Initial connection
+event: connected
+data: {"status":"connected","timestamp":1234567890}
+
+// Processing started
+event: processing
+data: {"status":"processing","message":"Starting analysis..."}
+```
+
+#### **Analysis Events**
+```javascript
+// Analysis type detection
+event: analysis
+data: {"type":"detecting","message":"Detecting analysis type..."}
+
+// Plant context
+event: context
+data: {"type":"plant_context","message":"Analyzing plant context..."}
+
+// Image processing
+event: image
+data: {"type":"processing","message":"Processing image..."}
+
+// AI response chunks
+event: response
+data: {"partial":"Hello","chunk":0}
+```
+
+#### **Completion Events**
+```javascript
+// Analysis complete
+event: complete
+data: {"status":"complete","result":{...}}
+
+// Stream done
+data: [DONE]
+```
+
+#### **Error Events**
+```javascript
+// Error occurred
+event: error
+data: {"error":"Service unavailable","code":"SERVICE_ERROR"}
+```
+
+### Frontend Integration
+
+#### **JavaScript EventSource**
+```javascript
+// Connect to chat stream
+const eventSource = new EventSource('/api/v1/chat/stream?message=Cách chăm sóc cây lan?');
+
+// Handle different event types
+eventSource.addEventListener('connected', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Connected:', data);
+});
+
+eventSource.addEventListener('response', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Partial response:', data.partial);
+  // Append to chat UI
+});
+
+eventSource.addEventListener('complete', (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Analysis complete:', data.result);
+});
+
+eventSource.addEventListener('error', (event) => {
+  const data = JSON.parse(event.data);
+  console.error('Stream error:', data.error);
+});
+
+// Close connection
+eventSource.close();
+```
+
+#### **React Hook Example**
+```javascript
+import { useState, useEffect } from 'react';
+
+const useChatStream = (message, imageUrl) => {
+  const [response, setResponse] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!message && !imageUrl) return;
+
+    const eventSource = new EventSource(
+      `/api/v1/chat/stream?message=${encodeURIComponent(message)}&imageUrl=${encodeURIComponent(imageUrl || '')}`
+    );
+
+    setIsStreaming(true);
+    setResponse('');
+
+    eventSource.addEventListener('connected', () => {
+      console.log('Stream connected');
+    });
+
+    eventSource.addEventListener('response', (event) => {
+      const data = JSON.parse(event.data);
+      setResponse(prev => prev + data.partial);
+    });
+
+    eventSource.addEventListener('complete', () => {
+      setIsStreaming(false);
+      eventSource.close();
+    });
+
+    eventSource.addEventListener('error', (event) => {
+      const data = JSON.parse(event.data);
+      setError(data.error);
+      setIsStreaming(false);
+      eventSource.close();
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  }, [message, imageUrl]);
+
+  return { response, isStreaming, error };
+};
+```
+
+### Technical Specifications
+
+#### **Headers**
+```
+Content-Type: text/event-stream
+Cache-Control: no-cache
+Connection: keep-alive
+Access-Control-Allow-Origin: *
+```
+
+#### **Response Format**
+```
+event: eventName
+data: {"key":"value"}
+
+data: [DONE]
+```
+
+#### **Benefits**
+- ✅ **Real-time Experience** - Progressive AI responses
+- ✅ **Typing Effect** - ChatGPT-like experience
+- ✅ **No Polling** - Efficient resource usage
+- ✅ **Browser Native** - No additional libraries needed
+- ✅ **Automatic Reconnection** - Built-in resilience
+- ✅ **CORS Ready** - Cross-origin support
 
 ## 🛡️ Middleware
 
@@ -863,6 +1062,10 @@ GET /api/v1/health
 - ✅ **Weather caching system**
 - ✅ **Smart product recommendations**
 - ✅ **Context-aware AI responses**
+- ✅ **Real-time Streaming (SSE)** - Server-Sent Events cho Chat Analyze
+- ✅ **Progressive AI Responses** - Real-time typing effect
+- ✅ **Streaming Analysis** - Plant analysis với real-time updates
+- ✅ **CORS Support** - Cross-origin SSE support
 - ✅ File upload handling
 - ✅ Rate limiting
 - ✅ Error handling
@@ -872,7 +1075,8 @@ GET /api/v1/health
 ### Planned Features 🚧
 - 🔄 Real Plant.id API integration (thay thế mock)
 - 🔄 Cloudinary image storage
-- 🔄 WebSocket for real-time chat
+- 🔄 WebSocket for real-time chat (SSE đã implement)
+- 🔄 Advanced AI streaming với GPT API
 - 🔄 Email notifications (nodemailer integration)
 - 🔄 Push notifications
 - 🔄 Analytics dashboard

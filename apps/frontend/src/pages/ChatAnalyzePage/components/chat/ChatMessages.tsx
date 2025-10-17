@@ -1,13 +1,21 @@
 import React, { useEffect, useRef } from 'react'
 import type { Message } from '../../types/analyze.types'
 import { ImageIcon, Loader2Icon } from 'lucide-react'
+import { FloatingQuickActions } from './QuickActions'
+import { StreamingMessage } from '../../../../hooks/useStreamingResponse'
 interface ChatMessagesProps {
   messages: Message[]
   loading: boolean
+  onQuickAction?: (message: string) => void
+  streamingText?: string
+  isStreaming?: boolean
 }
 export const ChatMessages: React.FC<ChatMessagesProps> = ({
   messages,
   loading,
+  onQuickAction,
+  streamingText,
+  isStreaming,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollToBottom = () => {
@@ -22,9 +30,12 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center text-gray-500">
+          <div className="text-center text-gray-500 max-w-md">
             <p className="mb-2">Xin chào! Tôi là trợ lý GreenGrow.</p>
-            <p>Bạn cần hỗ trợ gì hôm nay?</p>
+            <p className="mb-6">Bạn cần hỗ trợ gì hôm nay?</p>
+            {onQuickAction && (
+              <FloatingQuickActions onAction={onQuickAction} />
+            )}
           </div>
         </div>
       ) : (
@@ -59,6 +70,15 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
             <Loader2Icon className="animate-spin" size={16} />
             <p>Đang phân tích...</p>
           </div>
+        </div>
+      )}
+      
+      {isStreaming && streamingText && (
+        <div className="flex justify-start">
+          <StreamingMessage 
+            text={streamingText} 
+            isStreaming={true}
+          />
         </div>
       )}
       <div ref={messagesEndRef} />

@@ -1,158 +1,268 @@
-const { httpSuccess } = require('../../common/utils/http');
-const Plant = require('./plant.model');
-const { httpError } = require('../../common/utils/http');
+import { 
+  getAllPlants, 
+  getPlantById, 
+  searchPlants, 
+  getPlantsByCategory,
+  createPlant,
+  updatePlant,
+  deletePlant
+} from './plant.service.js';
+import { httpError } from '../../common/utils/http.js';
 
 /**
- * Create a new plant
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
+ * Get all plants with pagination and filtering
+ * @param {object} req - Request object
+ * @param {object} res - Response object
  */
-const createPlant = async (req, res, next) => {
+export const getPlants = async (req, res) => {
   try {
-    const plantData = {
-      ...req.body,
-      createdBy: req.user.id,
-    };
-    
-    const plant = await Plant.create(plantData);
-    const { statusCode, body } = httpSuccess(201, 'Plant created successfully', plant);
-    
-    res.status(statusCode).json(body);
-  } catch (error) {
-    next(error);
-  }
-};
+    const { page, limit, category, search } = req.query;
 
-/**
- * Get all plants
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
- */
-const getAllPlants = async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, category, search } = req.query;
-    const query = {};
-    
-    // Filter by category
-    if (category) {
-      query.category = category;
-    }
-    
-    // Search by text
-    if (search) {
-      query.$text = { $search: search };
-    }
-    
-    const plants = await Plant.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
-    
-    const count = await Plant.countDocuments(query);
-    
-    const { statusCode, body } = httpSuccess(200, 'Plants retrieved successfully', {
-      plants,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page,
-      totalItems: count,
+    const result = await getAllPlants({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 20,
+      category,
+      search,
     });
-    
-    res.status(statusCode).json(body);
+
+    res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    next(error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 /**
  * Get plant by ID
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
+ * @param {object} req - Request object
+ * @param {object} res - Response object
  */
-const getPlantById = async (req, res, next) => {
+export const getPlant = async (req, res) => {
   try {
-    const plant = await Plant.findById(req.params.id);
-    
-    if (!plant) {
-      return next(httpError(404, 'Plant not found'));
-    }
-    
-    const { statusCode, body } = httpSuccess(200, 'Plant retrieved successfully', plant);
-    
-    res.status(statusCode).json(body);
+    const { id } = req.params;
+
+    const plant = await getPlantById({ plantId: id });
+
+    res.json({
+      success: true,
+      data: plant,
+    });
   } catch (error) {
-    next(error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Search plants
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const searchPlantsController = async (req, res) => {
+  try {
+    const { q, limit } = req.query;
+
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required',
+      });
+    }
+
+    const result = await searchPlants({
+      query: q,
+      limit: limit ? parseInt(limit) : 10,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Get plants by category
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const getPlantsByCategoryController = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { limit } = req.query;
+
+    const result = await getPlantsByCategory({
+      category,
+      limit: limit ? parseInt(limit) : 20,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Create new plant
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const createPlantController = async (req, res) => {
+  try {
+    const plantData = req.body;
+    const userId = req.user?.id; // From auth middleware
+
+    if (!userId) {
+      throw httpError(401, 'Authentication required');
+    }
+
+    const plant = await createPlant({
+      plantData,
+      userId,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: plant,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 /**
  * Update plant
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
+ * @param {object} req - Request object
+ * @param {object} res - Response object
  */
-const updatePlant = async (req, res, next) => {
+export const updatePlantController = async (req, res) => {
   try {
-    const plant = await Plant.findById(req.params.id);
-    
-    if (!plant) {
-      return next(httpError(404, 'Plant not found'));
+    const { id } = req.params;
+    const plantData = req.body;
+    const userId = req.user?.id; // From auth middleware
+
+    if (!userId) {
+      throw httpError(401, 'Authentication required');
     }
-    
-    // Check if user is authorized to update
-    if (plant.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
-      return next(httpError(403, 'Not authorized to update this plant'));
-    }
-    
-    const updatedPlant = await Plant.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    const { statusCode, body } = httpSuccess(200, 'Plant updated successfully', updatedPlant);
-    
-    res.status(statusCode).json(body);
+
+    const plant = await updatePlant({
+      plantId: id,
+      plantData,
+      userId,
+    });
+
+    res.json({
+      success: true,
+      data: plant,
+    });
   } catch (error) {
-    next(error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
 /**
  * Delete plant
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
+ * @param {object} req - Request object
+ * @param {object} res - Response object
  */
-const deletePlant = async (req, res, next) => {
+export const deletePlantController = async (req, res) => {
   try {
-    const plant = await Plant.findById(req.params.id);
-    
-    if (!plant) {
-      return next(httpError(404, 'Plant not found'));
+    const { id } = req.params;
+    const userId = req.user?.id; // From auth middleware
+
+    if (!userId) {
+      throw httpError(401, 'Authentication required');
     }
-    
-    // Check if user is authorized to delete
-    if (plant.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
-      return next(httpError(403, 'Not authorized to delete this plant'));
-    }
-    
-    await plant.remove();
-    
-    const { statusCode, body } = httpSuccess(200, 'Plant deleted successfully');
-    
-    res.status(statusCode).json(body);
+
+    const result = await deletePlant({
+      plantId: id,
+      userId,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
-    next(error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 
-module.exports = {
-  createPlant,
-  getAllPlants,
-  getPlantById,
-  updatePlant,
-  deletePlant,
+export default {
+  getPlants,
+  getPlant,
+  searchPlantsController,
+  getPlantsByCategoryController,
+  createPlantController,
+  updatePlantController,
+  deletePlantController,
 };

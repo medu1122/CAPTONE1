@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary').v2;
+import cloudinary from 'cloudinary';
 
 // Configure cloudinary
 cloudinary.config({
@@ -36,7 +36,7 @@ const deleteFile = async (publicId) => {
   }
 };
 
-module.exports = {
+export default {
   cloudinary,
   uploadFile,
   deleteFile,

@@ -1,6 +1,7 @@
 import React from 'react'
 import { AlertTriangleIcon, CheckCircleIcon } from 'lucide-react'
 import type { AnalysisResult } from '../../types/analyze.types'
+import { ShareAnalysis } from './ShareAnalysis'
 interface OverviewCardProps {
   result: AnalysisResult | null
 }
@@ -17,7 +18,10 @@ export const OverviewCard: React.FC<OverviewCardProps> = ({ result }) => {
   const confidencePercent = Math.round(result.confidence * 100)
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6">
-      <h2 className="text-lg font-medium mb-4">Phân tích tổng quan</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-medium">Phân tích tổng quan</h2>
+        <ShareAnalysis result={result} />
+      </div>
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           {hasDiagnosis ? (

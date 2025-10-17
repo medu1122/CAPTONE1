@@ -18,9 +18,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <MenuIcon size={20} />
       </button>
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
           <img
-            src="/src/assets/icons/chatbotplant_headerchat.png"
+            src="https://uploadthingy.s3.us-west-1.amazonaws.com/5V8nNQaxB49NbKVCBghzdc/iconHeader_GreenGrow.png"
             alt="GreenGrow Logo"
             className="w-5 h-5 object-contain"
           />
