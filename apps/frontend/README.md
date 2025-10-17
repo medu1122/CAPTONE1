@@ -48,11 +48,14 @@ src/
 │       │   │   └── ChatMessages.tsx
 │       │   ├── history/     # Chat history components
 │       │   │   └── HistorySidebar.tsx
-│       │   └── layout/      # Layout components
-│       │       └── Header.tsx
+│       │   ├── layout/      # Layout components
+│       │   │   └── Header.tsx
+│       │   └── weather/     # Weather information components
+│       │       └── WeatherLocationCard.tsx
 │       ├── hooks/           # Custom React hooks
 │       │   ├── useChat.ts
-│       │   └── useChatHistory.ts
+│       │   ├── useChatHistory.ts
+│       │   └── useWeatherLocation.ts
 │       ├── lib/             # Utility libraries
 │       │   ├── mockApi.ts
 │       │   └── storage.ts
@@ -91,21 +94,80 @@ src/
 
 ### 3. **Chat Analysis Page**
 - **Real-time Chat Interface**: Interactive chat with plant analysis AI
+- **Weather Integration**: Current weather information with:
+  - Location-based weather data
+  - 7-day forecast display
+  - Weather-aware plant care suggestions
+  - Location selector with search functionality
 - **Analysis Results Panel**: Detailed analysis with:
   - Overview cards with key insights
-  - Image analysis results
+  - Image analysis results with bounding boxes
   - Product recommendations
 - **Chat History**: Persistent conversation history with:
-  - Sidebar navigation
+  - Sidebar navigation with rail mode
   - Conversation management (create, rename, delete)
   - Keyboard shortcuts (Ctrl+B to toggle sidebar)
+  - Focus trap and accessibility features
 - **Responsive Design**: Mobile-first approach with adaptive layouts
 
 ### 4. **Component Architecture**
 - **Modular Design**: Separated concerns with dedicated component folders
-- **Custom Hooks**: Reusable logic with `useChat` and `useChatHistory`
-- **Type Safety**: Comprehensive TypeScript definitions
+- **Custom Hooks**: Reusable logic with:
+  - `useChat`: Chat functionality and message management
+  - `useChatHistory`: Conversation history and persistence
+  - `useWeatherLocation`: Weather data fetching and location management
+- **Type Safety**: Comprehensive TypeScript definitions with type-only imports
 - **State Management**: Local storage integration for persistence
+- **Weather Integration**: Mock weather API with realistic data generation
+
+## 📋 ChatAnalyzePage Architecture
+
+### Layout Structure
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Header (Navigation & Authentication)                        │
+├─────────────────────────────────────────────────────────────┤
+│ ┌─────────────┐ ┌─────────────────────────────────────────┐ │
+│ │ History     │ │ Weather Card (Top)                     │ │
+│ │ Sidebar     │ ├─────────────────────────────────────────┤ │
+│ │ (Rail Mode) │ │ ┌─────────────┐ ┌─────────────────────┐ │ │
+│ │             │ │ │ Chat        │ │ Analysis Panel      │ │ │
+│ │             │ │ │ Interface   │ │ - Overview Card     │ │ │
+│ │             │ │ │ - Messages  │ │ - Image Analysis    │ │ │
+│ │             │ │ │ - Input     │ │ - Product List      │ │ │
+│ │             │ │ └─────────────┘ └─────────────────────┘ │ │
+│ └─────────────┘ └─────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Component Hierarchy
+```
+ChatAnalyzePage
+├── Header (Layout)
+├── HistorySidebar
+│   ├── Rail Mode (Desktop)
+│   ├── Full Sidebar (Mobile)
+│   └── Conversation Management
+├── WeatherLocationCard
+│   ├── Location Selector
+│   ├── Current Weather
+│   └── 7-Day Forecast
+├── Chat Section
+│   ├── ChatHeader
+│   ├── ChatMessages
+│   └── ChatInput
+└── Analysis Panel
+    ├── OverviewCard
+    ├── ImageAnalysisCard
+    └── ProductListCard
+```
+
+### Key Features
+- **Weather Integration**: Real-time weather data with location switching
+- **Responsive Layout**: Mobile-first design with adaptive components
+- **Accessibility**: Focus management, keyboard navigation, ARIA labels
+- **State Management**: Persistent chat history and weather preferences
+- **Type Safety**: Comprehensive TypeScript interfaces and type-only imports
 
 ## 🛠️ Development
 

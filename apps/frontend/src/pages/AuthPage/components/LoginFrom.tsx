@@ -86,6 +86,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         }
       } else if (error.response?.status === 401) {
         showToast('Email hoặc mật khẩu không đúng', 'error')
+      } else if (error.response?.status === 403) {
+        // User chưa verify email
+        const errorMessage = error.response.data.message
+        if (errorMessage.includes('verify') || errorMessage.includes('xác thực')) {
+          showToast('Vui lòng xác thực email trước khi đăng nhập', 'error')
+          // Redirect to verification screen
+          setTimeout(() => {
+            navigate('/verify-email')
+          }, 2000)
+        } else {
+          showToast('Tài khoản bị khóa hoặc không có quyền truy cập', 'error')
+        }
       } else if (error.response?.status === 429) {
         showToast('Quá nhiều lần thử, vui lòng đợi một chút', 'error')
       } else if (error.code === 'NETWORK_ERROR' || !error.response) {

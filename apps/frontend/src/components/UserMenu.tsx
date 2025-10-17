@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, User, Settings } from 'lucide-react'
+import { LogOut, User, Settings, Mail, CheckCircle } from 'lucide-react'
 
 export const UserMenu: React.FC = () => {
   const { user, logout, logoutAll } = useAuth()
@@ -54,6 +54,19 @@ export const UserMenu: React.FC = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {user.email}
                   </p>
+                  <div className="flex items-center mt-1">
+                    {user.isVerified ? (
+                      <div className="flex items-center text-green-600 text-xs">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Đã xác thực
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-orange-600 text-xs">
+                        <Mail className="h-3 w-3 mr-1" />
+                        Chưa xác thực
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

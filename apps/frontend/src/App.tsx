@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import { ChatAnalyzePage } from './pages/ChatAnalyzePage/ChatAnalyzePage'
 import { AuthPage } from './pages/AuthPage'
+import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
@@ -16,6 +17,7 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
+          <Route path="/verify-email" element={<EmailVerificationPage />} />
           <Route 
             path="/chat" 
             element={

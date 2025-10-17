@@ -1,5 +1,5 @@
 import React from 'react'
-import { ExternalLinkIcon } from 'lucide-react'
+import { ShoppingBagIcon, ExternalLinkIcon } from 'lucide-react'
 import type { Product } from '../../types/analyze.types'
 interface ProductListCardProps {
   products: Product[]

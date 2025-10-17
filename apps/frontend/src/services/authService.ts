@@ -185,6 +185,27 @@ export const authService = {
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
     return !!getAccessToken()
+  },
+
+  // Email verification methods
+  emailVerification: {
+    // Verify email with token and user ID
+    verifyEmail: async (token: string, uid: string) => {
+      const response = await api.get(`/auth/verify-email?token=${token}&uid=${uid}`)
+      return response.data
+    },
+
+    // Resend verification email
+    resendVerificationEmail: async (email: string) => {
+      const response = await api.post('/auth/verify-email/resend', { email })
+      return response.data
+    },
+
+    // Check verification status
+    checkStatus: async () => {
+      const response = await api.get('/auth/verify-status')
+      return response.data
+    }
   }
 }
 

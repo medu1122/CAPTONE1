@@ -6,7 +6,6 @@ const chatSessionSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true,
       length: 36, // UUID v4 length
     },
     user: {
@@ -43,7 +42,7 @@ const chatSessionSchema = new mongoose.Schema(
 );
 
 // Compound indexes for efficient queries
-chatSessionSchema.index({ sessionId: 1 }, { unique: true });
+// sessionId unique index is handled by unique: true in schema
 chatSessionSchema.index({ user: 1, lastMessageAt: -1 });
 
 // Text index for title search

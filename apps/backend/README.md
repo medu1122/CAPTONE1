@@ -46,12 +46,15 @@ src/
     ├── analyze/          # Plant analysis (AI)
     ├── analyses/         # Analysis history
     ├── chats/            # Chat history
-    ├── chatSessions/     # Chat session management (NEW)
-    ├── emailVerification/# Email verification (NEW)
-    ├── passwordReset/    # Password reset (NEW)
+    ├── chatSessions/     # Chat session management
+    ├── emailVerification/# Email verification
+    ├── passwordReset/    # Password reset
     ├── plants/           # Plant management
     ├── posts/            # Community posts
     ├── alerts/           # Weather alerts
+    ├── weather/          # Weather data & alerts (NEW)
+    ├── productRecommendations/ # Product recommendations (NEW)
+    ├── aiAssistant/      # AI Assistant & GPT integration (NEW)
     └── health/           # Health check
 ```
 
@@ -64,6 +67,10 @@ src/
 - **Validation**: Joi
 - **Security**: Helmet, CORS, Rate Limiting
 - **Monitoring**: Morgan logging
+- **External APIs**: OpenAI GPT, OpenWeather, Plant.id
+- **AI Integration**: GPT-3.5-turbo, Context-aware responses
+- **Weather**: OpenWeather API với caching
+- **Content Moderation**: Spam detection, Agricultural relevance
 
 ## 🚀 Cài Đặt
 
@@ -107,9 +114,15 @@ JWT_SECRET=your-super-secret-jwt-key
 
 # External APIs
 PLANT_ID_API_KEY=your-plant-id-api-key
+OPENAI_API_KEY=your-openai-api-key
+OPENWEATHER_API_KEY=your-openweather-api-key
 CLOUDINARY_CLOUD_NAME=your-cloudinary-name
 CLOUDINARY_API_KEY=your-cloudinary-key
 CLOUDINARY_API_SECRET=your-cloudinary-secret
+
+# SMS Integration (for alerts)
+VIETTEL_SMS_API_URL=your-viettel-sms-api-url
+VIETTEL_SMS_API_KEY=your-viettel-sms-api-key
 
 # Rate Limiting
 RATE_LIMIT_WINDOW_MS=60000
@@ -259,7 +272,29 @@ lon: 106.660172 (optional)
 | PUT | `/alerts/:id` | Cập nhật cảnh báo | ✅ |
 | DELETE | `/alerts/:id` | Xóa cảnh báo | ✅ |
 
-### 10. Health Check (`/health`)
+### 10. Weather (`/weather`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/weather` | Lấy dữ liệu thời tiết hiện tại và dự báo | ❌ |
+| GET | `/weather/alerts` | Lấy cảnh báo thời tiết cho nông nghiệp | ❌ |
+
+### 11. Product Recommendations (`/products`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/products/recommendations` | Gợi ý sản phẩm dựa trên cây/bệnh | ❌ |
+| GET | `/products/search` | Tìm kiếm sản phẩm theo từ khóa | ❌ |
+| GET | `/products/category/:category` | Lấy sản phẩm theo danh mục | ❌ |
+| GET | `/products/:productId` | Lấy chi tiết sản phẩm | ❌ |
+| POST | `/products` | Tạo sản phẩm mới | ✅ |
+
+### 12. AI Assistant (`/ai`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/ai/respond` | Tạo phản hồi AI cho cuộc trò chuyện | ❌ |
+| POST | `/ai/analyze-image-need` | Phân tích nhu cầu xử lý ảnh | ❌ |
+| POST | `/ai/analyze-product-need` | Phân tích nhu cầu gợi ý sản phẩm | ❌ |
+
+### 13. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -470,6 +505,77 @@ lon: 106.660172 (optional)
 }
 ```
 
+### 11. Weather Cache Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  location: {
+    name: String (required),
+    country: String (required),
+    coordinates: {
+      lat: Number (required),
+      lon: Number (required)
+    }
+  },
+  current: {
+    temperature: Number (required),
+    humidity: Number (required),
+    pressure: Number (required),
+    description: String (required),
+    icon: String (required),
+    windSpeed: Number (required),
+    windDirection: Number (required)
+  },
+  forecast: [{
+    date: Date (required),
+    temperature: {
+      min: Number (required),
+      max: Number (required)
+    },
+    humidity: Number (required),
+    description: String (required),
+    icon: String (required),
+    rain: Number (default: 0)
+  }],
+  cachedAt: Date (TTL index, 1 hour),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 12. Product Recommendations Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  name: String (required, max: 200),
+  description: String (required, max: 1000),
+  category: String (required, enum: ['fertilizer', 'pesticide', 'seed', 'tool', 'soil', 'pot', 'irrigation', 'protection', 'other']),
+  subcategory: String (max: 100),
+  price: Number (required, min: 0),
+  currency: String (enum: ['VND', 'USD'], default: 'VND'),
+  imageUrl: String (required, URL validation),
+  externalLinks: [{
+    platform: String (required, enum: ['shopee', 'tiki', 'lazada', 'sendo', 'other']),
+    url: String (required, URL validation),
+    price: Number (min: 0),
+    availability: String (enum: ['in_stock', 'out_of_stock', 'limited'], default: 'in_stock')
+  }],
+  tags: [String (lowercase)],
+  plantTypes: [String (lowercase)],
+  diseaseTypes: [String (lowercase)],
+  usageInstructions: String (max: 2000),
+  safetyNotes: String (max: 500),
+  rating: {
+    average: Number (min: 0, max: 5, default: 0),
+    count: Number (min: 0, default: 0)
+  },
+  isActive: Boolean (default: true),
+  createdBy: ObjectId (ref: 'User', required),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 ## 🛡️ Middleware
 
 ### 1. Authentication Middleware
@@ -505,7 +611,29 @@ app.post('/upload', uploadImage.fields([
 ]), handler);
 ```
 
-### 4. Error Handling
+### 4. Content Moderation (NEW)
+```javascript
+import { 
+  validateTextModeration, 
+  validateImageModeration, 
+  chatModeration,
+  moderationRateLimit 
+} from '../common/middleware/moderation.js';
+
+// Text content moderation
+app.post('/chat', validateTextModeration, handler);
+
+// Image upload moderation
+app.post('/upload', validateImageModeration, handler);
+
+// Combined chat moderation
+app.post('/chat', chatModeration, handler);
+
+// Rate limiting for moderation
+app.use('/api', moderationRateLimit);
+```
+
+### 5. Error Handling
 ```javascript
 import { errorMiddleware } from '../common/middleware/error.js';
 
@@ -689,6 +817,32 @@ GET /api/v1/health
 # Response: { "ok": true, "time": "2024-01-01T00:00:00.000Z" }
 ```
 
+## 🤖 AI & Weather Features
+
+### Weather Integration
+- **OpenWeather API**: Lấy dữ liệu thời tiết real-time
+- **Weather Caching**: Cache 1 giờ để tối ưu performance
+- **Agricultural Alerts**: Cảnh báo sương giá, mưa lớn, hạn hán
+- **Context Integration**: Thông tin thời tiết được tích hợp vào AI responses
+
+### AI Assistant
+- **GPT-3.5-turbo Integration**: Trợ lý AI thông minh
+- **Context-Aware**: Nhận biết thời tiết, phân tích cây, sản phẩm
+- **Smart Routing**: Tự động quyết định gọi Plant.id hay chỉ GPT
+- **Multi-modal**: Xử lý cả text và image input
+
+### Product Recommendations
+- **Smart Matching**: Gợi ý sản phẩm dựa trên cây trồng và bệnh
+- **External Links**: Tích hợp Shopee, Tiki, Lazada
+- **Category Management**: 9 danh mục sản phẩm chuyên biệt
+- **Rating System**: Đánh giá và review sản phẩm
+
+### Content Moderation
+- **Agricultural Relevance**: Kiểm tra nội dung liên quan nông nghiệp
+- **Spam Detection**: Lọc nội dung spam và không phù hợp
+- **Rate Limiting**: Giới hạn request để tránh abuse
+- **File Validation**: Kiểm tra định dạng và kích thước file
+
 ## 🔮 Roadmap
 
 ### Completed Features ✅
@@ -702,6 +856,13 @@ GET /api/v1/health
 - ✅ Plant management CRUD
 - ✅ Community posts
 - ✅ Weather alerts system
+- ✅ **Weather API integration (OpenWeather)**
+- ✅ **Product recommendations system**
+- ✅ **AI Assistant with GPT integration**
+- ✅ **Content moderation & spam detection**
+- ✅ **Weather caching system**
+- ✅ **Smart product recommendations**
+- ✅ **Context-aware AI responses**
 - ✅ File upload handling
 - ✅ Rate limiting
 - ✅ Error handling
@@ -709,7 +870,7 @@ GET /api/v1/health
 - ✅ Database optimization (indexes, TTL)
 
 ### Planned Features 🚧
-- 🔄 Real AI integration (Plant.id API)
+- 🔄 Real Plant.id API integration (thay thế mock)
 - 🔄 Cloudinary image storage
 - 🔄 WebSocket for real-time chat
 - 🔄 Email notifications (nodemailer integration)
@@ -720,6 +881,11 @@ GET /api/v1/health
 - 🔄 Integration tests
 - 🔄 Performance monitoring
 - 🔄 Migration scripts for existing data
+- 🔄 Advanced AI features (image analysis, disease detection)
+- 🔄 Machine learning model training
+- 🔄 Multi-language support
+- 🔄 Advanced weather forecasting
+- 🔄 IoT sensor integration
 
 ## 🤝 Contributing
 

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { authService } from '../services/authService'
 
 interface User {
@@ -7,6 +8,7 @@ interface User {
   email: string
   role: string
   status: string
+  isVerified: boolean
 }
 
 interface AuthContextType {
@@ -17,6 +19,8 @@ interface AuthContextType {
   logout: () => Promise<void>
   logoutAll: () => Promise<void>
   refreshUser: () => Promise<void>
+  checkVerificationStatus: () => Promise<boolean>
+  resendVerificationEmail: (email: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -99,6 +103,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  const checkVerificationStatus = async (): Promise<boolean> => {
+    try {
+      const response = await authService.emailVerification.checkStatus()
+      return response.data.isVerified
+    } catch (error) {
+      console.error('Failed to check verification status:', error)
+      return false
+    }
+  }
+
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      await authService.emailVerification.resendVerificationEmail(email)
+    } catch (error) {
+      console.error('Failed to resend verification email:', error)
+      throw error
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isAuthenticated,
@@ -107,6 +130,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     logoutAll,
     refreshUser,
+    checkVerificationStatus,
+    resendVerificationEmail,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

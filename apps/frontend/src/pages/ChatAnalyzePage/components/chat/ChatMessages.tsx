@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import type { Message } from '../../types/analyze.types'
-import { Loader2Icon } from 'lucide-react'
+import { ImageIcon, Loader2Icon } from 'lucide-react'
 interface ChatMessagesProps {
   messages: Message[]
   loading: boolean

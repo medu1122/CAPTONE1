@@ -216,7 +216,24 @@ Content-Type: {{contentType}}
 }
 
 ### ===========================================
-### 20. PASSWORD RESET TEST
+### 20. EMAIL VERIFICATION TEST
+### ===========================================
+
+GET {{baseUrl}}/auth/verify-email?token=YOUR_VERIFICATION_TOKEN&uid=YOUR_USER_ID
+
+### ===========================================
+### 21. RESEND VERIFICATION EMAIL TEST
+### ===========================================
+
+POST {{baseUrl}}/auth/verify-email/resend
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com"
+}
+
+### ===========================================
+### 22. PASSWORD RESET TEST
 ### ===========================================
 
 POST {{baseUrl}}/password-reset/request
@@ -239,3 +256,8 @@ Content-Type: {{contentType}}
 ### 8. Email must be valid format and unique
 ### 9. Tokens expire based on JWT_ACCESS_EXPIRES setting
 ### 10. Refresh tokens expire based on JWT_REFRESH_EXPIRES_DAYS setting
+### 11. Email verification: Check email inbox for verification link
+### 12. Verification tokens expire after 24 hours
+### 13. Resend verification has rate limit (1 email per 60 seconds)
+### 14. Email verification is required before full access
+### 15. Welcome email is sent after successful verification

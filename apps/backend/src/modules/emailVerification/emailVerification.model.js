@@ -16,7 +16,6 @@ const emailVerificationSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: { expireAfterSeconds: 0 }, // TTL index
     },
     createdAt: {
       type: Date,
@@ -37,8 +36,7 @@ const emailVerificationSchema = new mongoose.Schema(
 emailVerificationSchema.index({ user: 1, used: 1 });
 emailVerificationSchema.index({ tokenHash: 1 }, { unique: true, sparse: true });
 
-// TTL index on expiresAt
-emailVerificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// TTL index on expiresAt is handled by MongoDB automatically
 
 const EmailVerification = mongoose.model('EmailVerification', emailVerificationSchema);
 

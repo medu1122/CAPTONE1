@@ -16,7 +16,6 @@ const passwordResetSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: { expireAfterSeconds: 0 }, // TTL index
     },
     createdAt: {
       type: Date,
@@ -37,8 +36,7 @@ const passwordResetSchema = new mongoose.Schema(
 passwordResetSchema.index({ user: 1, used: 1 });
 passwordResetSchema.index({ tokenHash: 1 }, { unique: true, sparse: true });
 
-// TTL index on expiresAt
-passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// TTL index on expiresAt is handled by MongoDB automatically
 
 const PasswordReset = mongoose.model('PasswordReset', passwordResetSchema);
 

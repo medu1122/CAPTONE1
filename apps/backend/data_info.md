@@ -136,10 +136,91 @@ Stores results from Plant.id API for linkage to chat or user history.
 Indexes:
 - `{ user: 1, createdAt: -1 }`
 
+8. plants
 ---
+| Field            | Type                  | Description                                                  |
+| ---------------- | --------------------- | ------------------------------------------------------------ |
+| _id              | ObjectId              | Primary key                                                  |
+| name             | String                | Plant name (e.g. "Cà chua", "Lan Hồ Điệp")                   |
+| scientificName   | String                | Scientific name                                              |
+| description      | String                | Plant description                                            |
+| careInstructions | Object                | Detailed care instructions                                   |
+| ├─ watering      | String                | Watering instructions                                        |
+| ├─ sunlight      | String                | Sunlight requirements                                        |
+| ├─ soil          | String                | Soil type recommendations                                    |
+| └─ temperature   | String                | Temperature requirements                                     |
+| growthStages     | Array<Object>         | Plant growth stages                                          |
+| ├─ stage         | String                | Stage name                                                   |
+| ├─ description   | String                | Stage description                                            |
+| └─ duration      | String                | Stage duration                                               |
+| commonDiseases   | Array<Object>         | Common diseases                                              |
+| ├─ name          | String                | Disease name                                                 |
+| ├─ symptoms      | String                | Disease symptoms                                             |
+| └─ treatment     | String                | Treatment methods                                            |
+| images           | Array<Object>         | Plant images                                                 |
+| ├─ url           | String                | Image URL                                                    |
+| └─ caption       | String                | Image caption                                                |
+| category         | String                | Plant category (vegetable, fruit, herb, flower, tree, other) |
+| createdBy        | ObjectId (ref: users) | Creator                                                      |
+| createdAt        | Date                  | Creation time                                                |
+| updatedAt        | Date                  | Last update                                                  |
 
-### Notes
-- TTL indexes automatically remove expired documents based on `expiresAt`.
-- `createdAt` / `updatedAt` fields should be managed by backend logic.
-- All sensitive data (passwordHash, refreshTokenHash, tokenHash) must be hashed.
-- Access control and validation are handled via middleware in backend code.
+9.product_recommendations
+| Field             | Type                  | Description                                                                                    |
+| ----------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| _id               | ObjectId              | Primary key                                                                                    |
+| name              | String                | Product name                                                                                   |
+| description       | String                | Product description                                                                            |
+| category          | String                | Product category (fertilizer, pesticide, seed, tool, soil, pot, irrigation, protection, other) |
+| subcategory       | String                | Product subcategory                                                                            |
+| price             | Number                | Product price                                                                                  |
+| currency          | String                | Currency (VND, USD)                                                                            |
+| imageUrl          | String                | Product image URL                                                                              |
+| externalLinks     | Array<Object>         | External purchase links                                                                        |
+| ├─ platform       | String                | shopee, tiki, lazada, sendo, other                                                             |
+| ├─ url            | String                | Purchase URL                                                                                   |
+| ├─ price          | Number                | Platform price                                                                                 |
+| └─ availability   | String                | Stock status                                                                                   |
+| tags              | Array<String>         | Product tags                                                                                   |
+| plantTypes        | Array<String>         | Related plant types                                                                            |
+| diseaseTypes      | Array<String>         | Related disease types                                                                          |
+| usageInstructions | String                | Usage instructions                                                                             |
+| safetyNotes       | String                | Safety information                                                                             |
+| rating            | Object                | Product ratings                                                                                |
+| ├─ average        | Number                | Average rating (0–5)                                                                           |
+| └─ count          | Number                | Number of ratings                                                                              |
+| isActive          | Boolean               | Product status                                                                                 |
+| createdBy         | ObjectId (ref: users) | Creator                                                                                        |
+| createdAt         | Date                  | Creation time                                                                                  |
+| updatedAt         | Date                  | Last update                                                                                    |
+
+10.weather_cache
+| Field            | Type          | Description           |
+| ---------------- | ------------- | --------------------- |
+| _id              | ObjectId      | Primary key           |
+| location         | Object        | Location information  |
+| ├─ name          | String        | Location name         |
+| ├─ country       | String        | Country code          |
+| └─ coordinates   | Object        | GPS coordinates       |
+| │  ├─ lat        | Number        | Latitude              |
+| │  └─ lon        | Number        | Longitude             |
+| current          | Object        | Current weather       |
+| ├─ temperature   | Number        | °C                    |
+| ├─ humidity      | Number        | %                     |
+| ├─ pressure      | Number        | hPa                   |
+| ├─ description   | String        | Weather description   |
+| ├─ icon          | String        | Icon code             |
+| ├─ windSpeed     | Number        | m/s                   |
+| └─ windDirection | Number        | Degrees               |
+| forecast         | Array<Object> | 5-day forecast        |
+| ├─ date          | Date          | Forecast date         |
+| ├─ temperature   | Object        | Temperature range     |
+| │  ├─ min        | Number        | Min °C                |
+| │  └─ max        | Number        | Max °C                |
+| ├─ humidity      | Number        | %                     |
+| ├─ description   | String        | Weather description   |
+| ├─ icon          | String        | Icon code             |
+| └─ rain          | Number        | Rainfall (mm)         |
+| cachedAt         | Date          | Cache timestamp (TTL) |
+| createdAt        | Date          | Creation time         |
+| updatedAt        | Date          | Last update           |

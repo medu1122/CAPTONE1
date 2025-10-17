@@ -26,7 +26,6 @@ const authTokenSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
-      index: { expireAfterSeconds: 0 }, // TTL index
     },
     isActive: {
       type: Boolean,
@@ -43,8 +42,7 @@ const authTokenSchema = new mongoose.Schema(
 authTokenSchema.index({ user: 1, isActive: 1 });
 authTokenSchema.index({ refreshTokenHash: 1 }, { unique: true, sparse: true });
 
-// TTL index on expiresAt
-authTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// TTL index on expiresAt is handled by MongoDB automatically
 
 const AuthToken = mongoose.model('AuthToken', authTokenSchema);
 

@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { MailIcon, CheckCircleIcon } from 'lucide-react'
+import { useAuth } from '../../../contexts/AuthContext'
 interface VerificationScreenProps {
   email: string
   isDarkMode: boolean
@@ -12,9 +13,32 @@ export const VerificationScreen: React.FC<VerificationScreenProps> = ({
   onResendEmail,
   onBackToLogin,
 }) => {
+  const { resendVerificationEmail } = useAuth()
+  const [isResending, setIsResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
+
+  const handleResendEmail = async () => {
+    try {
+      setIsResending(true)
+      setResendMessage('')
+      await resendVerificationEmail(email)
+      setResendMessage('Email xác thực đã được gửi lại thành công!')
+      onResendEmail()
+    } catch (error: any) {
+      console.error('Resend email error:', error)
+      if (error.response?.status === 429) {
+        setResendMessage('Vui lòng đợi một chút trước khi gửi lại')
+      } else {
+        setResendMessage('Không thể gửi email. Vui lòng thử lại sau')
+      }
+    } finally {
+      setIsResending(false)
+    }
+  }
+
   const buttonClasses = isDarkMode
-    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-800'
-    : 'bg-green-600 hover:bg-green-700 focus:ring-green-300'
+    ? 'bg-green-600 hover:bg-green-700 focus:ring-green-800 disabled:bg-gray-700'
+    : 'bg-green-600 hover:bg-green-700 focus:ring-green-300 disabled:bg-gray-400'
   const secondaryButtonClasses = isDarkMode
     ? 'bg-gray-700 hover:bg-gray-600 text-white'
     : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
@@ -63,11 +87,18 @@ export const VerificationScreen: React.FC<VerificationScreenProps> = ({
       <div className="mt-6 space-y-3">
         <button
           type="button"
-          onClick={onResendEmail}
+          onClick={handleResendEmail}
+          disabled={isResending}
           className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${buttonClasses}`}
         >
-          Gửi lại email xác thực
+          {isResending ? 'Đang gửi...' : 'Gửi lại email xác thực'}
         </button>
+        
+        {resendMessage && (
+          <div className={`text-sm ${resendMessage.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>
+            {resendMessage}
+          </div>
+        )}
         <button
           type="button"
           onClick={onBackToLogin}

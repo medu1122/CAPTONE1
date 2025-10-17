@@ -120,9 +120,67 @@ export const validateLogout = (req, res, next) => {
   next();
 };
 
+/**
+ * Validate verify email request
+ */
+export const validateVerifyEmail = (req, res, next) => {
+  const schema = Joi.object({
+    token: Joi.string()
+      .required()
+      .length(64)
+      .pattern(/^[a-f0-9]+$/)
+      .messages({
+        'string.empty': 'Verification token is required',
+        'string.length': 'Verification token must be 64 characters',
+        'string.pattern.base': 'Verification token must be a valid hex string',
+        'any.required': 'Verification token is required',
+      }),
+    uid: Joi.string()
+      .required()
+      .messages({
+        'string.empty': 'User ID is required',
+        'any.required': 'User ID is required',
+      }),
+  });
+  
+  const { error } = schema.validate(req.query);
+  if (error) {
+    return next(httpError(400, error.details[0].message));
+  }
+  
+  next();
+};
+
+/**
+ * Validate resend verification email request
+ */
+export const validateResendVerification = (req, res, next) => {
+  const schema = Joi.object({
+    email: Joi.string()
+      .email()
+      .required()
+      .lowercase()
+      .trim()
+      .messages({
+        'string.email': 'Please provide a valid email address',
+        'string.empty': 'Email is required',
+        'any.required': 'Email is required',
+      }),
+  });
+  
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return next(httpError(400, error.details[0].message));
+  }
+  
+  next();
+};
+
 export default {
   validateRegister,
   validateLogin,
   validateRefreshToken,
   validateLogout,
+  validateVerifyEmail,
+  validateResendVerification,
 };

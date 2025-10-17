@@ -6,6 +6,9 @@ import chatRoutes from './modules/chats/chat.routes.js';
 import emailVerificationRoutes from './modules/emailVerification/emailVerification.routes.js';
 import passwordResetRoutes from './modules/passwordReset/passwordReset.routes.js';
 import chatSessionRoutes from './modules/chatSessions/chatSession.routes.js';
+import weatherRoutes from './modules/weather/weather.routes.js';
+import productRecommendationRoutes from './modules/productRecommendations/productRecommendation.routes.js';
+import aiAssistantRoutes from './modules/aiAssistant/ai.routes.js';
 
 const router = express.Router();
 
@@ -17,5 +20,8 @@ router.use('/chat', chatRoutes);
 router.use('/email-verification', emailVerificationRoutes);
 router.use('/password-reset', passwordResetRoutes);
 router.use('/chat-sessions', chatSessionRoutes);
+router.use('/weather', weatherRoutes);
+router.use('/products', productRecommendationRoutes);
+router.use('/ai', aiAssistantRoutes);
 
 export default router;

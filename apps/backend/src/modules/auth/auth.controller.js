@@ -113,6 +113,48 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Verify email with token
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { token, uid } = req.query;
+    const result = await authService.verifyEmail(token, uid);
+    
+    const { statusCode, body } = httpSuccess(200, result.message, {
+      user: result.user,
+    });
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Resend verification email
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const resendVerificationEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const result = await authService.resendVerificationEmail(email);
+    
+    const { statusCode, body } = httpSuccess(200, result.message, {
+      email: result.email,
+    });
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   register,
   login,
@@ -120,4 +162,6 @@ export default {
   logout,
   logoutAll,
   getProfile,
+  verifyEmail,
+  resendVerificationEmail,
 };

@@ -6,9 +6,11 @@ import { ChatInput } from './components/chat/ChatInput'
 import { OverviewCard } from './components/analysis/OverviewCard'
 import { ImageAnalysisCard } from './components/analysis/ImageAnalysisCard'
 import { ProductListCard } from './components/analysis/ProductListCard'
+import { WeatherLocationCard } from './components/weather/WeatherLocationCard'
 import { Header } from './components/layout/Header'
 import { useChat } from './hooks/useChat'
 import { useChatHistory } from './hooks/useChatHistory'
+import { useWeatherLocation } from './hooks/useWeatherLocation.ts'
 import { STORAGE_KEYS } from './lib/storage'
 export const ChatAnalyzePage: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -17,6 +19,8 @@ export const ChatAnalyzePage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.HISTORY_OPEN) === 'true'
   })
+  // Mock authentication state
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const {
     conversations,
     activeConversation,
@@ -28,12 +32,18 @@ export const ChatAnalyzePage: React.FC = () => {
     selectConversation,
     updateConversation,
   } = useChatHistory()
-  const { messages, result, loading, send, resetChat } =
-    useChat((messages) => {
+  const { messages, result, loading, send, resetChat, setExternalState } =
+    useChat((messages, result) => {
       if (activeId) {
         updateConversation(activeId, messages)
       }
     })
+  const {
+    data: weatherData,
+    loading: weatherLoading,
+    error: weatherError,
+    setLocation: setWeatherLocation,
+  } = useWeatherLocation()
   // Set up keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,9 +105,16 @@ export const ChatAnalyzePage: React.FC = () => {
     resetChat([], null)
     return id
   }
+  const handleChangeLocation = (location: string) => {
+    setWeatherLocation(location)
+  }
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    // In a real app, this would clear auth tokens, etc.
+  }
   return (
     <div className="flex flex-col w-full h-screen bg-gray-50">
-      <Header />
+      <Header isLoggedIn={isLoggedIn} onLogout={handleLogout} />
       <div className="flex flex-1 overflow-hidden">
         <HistorySidebar
           collapsed={sidebarCollapsed}
@@ -113,22 +130,33 @@ export const ChatAnalyzePage: React.FC = () => {
           onDelete={deleteConversation}
           onClear={clearConversations}
         />
-        <div className="flex flex-1 overflow-hidden">
-          {/* Chat Section */}
-          <div className="flex flex-col w-full md:w-1/2 h-full border-r">
-            <ChatHeader
-              onOpenSidebar={handleOpenSidebar}
-              title={activeConversation?.title || 'Cuộc chat mới'}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Weather and Location Card */}
+          <div className="px-4 pt-4">
+            <WeatherLocationCard
+              data={weatherData}
+              loading={weatherLoading}
+              error={weatherError}
+              onChangeLocation={handleChangeLocation}
             />
-            <ChatMessages messages={messages} loading={loading} />
-            <ChatInput onSend={send} disabled={loading} />
           </div>
-          {/* Analysis Panel */}
-          <div className="hidden md:block w-1/2 h-full overflow-y-auto p-4 bg-gray-50">
-            <div className="space-y-6">
-              <OverviewCard result={result} />
-              <ImageAnalysisCard imageInsights={result?.imageInsights} />
-              <ProductListCard products={result?.products || []} />
+          <div className="flex flex-1 overflow-hidden">
+            {/* Chat Section */}
+            <div className="flex flex-col w-full md:w-1/2 h-full border-r">
+              <ChatHeader
+                onOpenSidebar={handleOpenSidebar}
+                title={activeConversation?.title || 'Cuộc chat mới'}
+              />
+              <ChatMessages messages={messages} loading={loading} />
+              <ChatInput onSend={send} disabled={loading} />
+            </div>
+            {/* Analysis Panel */}
+            <div className="hidden md:block w-1/2 h-full overflow-y-auto p-4 bg-gray-50">
+              <div className="space-y-6">
+                <OverviewCard result={result} />
+                <ImageAnalysisCard imageInsights={result?.imageInsights} />
+                <ProductListCard products={result?.products || []} />
+              </div>
             </div>
           </div>
         </div>

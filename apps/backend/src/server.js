@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Load .env FIRST
 import app from './app.js';
 import http from 'http';
 

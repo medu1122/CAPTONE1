@@ -16,7 +16,9 @@ interface HistorySidebarProps {
   onClear: () => void
 }
 export const HistorySidebar: React.FC<HistorySidebarProps> = ({
+  collapsed,
   open,
+  onToggleRail,
   onOpen,
   onClose,
   items,

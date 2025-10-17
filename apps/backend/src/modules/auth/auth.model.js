@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
     passwordHash: {
       type: String,
@@ -47,8 +46,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Unique index on email (additional explicit index)
-userSchema.index({ email: 1 }, { unique: true });
+// Unique index on email is handled by unique: true in schema
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

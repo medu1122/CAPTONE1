@@ -1,297 +1,115 @@
-CONTEXT
+# Core Behaviors
+## 1. Case 1 – Text-only message
+- Khi người dùng chỉ nhập text (ví dụ: “Cách trồng cây lan trong mùa mưa?”):
+  - Gọi GPT API để sinh phản hồi.
+  - Kèm dữ liệu thời tiết hiện tại (từ OpenWeather API).
+  - GPT trả lời tự nhiên và tư vấn phù hợp.
+  - Gợi ý thêm sản phẩm nếu cần (fetch từ product_recommendations hoặc link Shopee).
 
-Dự án GreenGrow – tính năng ChatAnalyzePage (FE đã có). Cần code backend Node.js + Express (ESM) để FE gửi text/ảnh và nhận về AnalysisResult duy nhất nuôi 3 khối UI: Phân tích tổng quan, Phân tích hình ảnh, Gợi ý sản phẩm.
+## 2. Case 2 – Image + text (hoặc chỉ ảnh)
+- Khi người dùng gửi ảnh:
+  - Upload ảnh → gọi Plant.id API → nhận kết quả cây & bệnh.
+  - GPT tạo phản hồi “Đây là phân tích của GreenGrow…” + diễn giải kết quả.
+  - Hiển thị thông tin qua 3 card bên phải:
+    - OverviewCard: tóm tắt tên cây, bệnh, cách chăm sóc.
+    - ImageAnalysisCard: hiển thị ảnh + bounding box (nếu có).
+    - ProductListCard: hiển thị gợi ý sản phẩm phù hợp.
 
-GOAL
+- Nếu câu hỏi quá dài hoặc mơ hồ:
+  - GPT xác định xem có cần gọi Plant.id hay chỉ trả lời text.
+  - Trả lời tương ứng.
 
-Tạo API POST /api/v1/analyze (multipart) trả về AnalysisResult đúng schema FE đang dùng.
+## 3. Case 3 – Invalid / spam input
+- Nếu Plant.id trả độ tin cậy thấp hoặc GPT phát hiện câu hỏi không liên quan:
+  - Bot trả lời “Ảnh không hợp lệ” hoặc “Câu hỏi không thuộc lĩnh vực nông nghiệp”.
+  - Không hiển thị thẻ phân tích.
 
-Giai đoạn 1: mock kết quả (chưa cần gọi provider, chưa bắt buộc lưu DB).
+---
 
-Giai đoạn 2 (optional): lưu snapshot vào MongoDB (analyses), sẵn sàng thay mock bằng provider (Plant.id / GPT / v.v.).
+# Weather Context
+- Hiển thị widget thời tiết (trên header ChatAnalyzePage).
+- Dùng OpenWeather API `/weather` và `/forecast` để lấy:
+  - Nhiệt độ, độ ẩm, trạng thái trời hiện tại.
+  - Dự báo 3–5 ngày tới.
+- Cho phép:
+  - Lấy vị trí tự động bằng `navigator.geolocation`.
+  - Hoặc cho người dùng chọn tỉnh/thành thủ công.
 
-TECH & RÀNG BUỘC
+---
 
-Runtime: Node.js + Express, ESM ("type":"module").
+# Additional Scenarios
+- Hỗ trợ hội thoại liên tục (GPT nhớ ngữ cảnh trong cùng session).
+- Nếu người dùng hỏi mơ hồ → bot yêu cầu gửi ảnh.
+- Nếu gửi ảnh trùng → kiểm tra duplicate, tránh gọi API tốn phí.
+- Nếu nhiều cây trong ảnh → bot phản hồi yêu cầu chọn cây cụ thể.
+- Hỗ trợ guest session (không login vẫn dùng tạm).
+- Hiển thị loading state khi AI đang phân tích.
 
-MongoDB + Mongoose (chỉ khi bật lưu lịch sử).
 
-Multer memoryStorage, limit ảnh ≤ 5MB, mime jpeg|png|webp.
+cần bổ sung
+weather/
+├── weather.controller.js    # Xử lý request từ frontend (/api/v1/weather)
+├── weather.service.js       # Gọi OpenWeather API
+├── weather.routes.js        # Định nghĩa route
+└── weather.validation.js    # Xác thực query (cityName, lat/lon)
+productRecommendations/ module
 
-Middleware: cors, helmet, morgan, error handler JSON.
+👉 để backend quản lý & trả danh sách gợi ý sản phẩm cho GPT / Chat UI.
 
-Versioned routes: prefix /api/v1.
+📁 Cấu trúc:
 
-Không sửa FE; giữ schema đầu ra đúng y nguyên.
+productRecommendations/
+├── productRecommendation.controller.js
+├── productRecommendation.model.js
+├── productRecommendation.routes.js
+└── productRecommendation.service.js
 
-FOLDER HIỆN CÓ (GIỮ NGUYÊN)
-src/
-  app.js
-  server.js
-  routes.js
-  config/
-    db.js
-  common/
-    constants.js
-    middleware/
-      auth.js
-      error.js
-      rateLimit.js
-      upload.js
-    utils/
-      http.js
-      jwt.js
-    libs/
-      axios.js
-      cloudinary.js
-  modules/
-    auth/
-      auth.model.js
-      auth.controller.js
-      auth.service.js
-      auth.validation.js
-      auth.routes.js
-    analyze/
-      analyze.controller.js
-      analyze.service.js
-      analyze.validation.js
-      analyze.routes.js
-    analyses/
-      analysis.model.js
-    plants/
-      plant.model.js
-      plant.controller.js
-      plant.routes.js
-    posts/
-      post.model.js
-      post.controller.js
-      post.routes.js
-    alerts/
-      alert.model.js
-      alert.service.js
-      alert.cron.js
-      alert.routes.js
-    health/
-      health.routes.js
-      API CONTRACT (BẮT BUỘC)
 
-      Endpoint: POST /api/v1/analyze
-      Headers: Authorization: Bearer <token> (nếu bật auth, cho phép tắt lúc mock)
-      Body (multipart/form-data):
-      
-      image (optional) – file jpg|png|webp, ≤ 5MB
-      
-      text (optional) – string mô tả
-      
-      (optional) lat, lon – number
-      
-      Response: AnalysisResult (JSON duy nhất)
-      
-      {
-        "plant": { "commonName": "string", "scientificName": "string" },
-        "disease": { "name": "string", "description": "string" },
-        "confidence": 0.0,
-        "care": ["string"],
-        "products": [
-          { "name": "string", "imageUrl": "string", "price": "string", "note": "string" }
-        ],
-        "imageInsights": {
-          "imageUrl": "string",
-          "boxes": [
-            { "top": 0, "left": 0, "width": 0, "height": 0, "label": "string" }
-          ]
-        }
-      }
-      
-      
-      Lưu ý bắt buộc:
-      
-      disease có thể null nếu không chắc (khi đó confidence ≤ 0.5).
-      
-      products[].price là string (vd: "125.000đ").
-      
-      boxes là % (0–100).
-      
-      Error JSON: { "message": "..." } với mã: 400 (thiếu cả image & text), 413 (file quá lớn), 415 (mime sai), 401 (nếu bật auth), 502 (provider lỗi).
-      
-      JSON SCHEMA (DÙNG LÀM “SỰ THẬT” KHI CODE)
-      {
-        "type": "object",
-        "required": ["plant","confidence","care","products","imageInsights"],
-        "properties": {
-          "plant": {
-            "type": "object",
-            "required": ["commonName","scientificName"],
-            "properties": {
-              "commonName": { "type": "string" },
-              "scientificName": { "type": "string" }
-            }
-          },
-          "disease": {
-            "oneOf": [
-              { "type": "null" },
-              {
-                "type": "object",
-                "required": ["name","description"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" }
-                }
-              }
-            ]
-          },
-          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "care": { "type": "array", "items": { "type": "string" } },
-          "products": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["name","imageUrl","price","note"],
-              "properties": {
-                "name": { "type": "string" },
-                "imageUrl": { "type": "string" },
-                "price": { "type": "string" },
-                "note": { "type": "string" }
-              }
-            }
-          },
-          "imageInsights": {
-            "type": "object",
-            "required": ["imageUrl","boxes"],
-            "properties": {
-              "imageUrl": { "type": "string" },
-              "boxes": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": ["top","left","width","height","label"],
-                  "properties": {
-                    "top": { "type": "number", "minimum": 0, "maximum": 100 },
-                    "left": { "type": "number", "minimum": 0, "maximum": 100 },
-                    "width": { "type": "number", "minimum": 0, "maximum": 100 },
-                    "height": { "type": "number", "minimum": 0, "maximum": 100 },
-                    "label": { "type": "string" }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "additionalProperties": false
-      }
-      
-      TASKS — IMPLEMENT STEP BY STEP
-      0) package.json
-      
-      Đảm bảo "type": "module".
-      
-      Scripts:
-      
-      "dev": "nodemon src/server.js",
-      "start": "node src/server.js"
-      
-      1) app.js & routes.js
-      
-      app.js: mount middleware cors, helmet, morgan, express.json, express.urlencoded, cuối cùng error.
-      
-      Mount routes dưới /api/v1.
-      
-      routes.js: map auth, analyze, health. (các module khác để sau)
-      
-      2) common/middleware/upload.js
-      
-      Multer memoryStorage, limit 5MB, whitelist mime image/jpeg|image/png|image/webp.
-      
-      Export uploadImage.single("image").
-      
-      3) modules/analyze/analyze.validation.js
-      
-      Joi schema: yêu cầu ít nhất một trong image|text.
-      
-      Nếu có text: max 500 chars.
-      
-      4) modules/analyze/analyze.service.js (GIAI ĐOẠN 1: MOCK)
-      
-      Export analyzeService({ text, imageUrl }) → trả mock AnalysisResult đúng schema:
-      
-      Nếu không chắc: disease: null, confidence ≤ 0.5.
-      
-      imageInsights.imageUrl: nếu không có ảnh, dùng placeholder.
-      
-      boxes: số thực trong [0..100].
-      
-      5) modules/analyze/analyze.controller.js
-      
-      Nhận req.body.text, req.file (ảnh).
-      
-      Nếu cả 2 đều thiếu → 400.
-      
-      Nếu có file → tạo imageUrl tạm (data URL base64) để test nhanh; NOTE: để TODO Cloudinary.
-      
-      Gọi analyzeService({ text, imageUrl }).
-      
-      res.json(result) — đúng y AnalysisResult (không bọc thêm field).
-      
-      6) modules/analyze/analyze.routes.js
-      
-      POST / → uploadImage.single("image") → (tạm không requireAuth) → controller.
-      
-      Sau khi ổn có thể bật requireAuth.
-      
-      7) common/middleware/error.js
-      
-      Trả JSON { message }, status từ err.status || 500.
-      
-      8) modules/health/health.routes.js
-      
-      GET / trả { ok:true, time: new Date().toISOString() }.
-      
-      9) (GIAI ĐOẠN 2 – OPTIONAL) Lưu lịch sử
-      
-      analyses/analysis.model.js: schema snapshot đúng y AnalysisResult + trường input (text/imageUrl) + userId + timestamps.
-      
-      Trong analyze.controller, sau khi có result thì lưu vào DB. Không đổi output API.
-      
-      .ENV (tham khảo)
-      PORT=4000
-      MONGO_URI=mongodb+srv://... (khi bật lưu DB)
-      JWT_SECRET=...           (khi bật auth)
-      CLOUDINARY_*             (nếu upload ảnh thật)
-      
-      ACCEPTANCE CRITERIA
-      
-      POST /api/v1/analyze trả về một JSON object đúng AnalysisResult (đúng tên trường & kiểu).
-      
-      FE ChatAnalyzePage thay mockApi bằng endpoint này và không cần sửa UI vẫn chạy:
-      
-      Overview: show plant, disease|null, confidence, care[].
-      
-      ImageAnalysis: show imageInsights.imageUrl + overlay boxes theo %.
-      
-      ProductList: show products[].name,imageUrl,price(string),note.
-      
-      Lỗi trả JSON {message} với mã HTTP phù hợp.
-      
-      CURL TESTS
-      # 1) text-only
-      curl -s -X POST http://localhost:4000/api/v1/analyze \
-        -H "Content-Type: application/json" \
-        -d '{"text":"lá có đốm nâu rải rác"}' | jq
-      
-      # 2) image multipart
-      curl -s -X POST http://localhost:4000/api/v1/analyze \
-        -F "image=@/path/to/leaf.jpg" \
-        -F "text=lá có đốm" | jq
-      
-      # 3) missing both -> 400
-      curl -i -X POST http://localhost:4000/api/v1/analyze
-      
-      NOTES / DO NOTS
-      
-      Không đổi tên field trong AnalysisResult.
-      
-      products.price luôn là string (để FE render đúng).
-      
-      boxes là %.
-      
-      Tạm không gọi provider thật; khi thay, đảm bảo map về schema không đổi.
+📡 Endpoint:
+
+GET /api/v1/products/recommendations?plant=tomato&disease=leafspot
+Dữ liệu sẽ hiển thị ở ProductListCard.tsx.
+
+Có thể thêm trường externalLink (Shopee / Tiki / Lazada).
+NÊN CÓ (ĐỂ TỐI ƯU HỆ THỐNG)
+🧠 aiAssistant/ module
+
+👉 trung gian giữa GPT API và các module khác (chat, analyze, weather, product).
+Thay vì gọi GPT trực tiếp trong chat.service.js, tạo service riêng để dễ mở rộng logic AI.
+
+📁 Cấu trúc:
+
+aiAssistant/
+├── ai.controller.js
+├── ai.service.js       # Gọi GPT API, thêm context (thời tiết, phân tích hình, v.v.)
+├── ai.routes.js
+└── ai.validation.js
+
+
+📡 Endpoint:
+
+POST /api/v1/ai/respond
+
+
+📋 Lợi ích:
+
+Giữ code sạch, dễ test.
+
+Có thể log toàn bộ GPT input/output (để debug và training sau này).
+
+🧩 moderation/ middleware
+
+👉 để lọc các nội dung không hợp lệ, spam, hoặc ảnh không phải cây.
+
+📁 Cấu trúc:
+
+common/middleware/moderation.js
+
+
+📋 Gợi ý logic:
+
+Với text → kiểm tra keyword có liên quan đến nông nghiệp không.
+
+Với ảnh → nếu file không phải .jpg, .png, hoặc kích thước < 100KB → từ chối.
+
+Có thể tích hợp thêm OpenAI Moderation API (sau này).
