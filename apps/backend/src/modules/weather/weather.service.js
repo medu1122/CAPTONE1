@@ -58,6 +58,7 @@ export const getWeatherData = async ({ cityName, lat, lon }) => {
       forecastParams.q = cityName;
     }
 
+    
     const forecastResponse = await axios.get(`${OPENWEATHER_BASE_URL}/forecast`, {
       params: forecastParams
     });
