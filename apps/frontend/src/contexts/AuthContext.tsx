@@ -46,16 +46,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check if user is logged in on app start
   useEffect(() => {
     const checkAuth = async () => {
+      // 1️⃣ Check accessToken trong memory trước
       if (authService.isAuthenticated()) {
         try {
           const response = await authService.getProfile()
           setUser(response.data)
+          setIsLoading(false)
+          return
         } catch (error) {
-          console.error('Failed to get user profile:', error)
-          // Clear invalid tokens
-          authService.logout()
+          // AccessToken invalid hoặc expired, try refresh
+          console.log('AccessToken invalid, trying refresh...')
         }
       }
+      
+      // 2️⃣ Nếu không có accessToken, check refreshToken để restore session
+      const refreshToken = localStorage.getItem('refreshToken')
+      
+      if (refreshToken) {
+        try {
+          console.log('🔄 Restoring session from refreshToken...')
+          
+          // Call refresh API to get new accessToken
+          const refreshResponse = await authService.refreshAccessToken(refreshToken)
+          const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data
+          
+          // Save new tokens
+          ;(window as any).accessToken = accessToken
+          localStorage.setItem('refreshToken', newRefreshToken)
+          
+          // Load user profile with new token
+          const profileResponse = await authService.getProfile()
+          setUser(profileResponse.data)
+          
+          console.log('✅ Session restored successfully')
+        } catch (error) {
+          console.error('❌ Failed to restore session:', error)
+          // Refresh failed, clear tokens
+          ;(window as any).accessToken = null
+          localStorage.removeItem('refreshToken')
+        }
+      } else {
+        console.log('📭 No refresh token found, user not authenticated')
+      }
+      
       setIsLoading(false)
     }
 

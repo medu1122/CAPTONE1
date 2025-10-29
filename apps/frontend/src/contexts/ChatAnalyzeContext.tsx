@@ -8,6 +8,8 @@ import { imageUploadService } from '../services/imageUploadService'
 import { weatherService } from '../services/weatherService'
 import { geolocationService } from '../services/geolocationService'
 import { streamingChatService } from '../services/streamingChatService'
+import { chatHistoryService } from '../services/chatHistoryService'
+import { sessionService } from '../services/sessionService'
 // import { streamingService } from '../services/streamingService' // TODO: Implement when WebSocket backend is ready
 
 interface ErrorState {
@@ -101,18 +103,89 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
     return localStorage.getItem('gg_history_open') === 'true'
   })
   
-  // Load conversations from localStorage on mount
+  // Load conversations from localStorage AND backend on mount
   useEffect(() => {
-    const storedConversations = storage.getConversations()
-    setConversations(storedConversations)
-    
-    if (storedConversations.length > 0) {
-      setActiveId(storedConversations[0].id)
-    } else {
-      // Create new conversation if none exist
-      const id = createConversation()
-      setActiveId(id)
+    const loadInitialData = async () => {
+      // 1. Get or create sessionId
+      const sessionId = sessionService.getCurrentSessionId()
+      
+      // 2. Try to load history from backend (MongoDB)
+      try {
+        const historyMessages = await chatHistoryService.loadHistory(sessionId, 50)
+        
+        if (historyMessages.length > 0) {
+          // Convert backend format to frontend Message format
+          const convertedMessages: Message[] = historyMessages.map((msg) => ({
+            role: msg.role,
+            type: msg.messageType as 'text' | 'image',
+            content: msg.message || ''
+          }))
+          
+          setMessages(convertedMessages)
+          
+          // Extract analysis result if available
+          const lastAnalysis = historyMessages.find(msg => msg.analysis)?.analysis
+          if (lastAnalysis?.resultTop?.plant) {
+            setResult({
+              plant: {
+                commonName: lastAnalysis.resultTop.plant.commonName,
+                scientificName: lastAnalysis.resultTop.plant.scientificName
+              },
+              disease: null,
+              confidence: lastAnalysis.resultTop.confidence,
+              care: [],
+              products: []
+            })
+          }
+        }
+      } catch (error) {
+        // Silently handle error - not critical
+      }
+      
+      // 3. Load sessions list from backend
+      try {
+        const backendSessions = await chatHistoryService.loadSessions(50)
+        
+        if (backendSessions.length > 0) {
+          // Convert to Conversation format
+          const convertedConversations: Conversation[] = backendSessions.map((session) => ({
+            id: session.sessionId,
+            sessionId: session.sessionId,
+            title: session.firstMessage?.substring(0, 50) || 'Chat cũ',
+            messages: [],
+            result: null,
+            createdAt: session.lastMessageAt,
+            updatedAt: session.lastMessageAt,
+            snippet: session.firstMessage?.substring(0, 100) || ''
+          }))
+          
+          setConversations(convertedConversations)
+          storage.setConversations(convertedConversations) // Sync to localStorage
+          console.log('✅ Loaded', backendSessions.length, 'sessions from backend')
+          
+          // Set active to current session
+          const currentSession = convertedConversations.find(c => c.sessionId === sessionId)
+          if (currentSession) {
+            setActiveId(currentSession.id)
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to load sessions from backend:', error)
+      }
+      
+      // 4. Fallback to localStorage if backend fails
+      const storedConversations = storage.getConversations()
+      if (conversations.length === 0 && storedConversations.length > 0) {
+        setConversations(storedConversations)
+        setActiveId(storedConversations[0].id)
+      } else if (conversations.length === 0 && !activeId) {
+        // Create new conversation if none exist
+        const id = createConversation()
+        setActiveId(id)
+      }
     }
+
+    loadInitialData()
   }, [])
   
   // Save sidebar state to localStorage
@@ -227,9 +300,48 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
     setActiveId(newId)
   }, [createConversation, saveConversations])
   
-  // Select conversation
-  const selectConversation = useCallback((id: string) => {
+  // Select conversation and load history from backend
+  const selectConversation = useCallback(async (id: string) => {
     setActiveId(id)
+    
+    // Switch sessionId
+    sessionService.switchSession(id)
+    
+    // Try to load from MongoDB first
+    try {
+      const historyMessages = await chatHistoryService.loadHistory(id, 50)
+      
+      if (historyMessages.length > 0) {
+        const convertedMessages: Message[] = historyMessages.map((msg) => ({
+          role: msg.role,
+          type: msg.messageType as 'text' | 'image',
+          content: msg.message || ''
+        }))
+        
+        console.log('✅ Loaded', convertedMessages.length, 'messages from DB for session:', id)
+        setMessages(convertedMessages)
+        
+        // Extract analysis if available
+        const lastAnalysis = historyMessages.find(msg => msg.analysis)?.analysis
+        if (lastAnalysis?.resultTop?.plant) {
+          setResult({
+            plant: {
+              commonName: lastAnalysis.resultTop.plant.commonName,
+              scientificName: lastAnalysis.resultTop.plant.scientificName
+            },
+            disease: null,
+            confidence: lastAnalysis.resultTop.confidence,
+            care: [],
+            products: []
+          })
+        }
+        return
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to load from DB, using localStorage:', error)
+    }
+    
+    // Fallback to localStorage
     const conversation = conversations.find(c => c.id === id)
     if (conversation) {
       setMessages(conversation.messages)
@@ -238,14 +350,18 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   }, [conversations])
   
   // Send message with real API integration
-  const send = useCallback(async (input: string | File) => {
-    let newMessage: Message
+  const send = useCallback(async (input: string | File | { message: string; image: File | null }) => {
+    const newMessagesToAdd: Message[] = []
     let imageUrl: string | undefined
+    let messageText: string | undefined
     
+    // Handle different input types
     if (typeof input === 'string') {
-      newMessage = { role: 'user', type: 'text', content: input }
-    } else {
-      // Upload image to Cloudinary
+      // Plain text message
+      messageText = input
+      newMessagesToAdd.push({ role: 'user', type: 'text', content: input })
+    } else if (input instanceof File) {
+      // Plain image
       try {
         const uploadResult = await imageUploadService.uploadImage(input, {
           folder: 'greengrow/plants',
@@ -253,16 +369,40 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
           format: 'auto'
         })
         imageUrl = uploadResult.url
-        newMessage = { role: 'user', type: 'image', content: imageUrl }
+        newMessagesToAdd.push({ role: 'user', type: 'image', content: imageUrl })
       } catch (uploadError) {
-        console.error('Image upload failed:', uploadError)
         // Fallback to local URL
         imageUrl = URL.createObjectURL(input)
-        newMessage = { role: 'user', type: 'image', content: imageUrl }
+        newMessagesToAdd.push({ role: 'user', type: 'image', content: imageUrl })
+      }
+    } else {
+      // Object with message and image
+      messageText = input.message
+      
+      // Add text message if present
+      if (input.message) {
+        newMessagesToAdd.push({ role: 'user', type: 'text', content: input.message })
+      }
+      
+      // Add image message if present
+      if (input.image) {
+        try {
+          const uploadResult = await imageUploadService.uploadImage(input.image, {
+            folder: 'greengrow/plants',
+            quality: 'auto',
+            format: 'auto'
+          })
+          imageUrl = uploadResult.url
+          newMessagesToAdd.push({ role: 'user', type: 'image', content: imageUrl })
+        } catch (uploadError) {
+          // Fallback to local URL
+          imageUrl = URL.createObjectURL(input.image)
+          newMessagesToAdd.push({ role: 'user', type: 'image', content: imageUrl })
+        }
       }
     }
     
-    const newMessages = [...messages, newMessage]
+    const newMessages = [...messages, ...newMessagesToAdd]
     setMessages(newMessages)
     setLoading(true)
     clearError()
@@ -291,15 +431,23 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
       // Prepare request data
       const requestData: any = {}
       
-      if (typeof input === 'string') {
-        requestData.message = input
-      } else {
+      // Add message text if available
+      if (messageText) {
+        requestData.message = messageText
+      }
+      
+      // Add image URL if available
+      if (imageUrl) {
         requestData.imageUrl = imageUrl
       }
       
       if (weatherData) {
         requestData.weather = weatherData
       }
+      
+      // Add sessionId for chat history persistence
+      const sessionId = sessionService.getCurrentSessionId()
+      requestData.sessionId = sessionId
       
       // Start streaming
       setIsStreaming(true)

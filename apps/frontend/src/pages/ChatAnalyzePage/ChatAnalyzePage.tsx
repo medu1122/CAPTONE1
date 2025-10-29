@@ -14,6 +14,7 @@ import { ErrorMessage } from '../../components/common/ErrorMessage'
 import { LoadingOverlay } from '../../components/common/LoadingStates'
 
 export const ChatAnalyzePage: React.FC = () => {
+  
   // Use the new ChatAnalyzeContext
   const {
     // Chat state
@@ -132,13 +133,18 @@ export const ChatAnalyzePage: React.FC = () => {
     clearError()
   }
 
+  const handleClearCache = () => {
+    localStorage.clear()
+    window.location.reload()
+  }
+
   return (
     <div className="flex flex-col w-full h-screen bg-gray-50">
       <Header />
       
-      {/* Error Message */}
+      {/* Error Message - Fixed Position Overlay */}
       {error.hasError && (
-        <div className="px-4 pt-2">
+        <div className="fixed top-16 left-4 right-4 z-50">
           <ErrorMessage
             error={error}
             onRetry={handleRetry}
@@ -213,6 +219,15 @@ export const ChatAnalyzePage: React.FC = () => {
         isVisible={loading} 
         message="Đang phân tích..." 
       />
+      
+      {/* Clear Cache Button */}
+      <button
+        onClick={handleClearCache}
+        className="fixed bottom-4 right-4 bg-orange-600 text-white p-3 rounded-full shadow-lg hover:bg-orange-700 z-40"
+        title="Clear Cache & Refresh"
+      >
+        🧹
+      </button>
     </div>
   )
 }

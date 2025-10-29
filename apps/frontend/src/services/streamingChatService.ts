@@ -94,11 +94,27 @@ export class StreamingChatService {
               }
 
               try {
-                const parsed: StreamingChatResponse = JSON.parse(data);
+                const parsed: any = JSON.parse(data);
                 
-                if (parsed.content) {
-                  fullResponse += parsed.content;
-                  onChunk(parsed);
+                // Handle different response formats from backend
+                let content = '';
+                
+                // Format 1: { result: { response: "..." } } - from complete event
+                if (parsed.result?.response) {
+                  content = parsed.result.response;
+                  fullResponse = content; // Use full response, not append
+                }
+                // Format 2: { content: "..." } - streaming chunks
+                else if (parsed.content) {
+                  content = parsed.content;
+                  fullResponse += content;
+                }
+                
+                if (content) {
+                  onChunk({ 
+                    content,
+                    metadata: parsed.metadata || parsed.result
+                  } as StreamingChatResponse);
                 }
               } catch (parseError) {
                 console.warn('Failed to parse SSE data:', data, parseError);

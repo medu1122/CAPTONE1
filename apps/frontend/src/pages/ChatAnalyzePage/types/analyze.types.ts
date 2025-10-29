@@ -38,6 +38,7 @@ export interface Message {
   }
   export interface Conversation {
     id: string
+    sessionId?: string | null
     title: string
     messages: Message[]
     result: AnalysisResult | null

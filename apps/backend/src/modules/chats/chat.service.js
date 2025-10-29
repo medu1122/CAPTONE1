@@ -131,15 +131,11 @@ export const updateSessionStats = async (sessionId) => {
  */
 export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAULT_PAGE, limit = CHAT_LIMITS.PAGINATION.DEFAULT_LIMIT }) => {
   try {
-    if (!userId) {
-      throw httpError(400, 'User ID is required');
-    }
-
     const skip = (page - 1) * limit;
     
-    // Get sessions from ChatSession collection
+    // Get sessions from ChatSession collection - support guest users
     const [sessions, total] = await Promise.all([
-      ChatSession.find({ user: userId })
+      ChatSession.find({ user: userId })  // ✅ Can be null for guest users
         .sort({ lastMessageAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -183,16 +179,12 @@ export const getHistory = async ({
   to = null 
 }) => {
   try {
-    if (!userId) {
-      throw httpError(400, 'User ID is required');
-    }
-
     const skip = (page - 1) * limit;
     
-    // Build query - now always include user filter
+    // Build query - support guest users (userId = null)
     const query = { 
       sessionId,
-      user: userId
+      user: userId  // ✅ Can be null for guest users
     };
     
     // Add search filter
@@ -261,6 +253,207 @@ export const deleteSession = async ({ sessionId, userId }) => {
   } catch (error) {
     if (error.statusCode) throw error;
     throw httpError(500, 'Failed to delete session');
+  }
+};
+
+// ✅ NEW: Load chat context with analysis for AI prompting
+/**
+ * Load chat history with analysis populated for context-aware AI responses
+ * @param {object} params - Parameters
+ * @param {string} params.sessionId - Session ID
+ * @param {string} params.userId - User ID (can be null for guest users)
+ * @param {number} params.limit - Maximum messages to load (default: 10)
+ * @returns {Promise<object>} Chat history with context
+ */
+export const loadChatContextWithAnalysis = async ({ 
+  sessionId, 
+  userId, 
+  limit = 10 
+}) => {
+  try {
+    if (!sessionId) {
+      throw httpError(400, 'sessionId is required');
+    }
+
+    // Build query - handle guest users (userId = null)
+    const query = { sessionId };
+    if (userId) {
+      query.user = userId;
+    } else {
+      query.user = null;  // Explicitly search for guest messages
+    }
+
+    // Load chat messages with analysis populated
+    const messages = await ChatMessage.find(query)
+      .populate({
+        path: 'analysis',
+        select: 'resultTop source',
+        lean: true
+      })
+      .sort({ createdAt: 1 })
+      .limit(limit)
+      .lean();
+
+    // Load session with last analysis
+    const session = await ChatSession.findOne(query)
+      .populate({
+        path: 'lastAnalysis',
+        select: 'resultTop source',
+        lean: true
+      })
+      .lean();
+
+    return {
+      messages,
+      session,
+      hasContext: messages.some(msg => msg.analysis !== null)
+    };
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(500, `Failed to load chat context: ${error.message}`);
+  }
+};
+
+// ✅ NEW: Build context string for AI from chat history
+/**
+ * Build context prompt from chat history for GPT
+ * @param {array} messages - Chat messages with populated analysis
+ * @param {object} session - Chat session with last analysis
+ * @returns {string} Context string for AI prompt
+ */
+export const buildContextPromptFromHistory = ({ messages, session }) => {
+  try {
+    let contextPrompt = '';
+    
+    // ✅ FIND LATEST IMAGE ANALYSIS - Only use context from most recent plant
+    let latestAnalysisIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].analysis && messages[i].messageType !== 'text') {
+        latestAnalysisIndex = i;
+        break;
+      }
+    }
+    
+    // ✅ FILTER: Only use messages from latest analysis onwards
+    const relevantMessages = latestAnalysisIndex >= 0 
+      ? messages.slice(latestAnalysisIndex) 
+      : messages;
+    
+    console.log(`📊 Context filtering: Total messages: ${messages.length}, Using: ${relevantMessages.length} (from index ${latestAnalysisIndex})`);
+    
+    // Add context ONLY from current plant conversation
+    if (relevantMessages && relevantMessages.length > 0) {
+      contextPrompt += '📋 Current Conversation Context:\n';
+      contextPrompt += '---\n';
+      
+      for (const msg of relevantMessages) {
+        if (msg.role === 'user') {
+          contextPrompt += `👤 User: ${msg.message}\n`;
+          
+          // Add analysis context if present
+          if (msg.analysis && msg.analysis.resultTop) {
+            const plant = msg.analysis.resultTop.plant;
+            contextPrompt += `🌱 Plant Identified: ${plant.commonName} (${plant.scientificName})\n`;
+          }
+          
+          contextPrompt += '\n';
+        } else if (msg.role === 'assistant') {
+          // Show first 150 chars for context
+          const preview = msg.message.substring(0, 150);
+          contextPrompt += `🤖 Assistant: ${preview}${msg.message.length > 150 ? '...' : ''}\n\n`;
+        }
+      }
+      
+      contextPrompt += '---\n';
+    }
+    
+    // Emphasize current plant context
+    if (session && session.lastAnalysis && session.lastAnalysis.resultTop) {
+      const plant = session.lastAnalysis.resultTop.plant;
+      contextPrompt += `\n📌 CURRENT PLANT: ${plant.commonName} (${plant.scientificName})\n`;
+    }
+    
+    // ✅ EXPLICIT INSTRUCTION to prioritize latest plant
+    contextPrompt += '\n⚠️ IMPORTANT INSTRUCTIONS:\n';
+    contextPrompt += '- When user asks "how to grow this plant" or "about this crop", refer to the CURRENT PLANT above.\n';
+    contextPrompt += '- ONLY answer about the most recent plant in the conversation.\n';
+    contextPrompt += '- Ignore any previous plant discussions from earlier in the chat history.\n';
+    contextPrompt += '- If no plant context exists, ask user to provide plant name or upload image.\n\n';
+    
+    contextPrompt += 'Now answer the user\'s question based on the CURRENT context:\n';
+    
+    return contextPrompt;
+  } catch (error) {
+    console.error('Error building context prompt:', error);
+    return ''; // Return empty string instead of throwing
+  }
+};
+
+// ✅ NEW: Save message with analysis reference
+/**
+ * Save message with analysis reference (for image analysis cases)
+ * @param {object} params - Parameters
+ * @param {string} params.sessionId - Session ID
+ * @param {string} params.userId - User ID (can be null for guest users)
+ * @param {string} params.message - Message content
+ * @param {string} params.role - Message role (default: 'user')
+ * @param {ObjectId} params.analysisId - Analysis document ID
+ * @param {string} params.messageType - Message type (text, image, image-text, analysis)
+ * @returns {Promise<object>} Saved message
+ */
+export const saveMessageWithAnalysis = async ({
+  sessionId,
+  userId,
+  message,
+  role = CHAT_ROLES.USER,
+  analysisId = null,
+  messageType = 'text'
+}) => {
+  try {
+    if (!sessionId || !message) {
+      throw httpError(400, 'sessionId and message are required');
+    }
+
+    // Create message with analysis reference
+    const chatMessage = await ChatMessage.create({
+      sessionId,
+      user: userId || null,
+      role,
+      message,
+      analysis: analysisId || null,
+      messageType,
+      meta: {
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    // Update session if this is a new analysis
+    if (analysisId && messageType !== 'text') {
+      await ChatSession.updateOne(
+        { sessionId },
+        {
+          lastAnalysis: analysisId,
+          lastMessageAt: new Date(),
+          $inc: { messagesCount: 1 }
+        },
+        { upsert: true }
+      );
+    } else {
+      // Just update last message timestamp and count
+      await ChatSession.updateOne(
+        { sessionId },
+        {
+          lastMessageAt: new Date(),
+          $inc: { messagesCount: 1 }
+        },
+        { upsert: true }
+      );
+    }
+
+    return chatMessage;
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(500, `Failed to save message with analysis: ${error.message}`);
   }
 };
 

@@ -76,7 +76,7 @@ export const sendMessage = async (req, res, next) => {
 export const getHistory = async (req, res, next) => {
   try {
     const { sessionId, page, limit, q, from, to } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id || null;  // ✅ Support guest users
     
     const result = await chatService.getHistory({
       sessionId,
@@ -109,7 +109,7 @@ export const getHistory = async (req, res, next) => {
 export const listSessions = async (req, res, next) => {
   try {
     const { page, limit } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id || null;  // ✅ Support guest users
     
     const result = await chatService.listSessions({
       userId,

@@ -6,13 +6,14 @@ import {
   chatImageText,
   getChatAnalyzeStatus
 } from './chatAnalyze.controller.js';
+import { streamChatAnalyze } from './chatAnalyze.stream.controller.js';
 import { 
   validateChatAnalyze,
   validateTextOnly,
   validateImageOnly,
   validateImageText
 } from './chatAnalyze.validation.js';
-import { authMiddleware } from '../../common/middleware/auth.js';
+import { authMiddleware, authOptional } from '../../common/middleware/auth.js';
 
 const router = express.Router();
 
@@ -50,5 +51,12 @@ router.post('/image-text', validateImageText, chatImageText);
  * @access Public
  */
 router.get('/status', getChatAnalyzeStatus);
+
+/**
+ * @route POST /api/v1/chat-analyze/stream
+ * @desc Streaming chat analyze with SSE (Server-Sent Events)
+ * @access Public - supports guest users
+ */
+router.post('/stream', authOptional, streamChatAnalyze);
 
 export default router;

@@ -6,7 +6,6 @@ import {
   CloudRainIcon,
   CloudSnowIcon,
   CloudLightningIcon,
-  WindIcon,
   ThermometerIcon,
   ChevronDownIcon,
   SearchIcon,
@@ -52,15 +51,16 @@ interface WeatherLocationCardProps {
   error: string | null
   onChangeLocation?: (location: string) => void
 }
+// Predefined locations with coordinates for reliable weather data
 const AVAILABLE_LOCATIONS = [
-  'Hà Nội, Việt Nam',
-  'Hồ Chí Minh, Việt Nam',
-  'Đà Nẵng, Việt Nam',
-  'Cần Thơ, Việt Nam',
-  'Nha Trang, Việt Nam',
-  'Huế, Việt Nam',
-  'Hải Phòng, Việt Nam',
-  'Đà Lạt, Việt Nam',
+  { name: 'Hà Nội, Việt Nam', lat: 21.0285, lon: 105.8542 },
+  { name: 'Hồ Chí Minh, Việt Nam', lat: 10.8231, lon: 106.6297 },
+  { name: 'Đà Nẵng, Việt Nam', lat: 16.0544, lon: 108.2022 },
+  { name: 'Cần Thơ, Việt Nam', lat: 10.0452, lon: 105.7469 },
+  { name: 'Nha Trang, Việt Nam', lat: 12.2388, lon: 109.1967 },
+  { name: 'Huế, Việt Nam', lat: 16.4637, lon: 107.5909 },
+  { name: 'Hải Phòng, Việt Nam', lat: 20.8449, lon: 106.6881 },
+  { name: 'Đà Lạt, Việt Nam', lat: 11.9404, lon: 108.4583 },
 ]
 export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
   data,
@@ -72,12 +72,13 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-3 mb-3 flex items-center justify-center">
-        <div className="animate-pulse flex space-x-4 w-full">
-          <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-          <div className="flex-1 space-y-2">
-            <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+      <div className="bg-white rounded-2xl shadow-sm p-3 mb-3">
+        <div className="flex items-center justify-center">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+            <div className="text-sm text-gray-600">
+              Đang tải dữ liệu thời tiết...
+            </div>
           </div>
         </div>
       </div>
@@ -85,11 +86,22 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
   }
   if (error) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-3 mb-3">
-        <div className="text-center text-red-500">
-          <p>{error}</p>
+      <div className="bg-white rounded-2xl shadow-sm p-3 mb-3 border border-red-200">
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-2">
+            <CloudIcon size={20} className="text-red-500 mr-2" />
+            <span className="text-red-600 font-medium">Lỗi thời tiết</span>
+          </div>
+          <p className="text-sm text-red-500 mb-1">{error}</p>
           <p className="text-xs text-gray-500">
-            Không thể tải dữ liệu thời tiết và vị trí
+            {error.includes('API key') 
+              ? 'Backend chưa cấu hình OpenWeather API key'
+              : error.includes('404')
+              ? 'Backend không có endpoint thời tiết'
+              : error.includes('network')
+              ? 'Không thể kết nối với backend server'
+              : 'Không thể tải dữ liệu thời tiết'
+            }
           </p>
         </div>
       </div>
@@ -115,10 +127,12 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
     })
   }
   const filteredLocations = AVAILABLE_LOCATIONS.filter((location) =>
-    location.toLowerCase().includes(searchTerm.toLowerCase()),
+    location.name.toLowerCase().includes(searchTerm.toLowerCase()),
   )
-  const handleLocationSelect = (location: string) => {
-    onChangeLocation(location)
+  const handleLocationSelect = (location: { name: string; lat: number; lon: number }) => {
+    // Pass coordinates as string format: "lat,lon"
+    const coordinateString = `${location.lat},${location.lon}`
+    onChangeLocation(coordinateString)
     setShowLocationSelector(false)
     setSearchTerm('')
   }
@@ -177,7 +191,12 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
                       className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                       onClick={() => handleLocationSelect(location)}
                     >
-                      {location}
+                      <div className="flex items-center justify-between">
+                        <span>{location.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {location.lat.toFixed(2)}, {location.lon.toFixed(2)}
+                        </span>
+                      </div>
                     </button>
                   ))}
                   {filteredLocations.length === 0 && (

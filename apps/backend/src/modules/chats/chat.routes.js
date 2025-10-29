@@ -9,13 +9,13 @@ import {
   validateSessionId,
   validateMessageId 
 } from './chat.validation.js';
-import { authMiddleware } from '../../common/middleware/auth.js';
+import { authMiddleware, authOptional } from '../../common/middleware/auth.js';
 import { rateLimitMiddleware } from '../../common/middleware/rateLimit.js';
 
 const router = express.Router();
 
-// Apply middleware to all routes
-router.use(authMiddleware);
+// Apply middleware to all routes - use authOptional for guest user support
+router.use(authOptional);  // ✅ Support guest users (userId = null)
 router.use(rateLimitMiddleware);
 
 /**

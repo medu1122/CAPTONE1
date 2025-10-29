@@ -106,6 +106,7 @@ export const getWeatherData = async ({ cityName, lat, lon }) => {
 
     return weatherData;
   } catch (error) {
+    console.error('❌ Weather API Error:', error.response?.data || error.message);
     if (error.response?.status === 404) {
       throw httpError(404, 'Location not found');
     }

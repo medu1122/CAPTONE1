@@ -209,7 +209,7 @@ export const authService = {
   }
 }
 
-// Export the refresh function for interceptor use
-const refreshAccessToken = authService.refreshAccessToken
+// Export the refresh function for interceptor and AuthContext use
+export const refreshAccessToken = authService.refreshAccessToken
 
 export default authService

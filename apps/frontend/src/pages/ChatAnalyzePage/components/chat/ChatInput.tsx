@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { SendIcon, ImageIcon, XIcon } from 'lucide-react'
 import { VoiceInputButton } from '../../../../hooks/useVoiceInput'
 interface ChatInputProps {
-  onSend: (input: string | File) => void
+  onSend: (input: string | File | { message: string; image: File | null }) => void
   disabled?: boolean
   isStreaming?: boolean
   onStopStreaming?: () => void
@@ -14,12 +14,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled, isStream
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const handleSend = () => {
-    if (selectedImage) {
-      onSend(selectedImage)
-      clearSelectedImage()
-    } else if (message.trim()) {
-      onSend(message.trim())
+    // Send both image and message together
+    if (selectedImage || message.trim()) {
+      onSend({
+        message: message.trim(),
+        image: selectedImage
+      })
       setMessage('')
+      clearSelectedImage()
     }
   }
   const handleKeyDown = (e: React.KeyboardEvent) => {

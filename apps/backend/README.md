@@ -1050,7 +1050,6 @@ GET /api/v1/health
 - ✅ Password reset functionality
 - ✅ Chat sessions management
 - ✅ Enhanced chat messages (attachments, related)
-- ✅ Plant analysis API (mock)
 - ✅ Enhanced analysis model
 - ✅ Plant management CRUD
 - ✅ Community posts
@@ -1058,14 +1057,19 @@ GET /api/v1/health
 - ✅ **Weather API integration (OpenWeather)**
 - ✅ **Product recommendations system**
 - ✅ **AI Assistant with GPT integration**
+- ✅ **Plant.id V3 API integration** - Real plant & disease identification
 - ✅ **Content moderation & spam detection**
 - ✅ **Weather caching system**
 - ✅ **Smart product recommendations**
-- ✅ **Context-aware AI responses**
+- ✅ **Context-aware AI responses** - Bot remembers conversation
+- ✅ **Multi-plant conversation handling** - Smart filtering by latest analysis
+- ✅ **Chat History Persistence** - Messages saved to MongoDB
 - ✅ **Real-time Streaming (SSE)** - Server-Sent Events cho Chat Analyze
 - ✅ **Progressive AI Responses** - Real-time typing effect
 - ✅ **Streaming Analysis** - Plant analysis với real-time updates
 - ✅ **CORS Support** - Cross-origin SSE support
+- ✅ **Base64 Image Upload** - Direct image data transfer
+- ✅ **Guest User Support** - userId = null for unauthenticated users
 - ✅ File upload handling
 - ✅ Rate limiting
 - ✅ Error handling
@@ -1073,7 +1077,7 @@ GET /api/v1/health
 - ✅ Database optimization (indexes, TTL)
 
 ### Planned Features 🚧
-- 🔄 Real Plant.id API integration (thay thế mock)
+- 🔄 Frontend chat history loading (backend ready)
 - 🔄 Cloudinary image storage
 - 🔄 WebSocket for real-time chat (SSE đã implement)
 - 🔄 Advanced AI streaming với GPT API

@@ -38,7 +38,8 @@ export const validateWeatherQuery = (req, res, next) => {
     });
   }
   
-  req.query = value;
+  // Don't mutate req.query - it's read-only in Express
+  // Joi validation already ensures correct types
   next();
 };
 
@@ -55,6 +56,7 @@ export const validateWeatherAlertsQuery = (req, res, next) => {
     });
   }
   
-  req.query = value;
+  // Don't mutate req.query - it's read-only in Express
+  // Joi validation already ensures correct types
   next();
 };
