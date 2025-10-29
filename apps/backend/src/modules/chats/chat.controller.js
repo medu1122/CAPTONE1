@@ -111,10 +111,22 @@ export const listSessions = async (req, res, next) => {
     const { page, limit } = req.query;
     const userId = req.user?.id || null;  // ✅ Support guest users
     
+    console.log('📋 [listSessions] Request:', {
+      userId,
+      hasUser: !!req.user,
+      page,
+      limit
+    });
+    
     const result = await chatService.listSessions({
       userId,
       page: parseInt(page),
       limit: parseInt(limit),
+    });
+    
+    console.log('📋 [listSessions] Result:', {
+      sessionsCount: result.sessions.length,
+      total: result.pagination.total
     });
     
     const { statusCode, body } = httpSuccess(200, CHAT_SUCCESS.SESSIONS_LISTED, {
@@ -124,6 +136,7 @@ export const listSessions = async (req, res, next) => {
     
     res.status(statusCode).json(body);
   } catch (error) {
+    console.error('❌ [listSessions] Error:', error);
     next(error);
   }
 };

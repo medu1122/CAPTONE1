@@ -46,14 +46,23 @@ export class StreamingChatService {
     onError: (error: Error) => void
   ): Promise<void> {
     try {
+      // Get access token for authentication
+      const accessToken = (window as any).accessToken || null;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      };
+      
+      // Add Authorization header if token exists
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CHAT_ANALYZE.STREAM}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        },
+        headers,
         body: JSON.stringify(data)
       });
 

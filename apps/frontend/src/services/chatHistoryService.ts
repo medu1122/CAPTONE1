@@ -1,4 +1,13 @@
 import { API_CONFIG } from '../config/api';
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // Backend message format
 export interface HistoryMessage {
@@ -65,9 +74,8 @@ class ChatHistoryService {
    */
   async loadHistory(sessionId: string, limit: number = 20, page: number = 1): Promise<HistoryMessage[]> {
     try {
-      console.log('📜 Loading chat history for session:', sessionId);
-
-      const token = localStorage.getItem('authToken');
+      // Get access token from memory (same as authService)
+      const token = (window as any).accessToken || null;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -77,22 +85,16 @@ class ChatHistoryService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/chat/history?sessionId=${sessionId}&limit=${limit}&page=${page}`,
-        {
-          method: 'GET',
-          headers,
-        }
+      console.log('🔍 [DEBUG] Loading history for session:', sessionId);
+
+      const response = await api.get(
+        `/chat/history?sessionId=${sessionId}&limit=${limit}&page=${page}`,
+        { headers }
       );
 
-      if (!response.ok) {
-        console.warn('⚠️ Failed to load history:', response.status);
-        return [];
-      }
+      console.log('✅ [DEBUG] History loaded:', response.data);
 
-      const data: LoadHistoryResponse = await response.json();
-      console.log('✅ History loaded:', data.messages?.length || 0, 'messages');
-      return data.messages || [];
+      return response.data.data?.messages || [];
     } catch (error) {
       console.error('❌ Error loading history:', error);
       return [];
@@ -104,9 +106,13 @@ class ChatHistoryService {
    */
   async loadSessions(limit: number = 50, page: number = 1): Promise<BackendSession[]> {
     try {
-      console.log('📋 Loading sessions from backend...');
-
-      const token = localStorage.getItem('authToken');
+      const token = (window as any).accessToken || null;
+      console.log('🔍 [chatHistoryService] Token check:', {
+        hasToken: !!token,
+        tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
+        windowAccessToken: (window as any).accessToken ? 'exists' : 'missing'
+      });
+      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -115,22 +121,15 @@ class ChatHistoryService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/chat/sessions?limit=${limit}&page=${page}`,
-        {
-          method: 'GET',
-          headers,
-        }
-      );
+      console.log('🔍 [DEBUG] Loading sessions with axios...');
 
-      if (!response.ok) {
-        console.warn('⚠️ Failed to load sessions:', response.status);
-        return [];
-      }
+      const response = await api.get(`/chat-sessions?limit=${limit}&page=${page}`, {
+        headers,
+      });
 
-      const data: { data: LoadSessionsResponse } = await response.json();
-      console.log('✅ Sessions loaded:', data.data?.sessions?.length || 0);
-      return data.data?.sessions || [];
+      console.log('✅ [DEBUG] Sessions loaded successfully:', response.data);
+      
+      return response.data.data?.sessions || [];
     } catch (error) {
       console.error('❌ Error loading sessions:', error);
       return [];
@@ -142,9 +141,7 @@ class ChatHistoryService {
    */
   async clearHistory(sessionId: string): Promise<boolean> {
     try {
-      console.log('🗑️ Clearing history for session:', sessionId);
-
-      const token = localStorage.getItem('authToken');
+      const token = (window as any).accessToken || null;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -165,7 +162,6 @@ class ChatHistoryService {
         throw new Error('Failed to clear history');
       }
 
-      console.log('✅ History cleared');
       return true;
     } catch (error) {
       console.error('❌ Error clearing history:', error);

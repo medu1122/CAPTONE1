@@ -191,8 +191,8 @@ const refreshAccessToken = async (refreshToken, userAgent, ip) => {
     const refreshExpiresDays = parseInt(process.env.JWT_REFRESH_EXPIRES_DAYS) || 14;
     expiresAt.setDate(expiresAt.getDate() + refreshExpiresDays);
     
-    // Deactivate old token and create new one
-    await AuthToken.findByIdAndUpdate(tokenDoc._id, { isActive: false });
+    // Delete old token and create new one
+    await AuthToken.findByIdAndDelete(tokenDoc._id);
     
     await AuthToken.create({
       user: user._id,

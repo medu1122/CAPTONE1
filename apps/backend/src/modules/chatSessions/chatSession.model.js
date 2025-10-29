@@ -20,6 +20,13 @@ const chatSessionSchema = new mongoose.Schema(
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
     },
+    lastAnalysis: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Analysis',
+      default: null,
+      sparse: true,
+      index: true,
+    },
     lastMessageAt: {
       type: Date,
       default: Date.now,

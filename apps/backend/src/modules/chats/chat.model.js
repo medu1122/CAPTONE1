@@ -69,6 +69,21 @@ const chatMessageSchema = new mongoose.Schema(
       type: relatedSchema,
       default: null,
     },
+    // NEW: Link to analysis result (for image-based messages)
+    analysis: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Analysis',
+      default: null,
+      sparse: true,
+      index: true,
+    },
+    // NEW: Message type for better categorization
+    messageType: {
+      type: String,
+      enum: ['text', 'image', 'image-text', 'analysis'],
+      default: 'text',
+      index: true,
+    },
     meta: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
@@ -86,6 +101,9 @@ chatMessageSchema.index({ user: 1, createdAt: -1 }, { sparse: true });
 
 // Ensure sessionId is unique per session-user combination (if user exists)
 chatMessageSchema.index({ sessionId: 1, user: 1 }, { sparse: true });
+
+// Index for chat history with analysis
+chatMessageSchema.index({ sessionId: 1, analysis: 1 });
 
 // Text index for message search
 chatMessageSchema.index({ message: 'text' });

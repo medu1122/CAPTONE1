@@ -10,6 +10,7 @@ import { geolocationService } from '../services/geolocationService'
 import { streamingChatService } from '../services/streamingChatService'
 import { chatHistoryService } from '../services/chatHistoryService'
 import { sessionService } from '../services/sessionService'
+import { useAuth } from './AuthContext'
 // import { streamingService } from '../services/streamingService' // TODO: Implement when WebSocket backend is ready
 
 interface ErrorState {
@@ -73,6 +74,9 @@ interface ChatAnalyzeProviderProps {
 }
 
 export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ children }) => {
+  // Get auth state
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  
   // Chat state
   const [messages, setMessages] = useState<Message[]>([])
   const [result, setResult] = useState<AnalysisResult | null>(null)
@@ -105,46 +109,46 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   
   // Load conversations from localStorage AND backend on mount
   useEffect(() => {
+    // Wait for auth to complete before loading
+    if (authLoading) {
+      console.log('⏳ [ChatAnalyze] Waiting for auth to complete...')
+      return
+    }
+    
     const loadInitialData = async () => {
-      // 1. Get or create sessionId
-      const sessionId = sessionService.getCurrentSessionId()
+      console.log('🚀 [ChatAnalyze] Starting initial data load...', { isAuthenticated })
       
-      // 2. Try to load history from backend (MongoDB)
-      try {
-        const historyMessages = await chatHistoryService.loadHistory(sessionId, 50)
-        
-        if (historyMessages.length > 0) {
-          // Convert backend format to frontend Message format
-          const convertedMessages: Message[] = historyMessages.map((msg) => ({
-            role: msg.role,
-            type: msg.messageType as 'text' | 'image',
-            content: msg.message || ''
-          }))
-          
-          setMessages(convertedMessages)
-          
-          // Extract analysis result if available
-          const lastAnalysis = historyMessages.find(msg => msg.analysis)?.analysis
-          if (lastAnalysis?.resultTop?.plant) {
-            setResult({
-              plant: {
-                commonName: lastAnalysis.resultTop.plant.commonName,
-                scientificName: lastAnalysis.resultTop.plant.scientificName
-              },
-              disease: null,
-              confidence: lastAnalysis.resultTop.confidence,
-              care: [],
-              products: []
-            })
-          }
-        }
-      } catch (error) {
-        // Silently handle error - not critical
+      // 1. ALWAYS create a new empty chat session on login (like ChatGPT)
+      const newConvId = uuidv4()
+      const newSessionId = sessionService.createSession()
+      
+      const newConversation: Conversation = {
+        id: newConvId,
+        sessionId: newSessionId,
+        title: 'Cuộc chat mới',
+        messages: [],
+        result: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        snippet: '',
       }
       
-      // 3. Load sessions list from backend
+      setActiveId(newConvId)
+      setMessages([])  // Clear messages for fresh start
+      setResult(null)  // Clear any previous results
+      
+      // 2. Load sessions list from backend (only if authenticated)
+      if (!isAuthenticated) {
+        console.log('👤 [ChatAnalyze] User not authenticated, skipping backend load')
+        setConversations([newConversation])
+        storage.setConversations([newConversation])
+        return
+      }
+      
       try {
+        console.log('📋 [ChatAnalyze] Loading sessions from backend...')
         const backendSessions = await chatHistoryService.loadSessions(50)
+        console.log(`📋 [ChatAnalyze] Loaded ${backendSessions.length} sessions from backend`)
         
         if (backendSessions.length > 0) {
           // Convert to Conversation format
@@ -159,34 +163,26 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
             snippet: session.firstMessage?.substring(0, 100) || ''
           }))
           
-          setConversations(convertedConversations)
-          storage.setConversations(convertedConversations) // Sync to localStorage
-          console.log('✅ Loaded', backendSessions.length, 'sessions from backend')
-          
-          // Set active to current session
-          const currentSession = convertedConversations.find(c => c.sessionId === sessionId)
-          if (currentSession) {
-            setActiveId(currentSession.id)
-          }
+          // Add new conversation at the beginning, followed by history
+          const allConversations = [newConversation, ...convertedConversations]
+          setConversations(allConversations)
+          storage.setConversations(allConversations) // Sync to localStorage
+        } else {
+          // No history from backend, just add new conversation
+          console.log('📋 [ChatAnalyze] No sessions found in backend, starting fresh')
+          setConversations([newConversation])
+          storage.setConversations([newConversation])
         }
       } catch (error) {
-        console.warn('⚠️ Failed to load sessions from backend:', error)
-      }
-      
-      // 4. Fallback to localStorage if backend fails
-      const storedConversations = storage.getConversations()
-      if (conversations.length === 0 && storedConversations.length > 0) {
-        setConversations(storedConversations)
-        setActiveId(storedConversations[0].id)
-      } else if (conversations.length === 0 && !activeId) {
-        // Create new conversation if none exist
-        const id = createConversation()
-        setActiveId(id)
+        // Error loading from backend, just add new conversation
+        console.error('❌ [ChatAnalyze] Failed to load sessions from backend:', error)
+        setConversations([newConversation])
+        storage.setConversations([newConversation])
       }
     }
 
     loadInitialData()
-  }, [])
+  }, [authLoading, isAuthenticated])
   
   // Save sidebar state to localStorage
   useEffect(() => {
@@ -209,8 +205,11 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   // Create new conversation
   const createConversation = useCallback(() => {
     const id = uuidv4()
+    const sessionId = sessionService.createSession() // Create new session for DB storage
+    
     const newConversation: Conversation = {
       id,
+      sessionId, // Link conversation to session for backend
       title: 'Cuộc chat mới',
       messages: [],
       result: null,
@@ -318,7 +317,6 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
           content: msg.message || ''
         }))
         
-        console.log('✅ Loaded', convertedMessages.length, 'messages from DB for session:', id)
         setMessages(convertedMessages)
         
         // Extract analysis if available
@@ -424,7 +422,6 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
           }
         }
       } catch (weatherError) {
-        console.log('Weather data not available:', weatherError)
         // Continue without weather data
       }
       
@@ -446,7 +443,9 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
       }
       
       // Add sessionId for chat history persistence
-      const sessionId = sessionService.getCurrentSessionId()
+      // Use sessionId from current conversation (created in createConversation)
+      const currentConversation = conversations.find(c => c.id === activeId)
+      const sessionId = currentConversation?.sessionId || sessionService.getCurrentSessionId()
       requestData.sessionId = sessionId
       
       // Start streaming
@@ -559,7 +558,7 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
     } finally {
       setLoading(false)
     }
-  }, [messages, activeId, updateConversation, error.retryCount])
+  }, [messages, activeId, conversations, updateConversation, error.retryCount])
   
   // Reset chat
   const resetChat = useCallback(() => {

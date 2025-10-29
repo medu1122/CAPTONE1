@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import { ChatAnalyzePage } from './pages/ChatAnalyzePage/ChatAnalyzePage'
 import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
+import { LogoutPage } from './pages/LogoutPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ChatAnalyzeProvider } from './contexts/ChatAnalyzeContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -18,6 +19,7 @@ function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
+          <Route path="/logout" element={<LogoutPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
           <Route 
             path="/chat" 

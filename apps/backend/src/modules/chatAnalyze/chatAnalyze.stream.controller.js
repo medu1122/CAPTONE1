@@ -37,6 +37,14 @@ export const streamChatAnalyze = async (req, res) => {
     const { message, imageUrl, imageData, weather, sessionId } = req.body || {};
     const userId = req.user?.id || null; // Support guest users
 
+    console.log('🔐 Auth Debug:', {
+      hasAuthHeader: !!req.headers.authorization,
+      authHeader: req.headers.authorization ? req.headers.authorization.substring(0, 30) + '...' : 'none',
+      hasReqUser: !!req.user,
+      reqUser: req.user,
+      userId
+    });
+
     console.log('📡 SSE Stream started:', { 
       hasMessage: !!message, 
       hasImageUrl: !!imageUrl,
@@ -115,6 +123,56 @@ export const streamChatAnalyze = async (req, res) => {
             res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
           },
         });
+      }
+
+      // Save messages to database if sessionId exists
+      if (sessionId && result) {
+        try {
+          const { saveMessageWithAnalysis } = await import('../chats/chat.service.js');
+          const { Analysis } = await import('../analyses/analysis.model.js');
+
+          // Save user message
+          await saveMessageWithAnalysis({
+            sessionId,
+            userId,
+            role: 'user',
+            message: message || '[Image]',  // ← 'message' not 'content'
+            messageType: imageData || imageUrl ? 'image' : 'text'
+          });
+
+          // Create Analysis record if image was analyzed
+          let analysisId = null;
+          if (result.analysis && (imageData || imageUrl)) {
+            const analysisRecord = await Analysis.create({
+              user: userId,
+              sessionId,
+              plantId: result.analysis.plant?.id,
+              plantName: result.analysis.plant?.commonName || result.analysis.plant?.scientificName,
+              confidence: result.analysis.confidence,
+              isHealthy: result.analysis.isHealthy,
+              disease: result.analysis.disease?.name,
+              diseaseConfidence: result.analysis.disease?.probability,
+              imageUrl: imageUrl || imageData,
+              rawData: result.analysis
+            });
+            analysisId = analysisRecord._id;
+            console.log('💾 Saved analysis record:', analysisId);
+          }
+
+          // Save assistant response
+          await saveMessageWithAnalysis({
+            sessionId,
+            userId,
+            role: 'assistant',
+            message: result.response || '[Analysis result]',  // ← 'message' not 'content'
+            messageType: result.analysis ? 'analysis' : 'text',
+            analysisId: analysisId  // ← 'analysisId' not 'analysis'
+          });
+
+          console.log('💾 Saved messages to database');
+        } catch (error) {
+          console.error('Failed to save messages:', error.message);
+        }
       }
 
       // Send completion event

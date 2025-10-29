@@ -133,6 +133,14 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
   try {
     const skip = (page - 1) * limit;
     
+    console.log('🔍 [listSessions Service] Query:', {
+      userId,
+      userIdType: typeof userId,
+      page,
+      limit,
+      skip
+    });
+    
     // Get sessions from ChatSession collection - support guest users
     const [sessions, total] = await Promise.all([
       ChatSession.find({ user: userId })  // ✅ Can be null for guest users
@@ -142,6 +150,12 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
         .lean(),
       ChatSession.countDocuments({ user: userId }),
     ]);
+
+    console.log('🔍 [listSessions Service] Found:', {
+      sessionsCount: sessions.length,
+      total,
+      firstSessionUser: sessions[0]?.user
+    });
 
     return {
       sessions,
@@ -153,6 +167,7 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
       },
     };
   } catch (error) {
+    console.error('❌ [listSessions Service] Error:', error);
     throw httpError(500, 'Failed to list sessions');
   }
 };
@@ -432,8 +447,11 @@ export const saveMessageWithAnalysis = async ({
       await ChatSession.updateOne(
         { sessionId },
         {
-          lastAnalysis: analysisId,
-          lastMessageAt: new Date(),
+          $set: {
+            user: userId,  // ← Required field for upsert
+            lastAnalysis: analysisId,
+            lastMessageAt: new Date()
+          },
           $inc: { messagesCount: 1 }
         },
         { upsert: true }
@@ -443,7 +461,10 @@ export const saveMessageWithAnalysis = async ({
       await ChatSession.updateOne(
         { sessionId },
         {
-          lastMessageAt: new Date(),
+          $set: {
+            user: userId,  // ← Required field for upsert
+            lastMessageAt: new Date()
+          },
           $inc: { messagesCount: 1 }
         },
         { upsert: true }
