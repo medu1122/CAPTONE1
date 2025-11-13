@@ -1,4 +1,4 @@
-import { httpSuccess } from '../../common/utils/http.js';
+import { httpSuccess, httpError } from '../../common/utils/http.js';
 import authService from './auth.service.js';
 
 /**
@@ -114,6 +114,44 @@ export const getProfile = async (req, res, next) => {
 };
 
 /**
+ * Update current user profile
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const updateProfile = async (req, res, next) => {
+  try {
+    const user = await authService.updateProfile(req.user.id, req.body);
+    const { statusCode, body } = httpSuccess(200, 'Profile updated successfully', user);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload profile image
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const uploadProfileImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(httpError(400, 'No image file provided'));
+    }
+    
+    const user = await authService.uploadProfileImage(req.user.id, req.file.buffer);
+    const { statusCode, body } = httpSuccess(200, 'Profile image uploaded successfully', user);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Verify email with token
  * @param {object} req - Express request object
  * @param {object} res - Express response object
@@ -162,6 +200,8 @@ export default {
   logout,
   logoutAll,
   getProfile,
+  updateProfile,
+  uploadProfileImage,
   verifyEmail,
   resendVerificationEmail,
 };

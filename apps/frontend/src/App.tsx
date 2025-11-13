@@ -1,9 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import { ChatAnalyzePage } from './pages/ChatAnalyzePage/ChatAnalyzePage'
+import { CommunityPage } from './pages/CommunityPage'
 import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { LogoutPage } from './pages/LogoutPage'
+import { ProfilePage } from './pages/ProfilePage/ProfilePage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ChatAnalyzeProvider } from './contexts/ChatAnalyzeContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -38,6 +40,22 @@ function App() {
                 <ChatAnalyzeProvider>
                   <ChatAnalyzePage />
                 </ChatAnalyzeProvider>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/community" 
+            element={
+              <ProtectedRoute>
+                <CommunityPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             } 
           />

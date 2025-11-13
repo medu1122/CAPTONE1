@@ -5,21 +5,64 @@
 ---
 
 ### 1. users
-Stores registered user accounts.
+Stores registered user accounts and profile management.
 
 | Field | Type | Description |
 |--------|------|-------------|
 | _id | ObjectId | Primary key |
 | email | String (unique, lowercase) | User email |
 | passwordHash | String | Bcrypt-hashed password |
-| name | String / null | Display name |
-| role | "user" / "admin" | Account role |
-| status | "active" / "blocked" | Account status |
+| name | String | Display name (required) |
+| role | "user" / "admin" | Account role (default: "user") |
+| status | "active" / "blocked" | Account status (default: "active") |
+| profileImage | String | Profile image URL (default: "") |
+| isVerified | Boolean | Email verified status (default: false) |
+| phone | String / null | Phone number |
+| bio | String / null | User bio (max: 500 chars) |
+| location | Object / null | Location information |
+| ├─ address | String / null | Street address |
+| ├─ province | String / null | Province |
+| ├─ city | String / null | City |
+| └─ coordinates | Object / null | GPS coordinates |
+| │  ├─ lat | Number / null | Latitude |
+| │  └─ lng | Number / null | Longitude |
+| settings | Object | User settings |
+| ├─ emailNotifications | Boolean | Email notifications (default: true) |
+| ├─ smsNotifications | Boolean | SMS notifications (default: false) |
+| ├─ language | "vi" / "en" | Language preference (default: "vi") |
+| ├─ theme | "light" / "dark" | UI theme (default: "light") |
+| └─ privacy | Object | Privacy settings |
+| │  ├─ profileVisibility | "public" / "private" / "friends" | Visibility (default: "public") |
+| │  ├─ showEmail | Boolean | Show email (default: false) |
+| │  └─ showPhone | Boolean | Show phone (default: false) |
+| stats | Object | User statistics |
+| ├─ totalPosts | Number | Total posts (default: 0) |
+| ├─ totalComments | Number | Total comments (default: 0) |
+| ├─ totalLikes | Number | Total likes received (default: 0) |
+| ├─ totalPlants | Number | Total plants (default: 0) |
+| ├─ joinDate | Date / null | Join date (auto-set from createdAt) |
+| └─ lastActiveAt | Date / null | Last active timestamp |
+| farmerProfile | Object / null | Farmer profile |
+| ├─ farmName | String / null | Farm name |
+| ├─ farmSize | String / null | Farm size |
+| ├─ farmType | String / null | Farm type |
+| ├─ crops | Array<String> | Crops list (default: []) |
+| ├─ experience | String / null | Experience description |
+| └─ certifications | Array<String> | Certifications (default: []) |
+| buyerProfile | Object / null | Buyer profile |
+| ├─ preferences | Array<String> | Preferences (default: []) |
+| ├─ budgetRange | String / null | Budget range |
+| └─ purchaseFrequency | String / null | Purchase frequency |
+| resetPasswordToken | String / null | Password reset token |
+| resetPasswordExpire | Date / null | Password reset expiration |
 | createdAt | Date | Creation time |
-| updatedAt | Date / null | Last update |
+| updatedAt | Date | Last update |
 
 Indexes:
 - `{ email: 1 }` unique
+- `{ "farmerProfile.farmType": 1 }` - For filtering farmers
+- `{ "stats.totalPosts": -1 }` - For sorting by activity
+- `{ "stats.lastActiveAt": -1 }` - For sorting by last activity
 
 ---
 
@@ -86,37 +129,56 @@ Stores chat session headers per user.
 | _id | ObjectId | Primary key |
 | sessionId | String (UUID v4) | Unique session ID |
 | user | ObjectId (ref: users) | Owner |
-| title | String / null | Session title |
-| createdAt | Date | Creation time |
+| title | String / null | Session title (max: 200 chars) |
+| lastAnalysis | ObjectId / null | Last analysis reference (ref: analyses) |
 | lastMessageAt | Date | Last message time |
-| messagesCount | Int | Total messages |
-| meta | Object / null | Extra data |
+| messagesCount | Number | Total messages (default: 0) |
+| meta | Object | Extra data (default: {}) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
 
 Indexes:
 - `{ sessionId: 1 }` unique
 - `{ user: 1, lastMessageAt: -1 }`
+- `{ title: "text" }` - Text search
+- `{ lastAnalysis: 1 }` sparse
 
 ---
 
-### 6. chat_messages
+### 6. chats
+**Note:** Model name is `ChatMessage` but collection name is `chats`
+
 Stores all chat messages.
 
 | Field | Type | Description |
 |--------|------|-------------|
 | _id | ObjectId | Primary key |
-| sessionId | String | FK to chat_sessions |
-| user | ObjectId / null | Null if assistant |
-| role | "user"/"assistant"/"system" | Message role |
-| message | String | Message text (≤8000) |
-| attachments | Array / null | Files/images |
-| related | Object / null | Related resources (analysisId etc.) |
-| meta | Object / null | Model provider metadata |
+| sessionId | String | FK to chat_sessions (required, indexed) |
+| user | ObjectId / null | User reference (ref: users, null for assistant) |
+| role | "user"/"assistant"/"system" | Message role (required) |
+| message | String | Message text (required, max: 8000 chars) |
+| attachments | Array | Files/images (default: []) |
+| ├─ url | String | Attachment URL |
+| ├─ filename | String | Filename |
+| ├─ mimeType | String | MIME type |
+| └─ size | Number | File size |
+| related | Object / null | Related resources |
+| ├─ analysisId | ObjectId / null | Analysis reference |
+| ├─ plantId | ObjectId / null | Plant reference |
+| └─ postId | ObjectId / null | Post reference |
+| analysis | ObjectId / null | Link to analysis result (ref: analyses, sparse indexed) |
+| messageType | String | Message type (enum: "text", "image", "image-text", "analysis", default: "text") |
+| meta | Object | Model provider metadata (default: {}) |
 | createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
 
 Indexes:
 - `{ sessionId: 1, createdAt: 1 }`
 - `{ user: 1, createdAt: -1 }` sparse
-- `{ message: "text" }`
+- `{ sessionId: 1, user: 1 }` sparse
+- `{ sessionId: 1, analysis: 1 }` sparse
+- `{ messageType: 1 }`
+- `{ message: "text" }` - Text search
 
 ---
 
@@ -126,18 +188,26 @@ Stores results from Plant.id API for linkage to chat or user history.
 | Field | Type | Description |
 |--------|------|-------------|
 | _id | ObjectId | Primary key |
-| user | ObjectId (ref: users) | Owner |
-| source | "plantid" | Source identifier |
-| inputImages | Array / null | Image URLs or base64 refs |
+| user | ObjectId (ref: users) | Owner (required, indexed) |
+| source | String | Source identifier (enum: "plantid", "manual", "ai", default: "plantid") |
+| inputImages | Array | Image URLs or base64 refs (default: []) |
+| ├─ url | String | Image URL |
+| ├─ base64 | String | Base64 image |
+| └─ metadata | Object | Image metadata |
 | resultTop | Object / null | Simplified result |
+| ├─ plant | Object | Plant information |
+| │  ├─ commonName | String | Common name |
+| │  └─ scientificName | String | Scientific name |
+| ├─ confidence | Number | Confidence score |
+| └─ summary | String | Summary |
 | raw | Object / null | Full API response |
 | createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
 
 Indexes:
 - `{ user: 1, createdAt: -1 }`
 
-8. plants
----
+### 8. plants
 | Field            | Type                  | Description                                                  |
 | ---------------- | --------------------- | ------------------------------------------------------------ |
 | _id              | ObjectId              | Primary key                                                  |
@@ -165,7 +235,14 @@ Indexes:
 | createdAt        | Date                  | Creation time                                                |
 | updatedAt        | Date                  | Last update                                                  |
 
-9.product_recommendations
+Indexes:
+- `{ name: "text", scientificName: "text", description: "text" }` - Text search
+- `{ category: 1 }`
+- `{ createdBy: 1 }`
+
+---
+
+### 9. product_recommendations
 | Field             | Type                  | Description                                                                                    |
 | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
 | _id               | ObjectId              | Primary key                                                                                    |
@@ -194,7 +271,18 @@ Indexes:
 | createdAt         | Date                  | Creation time                                                                                  |
 | updatedAt         | Date                  | Last update                                                                                    |
 
-10.weather_cache
+Indexes:
+- `{ category: 1, isActive: 1 }`
+- `{ plantTypes: 1, isActive: 1 }`
+- `{ diseaseTypes: 1, isActive: 1 }`
+- `{ tags: 1, isActive: 1 }`
+- `{ "rating.average": -1, "rating.count": -1 }`
+- `{ price: 1, isActive: 1 }`
+- `{ name: "text", description: "text", tags: "text", plantTypes: "text" }` - Text search
+
+---
+
+### 10. weather_cache
 | Field            | Type          | Description           |
 | ---------------- | ------------- | --------------------- |
 | _id              | ObjectId      | Primary key           |
@@ -221,6 +309,104 @@ Indexes:
 | ├─ description   | String        | Weather description   |
 | ├─ icon          | String        | Icon code             |
 | └─ rain          | Number        | Rainfall (mm)         |
-| cachedAt         | Date          | Cache timestamp (TTL) |
+| cachedAt         | Date          | Cache timestamp (TTL, expires: 3600s) |
 | createdAt        | Date          | Creation time         |
 | updatedAt        | Date          | Last update           |
+
+Indexes:
+- `{ "location.coordinates.lat": 1, "location.coordinates.lon": 1 }`
+- `{ "location.name": 1 }`
+- `{ cachedAt: 1 }` TTL (expires after 3600 seconds)
+
+---
+
+### 11. posts
+**Note:** Code exists but collection may not be created in MongoDB yet.
+
+Stores community posts and discussions.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| title | String | Post title (required) |
+| content | String | Post content (required) |
+| images | Array | Post images (default: []) |
+| ├─ url | String | Image URL |
+| └─ caption | String | Image caption |
+| author | ObjectId | Author (ref: users, required) |
+| tags | Array<String> | Tags (default: []) |
+| likes | Array<ObjectId> | User likes (ref: users, default: []) |
+| comments | Array | Comments (embedded) |
+| ├─ content | String | Comment content (required) |
+| ├─ author | ObjectId | Author (ref: users, required) |
+| ├─ parentComment | ObjectId / null | Parent comment for replies (ref: Comment) |
+| ├─ createdAt | Date | Creation time |
+| └─ updatedAt | Date | Last update |
+| plants | Array<ObjectId> | Related plants (ref: plants, default: []) |
+| category | String | Post category (enum: "question", "discussion", "tip", "problem", "success", "other", default: "discussion") |
+| status | String | Post status (enum: "draft", "pending", "published", "rejected", "archived", default: "published") |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ title: "text", content: "text", tags: "text" }` - Text search
+- `{ author: 1, createdAt: -1 }`
+- `{ category: 1, createdAt: -1 }`
+- `{ status: 1, createdAt: -1 }`
+- `{ createdAt: -1 }`
+
+---
+
+### 12. alerts
+**Note:** Code exists but collection may not be created in MongoDB yet.
+
+Stores weather and plant alerts for SMS notifications.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| user | ObjectId | User (ref: users, required) |
+| phone | String | Phone number (required) |
+| location | Object | Location (GeoJSON Point) |
+| ├─ type | String | GeoJSON type (enum: "Point", default: "Point") |
+| ├─ coordinates | Array<Number> | [longitude, latitude] (required) |
+| └─ address | String | Address (required) |
+| plants | Array<ObjectId> | Monitored plants (ref: plants, default: []) |
+| alertTypes | Object | Alert type preferences |
+| ├─ weather | Boolean | Weather alerts (default: true) |
+| ├─ frost | Boolean | Frost alerts (default: true) |
+| ├─ drought | Boolean | Drought alerts (default: true) |
+| └─ heavyRain | Boolean | Heavy rain alerts (default: true) |
+| lastSent | Date / null | Last alert sent time |
+| active | Boolean | Alert active status (default: true) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ "location.coordinates": "2dsphere" }` - Geospatial index
+- `{ user: 1 }`
+- `{ active: 1 }`
+
+---
+
+## 📝 Notes
+
+1. **Collection Names:**
+   - Model `ChatMessage` → Collection `chats` (not `chat_messages`)
+   - Always check `collection` option in schema for actual collection name
+
+2. **Collections Status:**
+   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache
+   - ⚠️ **Code exists, may need migration:** posts, alerts
+
+3. **TTL Indexes (Auto-delete expired documents):**
+   - `auth_tokens.expiresAt` - Auto delete expired tokens
+   - `email_verifications.expiresAt` - Auto delete expired (24h)
+   - `password_resets.expiresAt` - Auto delete expired (1h)
+   - `weather_cache.cachedAt` - Auto delete old cache (1h)
+
+4. **Database Name:**
+   - `GreenGrow` or `greengrow`
+   - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
+
+**Last Updated:** 2025-01-12 (Added User Profile Management fields, updated collections structure)

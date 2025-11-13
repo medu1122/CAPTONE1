@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { LogOut, User, Settings, Mail, CheckCircle } from 'lucide-react'
 
 export const UserMenu: React.FC = () => {
   const { user, logout, logoutAll } = useAuth()
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -73,7 +75,10 @@ export const UserMenu: React.FC = () => {
             
             <div className="p-2">
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                  navigate('/profile')
+                }}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <User className="w-4 h-4" />
@@ -102,8 +107,7 @@ export const UserMenu: React.FC = () => {
                 onClick={handleLogoutAll}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Đăng xuất tất cả thiết bị</span>
+               
               </button>
             </div>
           </div>

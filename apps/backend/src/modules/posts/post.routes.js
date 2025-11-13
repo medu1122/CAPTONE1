@@ -1,18 +1,25 @@
 import express from 'express';
 import postController from './post.controller.js';
 import { authMiddleware } from '../../common/middleware/auth.js';
+import { uploadImage } from '../../common/middleware/upload.js';
+import {
+  validateCreatePost,
+  validateUpdatePost,
+  validateAddComment,
+  validateGetPosts,
+} from './post.validation.js';
 
 const router = express.Router();
 
 // Public routes
-router.get('/', postController.getAllPosts);
+router.get('/', validateGetPosts, postController.getAllPosts);
 router.get('/:id', postController.getPostById);
 
 // Protected routes
-router.post('/', authMiddleware, postController.createPost);
-router.put('/:id', authMiddleware, postController.updatePost);
+router.post('/', authMiddleware, uploadImage.array('images', 10), validateCreatePost, postController.createPost);
+router.put('/:id', authMiddleware, validateUpdatePost, postController.updatePost);
 router.delete('/:id', authMiddleware, postController.deletePost);
-router.post('/:id/comments', authMiddleware, postController.addComment);
+router.post('/:id/comments', authMiddleware, validateAddComment, postController.addComment);
 router.post('/:id/like', authMiddleware, postController.toggleLike);
 
 export default router;

@@ -272,6 +272,18 @@ const getUserProfile = async (userId) => {
     status: user.status,
     profileImage: user.profileImage,
     isVerified: user.isVerified,
+    // Profile fields
+    phone: user.phone,
+    bio: user.bio,
+    location: user.location,
+    // Settings
+    settings: user.settings,
+    // Stats
+    stats: user.stats,
+    // Profiles
+    farmerProfile: user.farmerProfile,
+    buyerProfile: user.buyerProfile,
+    // Timestamps
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
@@ -331,6 +343,139 @@ const verifyEmail = async (token, userId) => {
     if (error.statusCode) throw error;
     throw httpError(500, 'Failed to verify email');
   }
+};
+
+/**
+ * Upload profile image
+ * @param {string} userId - User ID
+ * @param {Buffer} imageBuffer - Image file buffer
+ * @returns {object} Updated user profile with new image URL
+ */
+const uploadProfileImage = async (userId, imageBuffer) => {
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    throw httpError(404, 'User not found');
+  }
+  
+  try {
+    // Import cloudinary service
+    const cloudinaryService = (await import('../../common/libs/cloudinary.js')).default;
+    
+    // Delete old image if exists
+    if (user.profileImage) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = user.profileImage.split('/');
+        const filename = urlParts[urlParts.length - 1];
+        const publicId = filename.split('.')[0];
+        const folder = urlParts[urlParts.length - 2];
+        
+        if (folder && publicId) {
+          await cloudinaryService.deleteFile(`${folder}/${publicId}`);
+        }
+      } catch (deleteError) {
+        // Ignore delete errors (image might not be in Cloudinary)
+        console.warn('Failed to delete old profile image:', deleteError.message);
+      }
+    }
+    
+    // Upload new image
+    const uploadResult = await cloudinaryService.uploadBuffer(
+      imageBuffer,
+      'profiles',
+      {
+        transformation: [
+          { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+          { quality: 'auto' },
+        ],
+      }
+    );
+    
+    // Update user profile image
+    user.profileImage = uploadResult.secure_url;
+    await user.save();
+    
+    return getUserProfile(userId);
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(500, `Failed to upload profile image: ${error.message}`);
+  }
+};
+
+/**
+ * Update user profile
+ * @param {string} userId - User ID
+ * @param {object} profileData - Profile data to update
+ * @returns {object} Updated user profile
+ */
+const updateProfile = async (userId, profileData) => {
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    throw httpError(404, 'User not found');
+  }
+  
+  // Allowed fields for update
+  const allowedFields = [
+    'name',
+    'phone',
+    'bio',
+    'profileImage',
+    'location',
+    'settings',
+    'farmerProfile',
+    'buyerProfile',
+  ];
+  
+  // Update allowed fields only
+  allowedFields.forEach((field) => {
+    if (profileData[field] !== undefined) {
+      if (field === 'location' && typeof profileData[field] === 'object') {
+        // Merge location object
+        user.location = {
+          ...user.location,
+          ...profileData[field],
+          coordinates: {
+            ...user.location?.coordinates,
+            ...profileData[field]?.coordinates,
+          },
+        };
+      } else if (field === 'settings' && typeof profileData[field] === 'object') {
+        // Merge settings object
+        user.settings = {
+          ...user.settings,
+          ...profileData[field],
+          privacy: {
+            ...user.settings?.privacy,
+            ...profileData[field]?.privacy,
+          },
+        };
+      } else if (field === 'farmerProfile' && typeof profileData[field] === 'object') {
+        // Merge farmerProfile object
+        user.farmerProfile = {
+          ...user.farmerProfile,
+          ...profileData[field],
+        };
+      } else if (field === 'buyerProfile' && typeof profileData[field] === 'object') {
+        // Merge buyerProfile object
+        user.buyerProfile = {
+          ...user.buyerProfile,
+          ...profileData[field],
+        };
+      } else {
+        user[field] = profileData[field];
+      }
+    }
+  });
+  
+  // Update lastActiveAt
+  user.stats = user.stats || {};
+  user.stats.lastActiveAt = new Date();
+  
+  await user.save();
+  
+  return getUserProfile(userId);
 };
 
 /**
@@ -404,6 +549,8 @@ export default {
   logoutUser,
   logoutAllDevices,
   getUserProfile,
+  updateProfile,
+  uploadProfileImage,
   verifyEmail,
   resendVerificationEmail,
 };

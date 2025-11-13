@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { Message, AnalysisResult } from '../types/analyze.types'
-import { mockApi } from '../lib/mockApi'
+// Note: This hook is deprecated. Use ChatAnalyzeContext instead.
+// Keeping for backward compatibility but should be removed.
 type SyncFunction = (messages: Message[], result: AnalysisResult | null) => void
 export const useChat = (externalSyncFn?: SyncFunction) => {
   const [messages, setMessages] = useState<Message[]>([])
@@ -33,8 +34,9 @@ export const useChat = (externalSyncFn?: SyncFunction) => {
       updateState(newMessages, result)
       setLoading(true)
       try {
-        // Add a delay to simulate network request
-        const analysisResult = await mockApi.analyze()
+        // This hook is deprecated. Use ChatAnalyzeContext instead.
+        // For now, throw error to force migration
+        throw new Error('useChat hook is deprecated. Please use ChatAnalyzeContext instead.')
         // Create bot response based on analysis
         let botResponse: Message
         if (analysisResult.disease && analysisResult.confidence > 0.5) {

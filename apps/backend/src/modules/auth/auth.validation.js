@@ -176,6 +176,84 @@ export const validateResendVerification = (req, res, next) => {
   next();
 };
 
+/**
+ * Validate update profile request
+ */
+export const validateUpdateProfile = (req, res, next) => {
+  const schema = Joi.object({
+    name: Joi.string()
+      .min(2)
+      .max(50)
+      .trim()
+      .optional()
+      .messages({
+        'string.min': 'Name must be at least 2 characters',
+        'string.max': 'Name cannot exceed 50 characters',
+      }),
+    phone: Joi.string()
+      .trim()
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.empty': 'Phone cannot be empty string',
+      }),
+    bio: Joi.string()
+      .max(500)
+      .trim()
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.max': 'Bio cannot exceed 500 characters',
+      }),
+    profileImage: Joi.string()
+      .uri()
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.uri': 'Profile image must be a valid URL',
+      }),
+    location: Joi.object({
+      address: Joi.string().allow(null, '').optional(),
+      province: Joi.string().allow(null, '').optional(),
+      city: Joi.string().allow(null, '').optional(),
+      // Coordinates removed from validation (not displayed in UI)
+    }).optional(),
+    settings: Joi.object({
+      emailNotifications: Joi.boolean().optional(),
+      smsNotifications: Joi.boolean().optional(),
+      language: Joi.string().valid('vi', 'en').optional(),
+      theme: Joi.string().valid('light', 'dark').optional(),
+      privacy: Joi.object({
+        profileVisibility: Joi.string().valid('public', 'private', 'friends').optional(),
+        showEmail: Joi.boolean().optional(),
+        showPhone: Joi.boolean().optional(),
+      }).optional(),
+    }).optional(),
+    farmerProfile: Joi.object({
+      farmName: Joi.string().allow(null, '').optional(),
+      farmSize: Joi.string().allow(null, '').optional(),
+      farmType: Joi.string().allow(null, '').optional(),
+      crops: Joi.array().items(Joi.string()).optional(),
+      experience: Joi.string().allow(null, '').optional(),
+      certifications: Joi.array().items(Joi.string()).optional(),
+    }).optional(),
+    buyerProfile: Joi.object({
+      preferences: Joi.array().items(Joi.string()).optional(),
+      budgetRange: Joi.string().allow(null, '').optional(),
+      purchaseFrequency: Joi.string().allow(null, '').optional(),
+    }).optional(),
+  }).min(1).messages({
+    'object.min': 'At least one field must be provided for update',
+  });
+  
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return next(httpError(400, error.details[0].message));
+  }
+  
+  next();
+};
+
 export default {
   validateRegister,
   validateLogin,
@@ -183,4 +261,5 @@ export default {
   validateLogout,
   validateVerifyEmail,
   validateResendVerification,
+  validateUpdateProfile,
 };

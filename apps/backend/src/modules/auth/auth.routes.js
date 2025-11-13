@@ -6,10 +6,12 @@ import {
   validateRefreshToken,
   validateLogout,
   validateVerifyEmail,
-  validateResendVerification
+  validateResendVerification,
+  validateUpdateProfile
 } from './auth.validation.js';
 import { authMiddleware } from '../../common/middleware/auth.js';
 import { rateLimitMiddleware } from '../../common/middleware/rateLimit.js';
+import { uploadImage } from '../../common/middleware/upload.js';
 
 const router = express.Router();
 
@@ -26,5 +28,7 @@ router.post('/verify-email/resend', rateLimitMiddleware, validateResendVerificat
 router.post('/logout', authMiddleware, validateLogout, authController.logout);
 router.post('/logout-all', authMiddleware, authController.logoutAll);
 router.get('/profile', authMiddleware, authController.getProfile);
+router.put('/profile', authMiddleware, validateUpdateProfile, authController.updateProfile);
+router.post('/profile/upload-image', authMiddleware, uploadImage.single('image'), authController.uploadProfileImage);
 
 export default router;

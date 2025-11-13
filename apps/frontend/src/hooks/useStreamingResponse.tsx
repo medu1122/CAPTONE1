@@ -12,7 +12,7 @@ interface StreamingOptions {
   onComplete?: (finalText: string) => void
   onError?: (error: string) => void
   chunkDelay?: number
-  simulateTyping?: boolean
+  // simulateTyping removed - always use real API
 }
 
 export const useStreamingResponse = (options: StreamingOptions = {}) => {
@@ -20,7 +20,7 @@ export const useStreamingResponse = (options: StreamingOptions = {}) => {
     onComplete,
     onError,
     chunkDelay = 50,
-    simulateTyping = true
+    // simulateTyping removed
   } = options
 
   const [state, setState] = useState<StreamingState>({
@@ -33,7 +33,8 @@ export const useStreamingResponse = (options: StreamingOptions = {}) => {
   const streamRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  const simulateStreaming = useCallback(async (fullText: string) => {
+  // simulateStreaming removed - always use real API
+  const _unused_simulateStreaming = useCallback(async (fullText: string) => {
     setState({
       isStreaming: true,
       currentText: '',
@@ -79,69 +80,61 @@ export const useStreamingResponse = (options: StreamingOptions = {}) => {
       // Create abort controller for cancellation
       abortControllerRef.current = new AbortController()
 
-      if (simulateTyping) {
-        // Simulate API response with realistic delay
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      // Always use real API - removed mock/simulateTyping
+      // Real API streaming implementation
+      const response = await fetch('/api/v1/chat-analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: prompt }),
+        signal: abortControllerRef.current.signal
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
         
-        // Generate mock response based on prompt
-        const mockResponse = generateMockResponse(prompt)
-        await simulateStreaming(mockResponse)
-      } else {
-        // Real API streaming implementation
-        const response = await fetch('/api/v1/chat-analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: prompt }),
-          signal: abortControllerRef.current.signal
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const reader = response.body?.getReader()
-        if (!reader) {
-          throw new Error('No response body')
-        }
-
-        const decoder = new TextDecoder()
-        let fullText = ''
-
-        while (true) {
-          const { done, value } = await reader.read()
-          
-          if (done) break
-          
-          const chunk = decoder.decode(value, { stream: true })
-          const lines = chunk.split('\n')
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6)
-              if (data === '[DONE]') {
+        if (done) break
+        
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              setState(prev => ({
+                ...prev,
+                isStreaming: false,
+                isComplete: true
+              }))
+              onComplete?.(fullText)
+              return
+            }
+            
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.content) {
+                fullText += parsed.content
                 setState(prev => ({
                   ...prev,
-                  isStreaming: false,
-                  isComplete: true
+                  currentText: fullText
                 }))
-                onComplete?.(fullText)
-                return
               }
-              
-              try {
-                const parsed = JSON.parse(data)
-                if (parsed.content) {
-                  fullText += parsed.content
-                  setState(prev => ({
-                    ...prev,
-                    currentText: fullText
-                  }))
-                }
-              } catch (e) {
-                // Ignore parsing errors for malformed chunks
-              }
+            } catch (e) {
+              // Ignore parsing errors for malformed chunks
             }
           }
         }
@@ -156,7 +149,7 @@ export const useStreamingResponse = (options: StreamingOptions = {}) => {
       })
       onError?.(errorMessage)
     }
-  }, [simulateTyping, simulateStreaming, onComplete, onError])
+  }, [onComplete, onError])
 
   const stopStreaming = useCallback(() => {
     if (streamRef.current) {
@@ -184,28 +177,7 @@ export const useStreamingResponse = (options: StreamingOptions = {}) => {
     })
   }, [stopStreaming])
 
-  // Generate mock response based on prompt
-  const generateMockResponse = (prompt: string): string => {
-    const lowerPrompt = prompt.toLowerCase()
-    
-    if (lowerPrompt.includes('bệnh') || lowerPrompt.includes('phân tích')) {
-      return `Tôi đã phân tích hình ảnh của bạn và phát hiện một số dấu hiệu bất thường. Dựa trên các đặc điểm quan sát được, có khả năng cây trồng đang gặp vấn đề về sức khỏe. Tôi khuyến nghị bạn nên thực hiện các biện pháp chăm sóc phù hợp và theo dõi tình trạng cây thường xuyên.`
-    }
-    
-    if (lowerPrompt.includes('chăm sóc') || lowerPrompt.includes('hướng dẫn')) {
-      return `Để chăm sóc cây trồng hiệu quả, bạn cần chú ý đến các yếu tố sau: tưới nước đều đặn nhưng không quá nhiều, đảm bảo ánh sáng phù hợp, bón phân định kỳ, và kiểm tra sâu bệnh thường xuyên. Mỗi loại cây có nhu cầu chăm sóc khác nhau, vì vậy hãy tìm hiểu kỹ về loại cây bạn đang trồng.`
-    }
-    
-    if (lowerPrompt.includes('thời tiết') || lowerPrompt.includes('weather')) {
-      return `Thời tiết hiện tại khá thuận lợi cho cây trồng. Nhiệt độ và độ ẩm trong khoảng phù hợp. Tuy nhiên, bạn nên chú ý đến việc tưới nước và che chắn khi cần thiết. Theo dõi dự báo thời tiết để có kế hoạch chăm sóc cây phù hợp.`
-    }
-    
-    if (lowerPrompt.includes('sản phẩm') || lowerPrompt.includes('khuyến nghị')) {
-      return `Dựa trên tình trạng cây trồng của bạn, tôi khuyến nghị một số sản phẩm chăm sóc phù hợp: phân bón hữu cơ, thuốc trừ sâu sinh học, và các dụng cụ chăm sóc cây cơ bản. Những sản phẩm này sẽ giúp cây phát triển khỏe mạnh và tăng năng suất.`
-    }
-    
-    return `Cảm ơn bạn đã chia sẻ thông tin. Tôi đã ghi nhận câu hỏi của bạn và sẽ cung cấp phản hồi chi tiết trong phần phân tích. Hãy để tôi xem xét kỹ hơn về tình trạng cây trồng của bạn.`
-  }
+  // Mock response generation removed - always use real API
 
   return {
     ...state,
@@ -265,17 +237,61 @@ export const useStreamingChat = () => {
     setIsStreaming(true)
     setCurrentStreamingText('')
 
-    // Simulate streaming response
-    const mockResponse = `Tôi đã nhận được câu hỏi của bạn về "${userMessage}". Hãy để tôi phân tích và cung cấp phản hồi chi tiết...`
-    
-    // Simulate typing effect
-    const words = mockResponse.split(' ')
-    let currentText = ''
-    
-    for (let i = 0; i < words.length; i++) {
-      currentText += (i > 0 ? ' ' : '') + words[i]
-      setCurrentStreamingText(currentText)
-      await new Promise(resolve => setTimeout(resolve, 100))
+    // Use real API instead of mock response
+    // TODO: Replace with actual streaming API call
+    try {
+      const response = await fetch('/api/v1/chat-analyze/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userMessage }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              setIsStreaming(false)
+              return
+            }
+            
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.content) {
+                fullText += parsed.content
+                setCurrentStreamingText(fullText)
+              }
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Streaming error:', error)
+      setIsStreaming(false)
+      // Show error message to user
+      setCurrentStreamingText(`Lỗi: ${error instanceof Error ? error.message : 'Không thể kết nối với server'}`)
     }
 
     // Add final response

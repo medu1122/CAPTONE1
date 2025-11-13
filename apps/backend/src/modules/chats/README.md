@@ -112,14 +112,29 @@ DELETE /api/v1/chat/messages/:messageId
 
 ## 📊 Database Schema
 
-### ChatMessage Collection
+### Chats Collection
+**Note:** Model name là `ChatMessage` nhưng collection name thực tế trong MongoDB là `chats`
+
 ```javascript
 {
   _id: ObjectId,
   sessionId: String (required, indexed),
-  user: ObjectId (optional, ref: 'User'),
+  user: ObjectId (optional, ref: 'User', null for guests),
   role: String (enum: ['user', 'assistant', 'system']),
   message: String (max: 8000 chars),
+  attachments: [{
+    url: String,
+    filename: String,
+    mimeType: String,
+    size: Number
+  }],
+  related: {
+    analysisId: ObjectId (ref: 'Analysis'),
+    plantId: ObjectId (ref: 'Plant'),
+    postId: ObjectId (ref: 'Post')
+  },
+  analysis: ObjectId (ref: 'Analysis', optional),
+  messageType: String (enum: ['text', 'image', 'image-text', 'analysis']),
   meta: Mixed (optional, for metadata),
   createdAt: Date,
   updatedAt: Date

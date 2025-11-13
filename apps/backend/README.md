@@ -50,7 +50,6 @@ src/
     ├── emailVerification/# Email verification
     ├── passwordReset/    # Password reset
     ├── plants/           # Plant management
-    ├── posts/            # Community posts
     ├── alerts/           # Weather alerts
     ├── weather/          # Weather data & alerts (NEW)
     ├── productRecommendations/ # Product recommendations (NEW)
@@ -260,30 +259,13 @@ lon: 106.660172 (optional)
 | PUT | `/plants/:id` | Cập nhật cây | ✅ |
 | DELETE | `/plants/:id` | Xóa cây | ✅ |
 
-### 8. Posts (`/posts`)
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/posts` | Lấy danh sách bài đăng | ❌ |
-| POST | `/posts` | Tạo bài đăng mới | ✅ |
-| GET | `/posts/:id` | Lấy chi tiết bài đăng | ❌ |
-| PUT | `/posts/:id` | Cập nhật bài đăng | ✅ |
-| DELETE | `/posts/:id` | Xóa bài đăng | ✅ |
-
-### 9. Alerts (`/alerts`)
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/alerts` | Lấy danh sách cảnh báo | ✅ |
-| POST | `/alerts` | Tạo cảnh báo mới | ✅ |
-| PUT | `/alerts/:id` | Cập nhật cảnh báo | ✅ |
-| DELETE | `/alerts/:id` | Xóa cảnh báo | ✅ |
-
-### 10. Weather (`/weather`) - NEW
+### 8. Weather (`/weather`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/weather` | Lấy dữ liệu thời tiết hiện tại và dự báo | ❌ |
 | GET | `/weather/alerts` | Lấy cảnh báo thời tiết cho nông nghiệp | ❌ |
 
-### 11. Product Recommendations (`/products`) - NEW
+### 9. Product Recommendations (`/products`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/products/recommendations` | Gợi ý sản phẩm dựa trên cây/bệnh | ❌ |
@@ -292,14 +274,14 @@ lon: 106.660172 (optional)
 | GET | `/products/:productId` | Lấy chi tiết sản phẩm | ❌ |
 | POST | `/products` | Tạo sản phẩm mới | ✅ |
 
-### 12. AI Assistant (`/ai`) - NEW
+### 10. AI Assistant (`/ai`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/ai/respond` | Tạo phản hồi AI cho cuộc trò chuyện | ❌ |
 | POST | `/ai/analyze-image-need` | Phân tích nhu cầu xử lý ảnh | ❌ |
 | POST | `/ai/analyze-product-need` | Phân tích nhu cầu gợi ý sản phẩm | ❌ |
 
-### 13. Chat Analyze (`/chat-analyze`) - NEW
+### 11. Chat Analyze (`/chat-analyze`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/chat-analyze` | Main chat analyze endpoint | ❌ |
@@ -308,7 +290,7 @@ lon: 106.660172 (optional)
 | POST | `/chat-analyze/image-text` | Image + text processing | ❌ |
 | GET | `/chat-analyze/status` | System status | ❌ |
 
-### 14. Health Check (`/health`)
+### 12. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -420,36 +402,12 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 7. Post Collection
-```javascript
-{
-  _id: ObjectId,
-  title: String (required),
-  content: String (required),
-  images: [{
-    url: String,
-    caption: String
-  }],
-  author: ObjectId (ref: 'User'),
-  tags: [String],
-  likes: [ObjectId (ref: 'User')],
-  comments: [{
-    content: String (required),
-    author: ObjectId (ref: 'User'),
-    createdAt: Date
-  }],
-  plants: [ObjectId (ref: 'Plant')],
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### 8. ChatMessage Collection (ENHANCED)
+### 7. Chats Collection (Chat Messages)
 ```javascript
 {
   _id: ObjectId,
   sessionId: String (required, indexed),
-  user: ObjectId (ref: 'User', required),
+  user: ObjectId (ref: 'User', optional - null for guests),
   role: String (enum: ['user', 'assistant', 'system']),
   message: String (required, max: 8000),
   attachments: [{
@@ -463,38 +421,15 @@ lon: 106.660172 (optional)
     plantId: ObjectId (ref: 'Plant'),
     postId: ObjectId (ref: 'Post')
   },
+  analysis: ObjectId (ref: 'Analysis', optional - for image messages),
+  messageType: String (enum: ['text', 'image', 'image-text', 'analysis']),
   meta: Mixed (optional),
   createdAt: Date (indexed),
   updatedAt: Date
 }
 ```
 
-### 9. Alert Collection
-```javascript
-{
-  _id: ObjectId,
-  user: ObjectId (ref: 'User'),
-  phone: String (required),
-  location: {
-    type: String (enum: ['Point']),
-    coordinates: [Number] (required),
-    address: String (required)
-  },
-  plants: [ObjectId (ref: 'Plant')],
-  alertTypes: {
-    weather: Boolean,
-    frost: Boolean,
-    drought: Boolean,
-    heavyRain: Boolean
-  },
-  lastSent: Date,
-  active: Boolean,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### 10. Analysis Collection (ENHANCED)
+### 8. Analysis Collection (ENHANCED)
 ```javascript
 {
   _id: ObjectId,
@@ -519,7 +454,7 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 11. Weather Cache Collection (NEW)
+### 9. Weather Cache Collection (NEW)
 ```javascript
 {
   _id: ObjectId,
@@ -557,7 +492,7 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 12. Product Recommendations Collection (NEW)
+### 10. Product Recommendations Collection (NEW)
 ```javascript
 {
   _id: ObjectId,
@@ -1052,8 +987,6 @@ GET /api/v1/health
 - ✅ Enhanced chat messages (attachments, related)
 - ✅ Enhanced analysis model
 - ✅ Plant management CRUD
-- ✅ Community posts
-- ✅ Weather alerts system
 - ✅ **Weather API integration (OpenWeather)**
 - ✅ **Product recommendations system**
 - ✅ **AI Assistant with GPT integration**

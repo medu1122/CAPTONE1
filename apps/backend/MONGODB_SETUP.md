@@ -14,8 +14,12 @@
 - ✅ `email_verifications` - Email verification tokens
 - ✅ `password_resets` - Password reset tokens
 - ✅ `chat_sessions` - Chat session metadata
-- ✅ `chat_messages` - Chat messages with attachments
+- ✅ `chats` - Chat messages with attachments
 - ✅ `analyses` - Plant analysis results
+- ✅ `plants` - Plant database
+- ✅ `product_recommendations` - Product recommendations
+- ✅ `weather_cache` - Weather data cache
+- ✅ `admin` - Admin settings (if applicable)
 
 ### 🚀 Cách Sử Dụng
 
