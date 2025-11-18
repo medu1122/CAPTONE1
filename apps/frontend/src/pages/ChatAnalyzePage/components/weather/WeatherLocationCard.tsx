@@ -139,14 +139,6 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
   }
   return (
     <div className="bg-white rounded-2xl shadow-sm mb-3">
-      {/* Disclaimer */}
-      <div className="flex items-start gap-2 p-3 bg-amber-50 border-b border-amber-200">
-        <InfoIcon size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-800">
-          <strong>Lưu ý:</strong> Dữ liệu thời tiết chỉ mang tính chất tham khảo. 
-          Độ chính xác phụ thuộc vào nguồn dữ liệu bên thứ ba.
-        </p>
-      </div>
       <div className="p-3">
         <div className="flex items-center">
           {/* Location selector */}

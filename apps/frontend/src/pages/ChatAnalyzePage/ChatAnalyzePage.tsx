@@ -207,19 +207,13 @@ export const ChatAnalyzePage: React.FC = () => {
             <div className="hidden md:block w-1/2 h-full overflow-y-auto p-4 bg-gray-50">
               <div className="space-y-6">
                 <OverviewCard result={result} />
-                <WeatherLocationCard 
-                  data={weatherData}
-                  loading={weatherLoading}
-                  error={weatherError}
-                  onChangeLocation={setWeatherLocation}
-                />
                 <TreatmentRecommendationsCard 
                   treatments={result?.treatments || []} 
                 />
                 <AdditionalInfoCard 
                   items={result?.additionalInfo || []} 
                 />
-                {/* Keep old components for backward compatibility (hidden for now) */}
+                {/* Keep old components commented for reference */}
                 {/* <ImageAnalysisCard imageInsights={result?.imageInsights} /> */}
                 {/* <ProductListCard products={result?.products || []} /> */}
               </div>
