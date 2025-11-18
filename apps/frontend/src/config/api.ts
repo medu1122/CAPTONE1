@@ -1,6 +1,26 @@
 // API Configuration
+const getBaseURL = () => {
+  // If VITE_API_URL is set in .env, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Auto-detect based on current hostname
+  const hostname = window.location.hostname;
+  
+  // If accessing via localhost, use localhost backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:4000/api/v1';
+  }
+  
+  // If accessing via LAN IP, use same IP for backend
+  return `http://${hostname}:4000/api/v1`;
+};
+
+console.log('🌐 [API Config] Backend URL:', getBaseURL());
+
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1',
+  BASE_URL: getBaseURL(),
   TIMEOUT: 10000,
   
   // External Services Configuration
@@ -105,6 +125,22 @@ export const API_CONFIG = {
     },
     HEALTH: {
       CHECK: '/health'
+    },
+    ANALYSES: {
+      MY_PLANTS: '/analyses/my-plants',
+      DETAIL: '/analyses/:id',
+      DELETE: '/analyses/:id'
+    },
+    PLANT_BOXES: {
+      LIST: '/plant-boxes',
+      DETAIL: '/plant-boxes/:id',
+      CREATE: '/plant-boxes',
+      UPDATE: '/plant-boxes/:id',
+      DELETE: '/plant-boxes/:id',
+      REFRESH_STRATEGY: '/plant-boxes/:id/refresh-strategy',
+      CHAT: '/plant-boxes/:id/chat',
+      ADD_NOTE: '/plant-boxes/:id/notes',
+      ADD_IMAGE: '/plant-boxes/:id/images'
     }
   }
 }

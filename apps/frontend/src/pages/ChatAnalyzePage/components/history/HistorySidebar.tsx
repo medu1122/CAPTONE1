@@ -12,7 +12,7 @@ interface HistorySidebarProps {
   onSelect: (id: string) => void
   onCreate: () => string
   onRename: (id: string, title: string) => void
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void | Promise<void>
   onClear: () => void
 }
 export const HistorySidebar: React.FC<HistorySidebarProps> = ({

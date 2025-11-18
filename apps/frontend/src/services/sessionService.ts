@@ -40,19 +40,10 @@ class SessionService {
    */
   createSession(): string {
     const sessionId = uuidv4();
-    const now = new Date().toISOString();
     
     localStorage.setItem(SESSION_KEY, sessionId);
     
-    // Add to sessions list
-    const sessions = this.getAllSessions();
-    sessions.push({
-      id: sessionId,
-      createdAt: now,
-      lastMessageAt: now,
-    });
-    
-    this.saveSessions(sessions);
+    // DON'T save to localStorage - backend is source of truth
     
     console.log('🆕 Created new session:', sessionId);
     return sessionId;
@@ -64,13 +55,7 @@ class SessionService {
   switchSession(sessionId: string): void {
     localStorage.setItem(SESSION_KEY, sessionId);
     
-    // Update lastMessageAt
-    const sessions = this.getAllSessions();
-    const session = sessions.find(s => s.id === sessionId);
-    if (session) {
-      session.lastMessageAt = new Date().toISOString();
-      this.saveSessions(sessions);
-    }
+    // DON'T update localStorage - backend tracks lastMessageAt
     
     console.log('🔄 Switched to session:', sessionId);
   }
@@ -104,8 +89,7 @@ class SessionService {
    * Delete a session
    */
   deleteSession(sessionId: string): void {
-    const sessions = this.getAllSessions().filter(s => s.id !== sessionId);
-    this.saveSessions(sessions);
+    // DON'T delete from localStorage - backend handles deletion
     
     // If deleted current session, create new one
     if (this.getCurrentSessionId() === sessionId) {
@@ -119,12 +103,8 @@ class SessionService {
    * Update session title
    */
   updateSessionTitle(sessionId: string, title: string): void {
-    const sessions = this.getAllSessions();
-    const session = sessions.find(s => s.id === sessionId);
-    if (session) {
-      session.title = title;
-      this.saveSessions(sessions);
-    }
+    // DON'T update localStorage - backend handles titles
+    console.log('📝 Session title update (backend only):', sessionId, title);
   }
 }
 

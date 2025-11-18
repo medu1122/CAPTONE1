@@ -6,6 +6,8 @@ import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { LogoutPage } from './pages/LogoutPage'
 import { ProfilePage } from './pages/ProfilePage/ProfilePage'
+import { MyPlantsPage } from './pages/MyPlantsPage/MyPlantsPage'
+import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
 import { AuthProvider } from './contexts/AuthContext'
 import { ChatAnalyzeProvider } from './contexts/ChatAnalyzeContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -56,6 +58,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-plants" 
+            element={
+              <ProtectedRoute>
+                <MyPlantsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-plants/:id" 
+            element={
+              <ProtectedRoute>
+                <PlantDetailPage />
               </ProtectedRoute>
             } 
           />

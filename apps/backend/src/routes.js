@@ -12,6 +12,8 @@ import aiAssistantRoutes from './modules/aiAssistant/ai.routes.js';
 import chatAnalyzeRoutes from './modules/chatAnalyze/chatAnalyze.routes.js';
 import plantRoutes from './modules/plants/plant.routes.js';
 import postRoutes from './modules/posts/post.routes.js';
+import analysisRoutes from './modules/analyses/analysis.routes.js';
+import plantBoxRoutes from './modules/plantBoxes/plantBox.routes.js';
 
 const router = express.Router();
 
@@ -29,5 +31,7 @@ router.use('/ai', aiAssistantRoutes);
 router.use('/chat-analyze', chatAnalyzeRoutes);
 router.use('/plants', plantRoutes);
 router.use('/posts', postRoutes);
+router.use('/analyses', analysisRoutes);
+router.use('/plant-boxes', plantBoxRoutes);
 
 export default router;

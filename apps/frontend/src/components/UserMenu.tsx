@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, User, Settings, Mail, CheckCircle } from 'lucide-react'
+import { LogOut, User, Settings, Mail, CheckCircle, Sprout } from 'lucide-react'
 
 export const UserMenu: React.FC = () => {
   const { user, logout, logoutAll } = useAuth()
@@ -83,6 +83,17 @@ export const UserMenu: React.FC = () => {
               >
                 <User className="w-4 h-4" />
                 <span>Thông tin cá nhân</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  navigate('/my-plants')
+                }}
+                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Sprout className="w-4 h-4" />
+                <span>Cây trồng của tôi</span>
               </button>
               
               <button

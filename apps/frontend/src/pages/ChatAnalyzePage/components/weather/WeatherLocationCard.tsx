@@ -10,6 +10,7 @@ import {
   ChevronDownIcon,
   SearchIcon,
   XIcon,
+  InfoIcon,
 } from 'lucide-react'
 interface ForecastDay {
   date: string
@@ -138,6 +139,14 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
   }
   return (
     <div className="bg-white rounded-2xl shadow-sm mb-3">
+      {/* Disclaimer */}
+      <div className="flex items-start gap-2 p-3 bg-amber-50 border-b border-amber-200">
+        <InfoIcon size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800">
+          <strong>Lưu ý:</strong> Dữ liệu thời tiết chỉ mang tính chất tham khảo. 
+          Độ chính xác phụ thuộc vào nguồn dữ liệu bên thứ ba.
+        </p>
+      </div>
       <div className="p-3">
         <div className="flex items-center">
           {/* Location selector */}
@@ -230,28 +239,37 @@ export const WeatherLocationCard: React.FC<WeatherLocationCardProps> = ({
               </div>
             </div>
           </div>
-          {/* Forecast section - horizontal scroll */}
-          <div className="ml-auto flex-1 overflow-x-auto">
-            <div className="flex space-x-3 justify-end">
+          {/* Forecast section - center */}
+          <div className="flex-1 flex justify-center overflow-x-auto -ml-8">
+            <div className="flex space-x-3">
               {data.forecast.days.map((day, index) => (
                 <div
                   key={index}
-                  className="flex flex-col items-center min-w-10"
+                  className="flex flex-col items-center min-w-[52px] bg-gray-50 rounded-lg px-2 py-1.5"
                 >
-                  <div className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                  <div className="text-[10px] font-medium text-gray-600 whitespace-nowrap">
                     {formatDate(day.date)}
                   </div>
                   <div className="my-0.5">
-                    {getWeatherIcon(day.condition.code, 14)}
+                    {getWeatherIcon(day.condition.code, 16)}
                   </div>
                   <div className="text-xs">
-                    <span className="font-medium">{day.maxTemp}°</span>
-                    <span className="text-gray-500 text-xs ml-0.5">
+                    <span className="font-semibold text-gray-900">{day.maxTemp}°</span>
+                    <span className="text-gray-500 text-[10px] ml-0.5">
                       {day.minTemp}°
                     </span>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+          {/* Disclaimer - right side */}
+          <div className="flex-shrink-0 ml-3">
+            <div className="flex items-center gap-1 text-[9px] text-gray-400 whitespace-nowrap">
+              <InfoIcon size={9} className="text-gray-400 flex-shrink-0" />
+              <span>
+                Dữ liệu từ <span className="font-medium">OpenWeather</span> - Thông tin dự báo, có thể không chính xác 100%
+              </span>
             </div>
           </div>
         </div>

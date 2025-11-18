@@ -18,6 +18,10 @@ export interface HistoryMessage {
   messageType: 'text' | 'image' | 'image-text';
   analysis?: {
     _id: string;
+    inputImages?: Array<{
+      url?: string;
+      base64?: string;
+    }>;
     resultTop: {
       plant: {
         commonName: string;

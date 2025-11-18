@@ -2,7 +2,7 @@ import React, { createContext, useContext, useCallback, useState, useEffect } fr
 import type { ReactNode } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import type { Message, AnalysisResult, Conversation } from '../pages/ChatAnalyzePage/types/analyze.types'
-import { storage } from '../pages/ChatAnalyzePage/lib/storage'
+// import { storage } from '../pages/ChatAnalyzePage/lib/storage' // No longer using localStorage for conversations
 // import { chatAnalyzeService } from '../services/chatAnalyzeService' // Replaced by streamingChatService
 import { imageUploadService } from '../services/imageUploadService'
 import { weatherService } from '../services/weatherService'
@@ -111,12 +111,13 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   useEffect(() => {
     // Wait for auth to complete before loading
     if (authLoading) {
-      console.log('⏳ [ChatAnalyze] Waiting for auth to complete...')
       return
     }
     
     const loadInitialData = async () => {
-      console.log('🚀 [ChatAnalyze] Starting initial data load...', { isAuthenticated })
+      // Clear old localStorage data to prevent duplicates
+      localStorage.removeItem('gg_conversations')
+      localStorage.removeItem('gg_all_sessions')
       
       // 1. ALWAYS create a new empty chat session on login (like ChatGPT)
       const newConvId = uuidv4()
@@ -139,16 +140,13 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
       
       // 2. Load sessions list from backend (only if authenticated)
       if (!isAuthenticated) {
-        console.log('👤 [ChatAnalyze] User not authenticated, skipping backend load')
         setConversations([newConversation])
-        storage.setConversations([newConversation])
+        // DON'T save to localStorage - causes duplicate sessions
         return
       }
       
       try {
-        console.log('📋 [ChatAnalyze] Loading sessions from backend...')
         const backendSessions = await chatHistoryService.loadSessions(50)
-        console.log(`📋 [ChatAnalyze] Loaded ${backendSessions.length} sessions from backend`)
         
         if (backendSessions.length > 0) {
           // Convert to Conversation format
@@ -166,18 +164,16 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
           // Add new conversation at the beginning, followed by history
           const allConversations = [newConversation, ...convertedConversations]
           setConversations(allConversations)
-          storage.setConversations(allConversations) // Sync to localStorage
+          // DON'T save to localStorage - backend is source of truth
         } else {
           // No history from backend, just add new conversation
-          console.log('📋 [ChatAnalyze] No sessions found in backend, starting fresh')
           setConversations([newConversation])
-          storage.setConversations([newConversation])
+          // DON'T save to localStorage
         }
       } catch (error) {
         // Error loading from backend, just add new conversation
-        console.error('❌ [ChatAnalyze] Failed to load sessions from backend:', error)
         setConversations([newConversation])
-        storage.setConversations([newConversation])
+        // DON'T save to localStorage
       }
     }
 
@@ -198,7 +194,8 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   
   // Save conversations to localStorage
   const saveConversations = useCallback((updatedConversations: Conversation[]) => {
-    storage.setConversations(updatedConversations)
+    // DON'T save to localStorage - causes duplicate sessions
+    // storage.setConversations(updatedConversations)
     setConversations(updatedConversations)
   }, [])
   
@@ -278,7 +275,16 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
   }, [conversations, saveConversations])
   
   // Delete conversation
-  const deleteConversation = useCallback((id: string) => {
+  const deleteConversation = useCallback(async (id: string) => {
+    // Delete from backend first
+    try {
+      await chatHistoryService.clearHistory(id)
+    } catch (error) {
+      console.error('Failed to delete session from backend:', error)
+      // Continue to delete from localStorage anyway
+    }
+    
+    // Delete from localStorage
     const updatedConversations = conversations.filter(conversation => conversation.id !== id)
     saveConversations(updatedConversations)
     
@@ -311,11 +317,34 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
       const historyMessages = await chatHistoryService.loadHistory(id, 50)
       
       if (historyMessages.length > 0) {
-        const convertedMessages: Message[] = historyMessages.map((msg) => ({
-          role: msg.role,
-          type: msg.messageType as 'text' | 'image',
-          content: msg.message || ''
-        }))
+        const convertedMessages: Message[] = []
+        
+        for (const msg of historyMessages) {
+          // If message has analysis with images, add image message first
+          if (msg.analysis?.inputImages && msg.analysis.inputImages.length > 0) {
+            const imageUrl = msg.analysis.inputImages[0].url || 
+                            (msg.analysis.inputImages[0].base64 ? 
+                              `data:image/jpeg;base64,${msg.analysis.inputImages[0].base64}` : 
+                              null)
+            
+            if (imageUrl) {
+              convertedMessages.push({
+                role: msg.role,
+                type: 'image',
+                content: imageUrl
+              })
+            }
+          }
+          
+          // Add text message if present
+          if (msg.message && msg.message.trim()) {
+            convertedMessages.push({
+              role: msg.role,
+              type: msg.messageType === 'image' ? 'text' : msg.messageType as 'text' | 'image',
+              content: msg.message
+            })
+          }
+        }
         
         setMessages(convertedMessages)
         
@@ -336,7 +365,7 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
         return
       }
     } catch (error) {
-      console.warn('⚠️ Failed to load from DB, using localStorage:', error)
+      console.error('Failed to load chat history:', error)
     }
     
     // Fallback to localStorage

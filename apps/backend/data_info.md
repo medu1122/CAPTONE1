@@ -320,7 +320,85 @@ Indexes:
 
 ---
 
-### 11. posts
+### 11. plant_boxes
+Stores user's plant management boxes (Plant Box System) for tracking individual plants with AI-generated care strategies.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| user | ObjectId (ref: users) | Owner (required, indexed) |
+| name | String | Box name (required, max: 100 chars, trimmed) |
+| plantType | String | Plant type (enum: "existing", "planned", required) |
+| plantName | String | Plant name (required, trimmed) |
+| scientificName | String / null | Scientific name |
+| plantedDate | Date / null | Planting date (if existing) |
+| plannedDate | Date / null | Planned planting date (if planned) |
+| expectedHarvestDate | Date / null | Expected harvest date |
+| location | Object | Location information (required) |
+| ├─ name | String | Location name (required) |
+| ├─ coordinates | Object / null | GPS coordinates |
+| │  ├─ lat | Number / null | Latitude |
+| │  └─ lon | Number / null | Longitude |
+| ├─ area | Number / null | Area in m² |
+| ├─ soilType | String / null | Soil type |
+| └─ sunlight | String | Sunlight level (enum: "full", "partial", "shade") |
+| quantity | Number | Plant quantity (min: 1, default: 1) |
+| growthStage | String / null | Growth stage (enum: "seed", "seedling", "vegetative", "flowering", "fruiting") |
+| currentHealth | String / null | Current health status (enum: "excellent", "good", "fair", "poor") |
+| careLevel | String | Care level (enum: "low", "medium", "high", default: "medium") |
+| wateringMethod | String | Watering method (enum: "manual", "drip", "sprinkler", default: "manual") |
+| fertilizerType | String / null | Fertilizer type |
+| purpose | String / null | Plant purpose (enum: "food", "ornamental", "medicinal", "commercial") |
+| budgetRange | String / null | Budget range |
+| experienceLevel | String / null | Experience level (enum: "beginner", "intermediate", "expert") |
+| specialRequirements | String / null | Special requirements |
+| companionPlants | Array<String> | Companion plants list (default: []) |
+| notifications | Object | Notification settings |
+| ├─ enabled | Boolean | Notifications enabled (default: true) |
+| ├─ email | Boolean | Email notifications (default: true) |
+| ├─ sms | Boolean | SMS notifications (default: false) |
+| ├─ frequency | String | Notification frequency (enum: "daily", "weekly", "custom", default: "daily") |
+| └─ customSchedule | Array<String> | Custom schedule times (default: []) |
+| careStrategy | Object / null | AI-generated care strategy |
+| ├─ lastUpdated | Date | Last strategy update (default: Date.now) |
+| ├─ next7Days | Array<Object> | 7-day care strategy |
+| │  ├─ date | Date | Strategy date (required) |
+| │  ├─ actions | Array<Object> | Care actions for the day |
+| │  │  ├─ type | String | Action type (enum: "water", "fertilize", "prune", "check", "protect", required) |
+| │  │  ├─ time | String | Action time (e.g., "08:00") |
+| │  │  ├─ description | String | Action description |
+| │  │  ├─ reason | String | Action reason |
+| │  │  └─ products | Array<String> | Recommended products |
+| │  └─ weather | Object | Weather data for the day |
+| │     ├─ temp | Object | Temperature range |
+| │     │  ├─ min | Number | Min temperature |
+| │     │  └─ max | Number | Max temperature |
+| │     ├─ humidity | Number | Humidity percentage |
+| │     ├─ rain | Number | Rainfall (mm) |
+| │     └─ alerts | Array<String> | Weather alerts |
+| └─ summary | String | Strategy summary |
+| images | Array<Object> | Plant images (default: []) |
+| ├─ url | String | Image URL |
+| ├─ date | Date | Image date (default: Date.now) |
+| └─ description | String / null | Image description |
+| notes | Array<Object> | Plant notes (default: []) |
+| ├─ date | Date | Note date (default: Date.now) |
+| ├─ content | String | Note content |
+| └─ type | String | Note type (enum: "care", "observation", "issue", "milestone", default: "observation") |
+| isActive | Boolean | Active status (default: true) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ user: 1, createdAt: -1 }` - For user's plant boxes sorted by creation date
+- `{ user: 1, plantType: 1 }` - For filtering by plant type per user
+- `{ user: 1, isActive: 1 }` - For filtering active boxes per user
+- `{ "location.coordinates.lat": 1, "location.coordinates.lon": 1 }` - For geospatial queries
+- `{ name: "text", plantName: "text", scientificName: "text" }` - Text search
+
+---
+
+### 12. posts
 **Note:** Code exists but collection may not be created in MongoDB yet.
 
 Stores community posts and discussions.
@@ -357,7 +435,7 @@ Indexes:
 
 ---
 
-### 12. alerts
+### 13. alerts
 **Note:** Code exists but collection may not be created in MongoDB yet.
 
 Stores weather and plant alerts for SMS notifications.
@@ -396,7 +474,7 @@ Indexes:
    - Always check `collection` option in schema for actual collection name
 
 2. **Collections Status:**
-   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache
+   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes
    - ⚠️ **Code exists, may need migration:** posts, alerts
 
 3. **TTL Indexes (Auto-delete expired documents):**
@@ -409,4 +487,4 @@ Indexes:
    - `GreenGrow` or `greengrow`
    - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
 
-**Last Updated:** 2025-01-12 (Added User Profile Management fields, updated collections structure)
+**Last Updated:** 2025-01-16 (Added Plant Boxes collection for Plant Management System with AI care strategies)

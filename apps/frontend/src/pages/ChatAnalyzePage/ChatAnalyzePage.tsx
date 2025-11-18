@@ -4,14 +4,15 @@ import { ChatHeader } from './components/chat/ChatHeader'
 import { ChatMessages } from './components/chat/ChatMessages'
 import { ChatInput } from './components/chat/ChatInput'
 import { OverviewCard } from './components/analysis/OverviewCard'
-import { ImageAnalysisCard } from './components/analysis/ImageAnalysisCard'
-import { ProductListCard } from './components/analysis/ProductListCard'
+// import { ImageAnalysisCard } from './components/analysis/ImageAnalysisCard'
+// import { ProductListCard } from './components/analysis/ProductListCard'
+import { TreatmentRecommendationsCard } from './components/analysis/TreatmentRecommendationsCard'
+import { AdditionalInfoCard } from './components/analysis/AdditionalInfoCard'
 import { WeatherLocationCard } from './components/weather/WeatherLocationCard'
 import { Header } from './components/layout/Header'
 import { useChatAnalyze } from '../../contexts/ChatAnalyzeContext'
 import { useWeatherLocation } from './hooks/useWeatherLocation.ts'
 import { ErrorMessage } from '../../components/common/ErrorMessage'
-import { LoadingOverlay } from '../../components/common/LoadingStates'
 
 export const ChatAnalyzePage: React.FC = () => {
   
@@ -206,20 +207,27 @@ export const ChatAnalyzePage: React.FC = () => {
             <div className="hidden md:block w-1/2 h-full overflow-y-auto p-4 bg-gray-50">
               <div className="space-y-6">
                 <OverviewCard result={result} />
-                <ImageAnalysisCard imageInsights={result?.imageInsights} />
-                <ProductListCard products={result?.products || []} />
+                <WeatherLocationCard 
+                  data={weatherData}
+                  loading={weatherLoading}
+                  error={weatherError}
+                  onChangeLocation={setWeatherLocation}
+                />
+                <TreatmentRecommendationsCard 
+                  treatments={result?.treatments || []} 
+                />
+                <AdditionalInfoCard 
+                  items={result?.additionalInfo || []} 
+                />
+                {/* Keep old components for backward compatibility (hidden for now) */}
+                {/* <ImageAnalysisCard imageInsights={result?.imageInsights} /> */}
+                {/* <ProductListCard products={result?.products || []} /> */}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Loading Overlay */}
-      <LoadingOverlay 
-        isVisible={loading} 
-        message="Đang phân tích..." 
-      />
-      
       {/* Clear Cache Button */}
       <button
         onClick={handleClearCache}

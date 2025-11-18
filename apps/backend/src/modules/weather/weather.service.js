@@ -51,18 +51,79 @@ export const getWeatherData = async ({ cityName, lat, lon }) => {
     const currentResponse = await axios.get(apiUrl, { params });
     const currentData = currentResponse.data;
 
-    // Get forecast (5 days)
+    // Get forecast (5 days, 3-hour intervals)
     const forecastParams = { ...params };
     delete forecastParams.q; // Remove city name for forecast
     if (cityName) {
       forecastParams.q = cityName;
     }
 
-    
     const forecastResponse = await axios.get(`${OPENWEATHER_BASE_URL}/forecast`, {
       params: forecastParams
     });
     const forecastData = forecastResponse.data;
+
+    // Group forecast by day (OpenWeather returns 3-hour intervals)
+    const dailyForecast = {};
+    forecastData.list.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      if (!dailyForecast[dateKey]) {
+        dailyForecast[dateKey] = {
+          date: new Date(dateKey),
+          temperatures: [],
+          humidities: [],
+          rains: [],
+          descriptions: [],
+          icons: [],
+        };
+      }
+      
+      dailyForecast[dateKey].temperatures.push(item.main.temp);
+      dailyForecast[dateKey].humidities.push(item.main.humidity);
+      dailyForecast[dateKey].rains.push(item.rain ? (item.rain['3h'] || 0) : 0);
+      dailyForecast[dateKey].descriptions.push(item.weather[0].description);
+      dailyForecast[dateKey].icons.push(item.weather[0].icon);
+    });
+
+    // Convert to array and calculate daily values
+    let forecastArray = Object.values(dailyForecast).map(day => ({
+      date: day.date,
+      temperature: {
+        min: Math.round(Math.min(...day.temperatures)),
+        max: Math.round(Math.max(...day.temperatures)),
+      },
+      humidity: Math.round(day.humidities.reduce((a, b) => a + b, 0) / day.humidities.length),
+      description: day.descriptions[Math.floor(day.descriptions.length / 2)], // Use middle description
+      icon: day.icons[Math.floor(day.icons.length / 2)], // Use middle icon
+      rain: Math.round(day.rains.reduce((a, b) => a + b, 0) * 10) / 10, // Sum rain for the day
+    }));
+
+    // Sort by date
+    forecastArray.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // Ensure we have 7 days (extend if needed)
+    while (forecastArray.length < 7) {
+      const lastDay = forecastArray[forecastArray.length - 1];
+      const nextDate = new Date(lastDay.date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      
+      forecastArray.push({
+        date: nextDate,
+        temperature: {
+          min: lastDay.temperature.min,
+          max: lastDay.temperature.max,
+        },
+        humidity: lastDay.humidity,
+        description: lastDay.description,
+        icon: lastDay.icon,
+        rain: 0, // Default to 0 for extended days
+      });
+    }
+
+    // Take only first 7 days
+    forecastArray = forecastArray.slice(0, 7);
 
     // Process and format data
     const weatherData = {
@@ -83,17 +144,7 @@ export const getWeatherData = async ({ cityName, lat, lon }) => {
         windSpeed: currentData.wind.speed,
         windDirection: currentData.wind.deg,
       },
-      forecast: forecastData.list.slice(0, 5).map(item => ({
-        date: new Date(item.dt * 1000),
-        temperature: {
-          min: Math.round(item.main.temp_min),
-          max: Math.round(item.main.temp_max),
-        },
-        humidity: item.main.humidity,
-        description: item.weather[0].description,
-        icon: item.weather[0].icon,
-        rain: item.rain ? item.rain['3h'] || 0 : 0,
-      })),
+      forecast: forecastArray,
       cachedAt: new Date(),
     };
 

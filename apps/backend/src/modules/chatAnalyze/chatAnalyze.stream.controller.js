@@ -42,7 +42,9 @@ export const streamChatAnalyze = async (req, res) => {
       authHeader: req.headers.authorization ? req.headers.authorization.substring(0, 30) + '...' : 'none',
       hasReqUser: !!req.user,
       reqUser: req.user,
-      userId
+      userId,
+      userIdType: typeof userId,
+      userIdValue: userId
     });
 
     console.log('📡 SSE Stream started:', { 
@@ -129,35 +131,72 @@ export const streamChatAnalyze = async (req, res) => {
       if (sessionId && result) {
         try {
           const { saveMessageWithAnalysis } = await import('../chats/chat.service.js');
-          const { Analysis } = await import('../analyses/analysis.model.js');
+          const { createAnalysis } = await import('../analyses/analysis.service.js');
 
-          // Save user message
+          // Create Analysis record FIRST if image was analyzed
+          let analysisId = null;
+          console.log('🔍 Analysis Save Check:', {
+            hasAnalysis: !!result.analysis,
+            hasImage: !!(imageData || imageUrl),
+            hasUserId: !!userId,
+            userId: userId,
+            willSave: !!(result.analysis && (imageData || imageUrl) && userId)
+          });
+          
+          if (result.analysis && (imageData || imageUrl) && userId) {
+            // Format inputImages according to model
+            const inputImages = [];
+            if (imageUrl) {
+              inputImages.push({ url: imageUrl });
+            } else if (imageData) {
+              // Check if it's base64 or URL
+              if (imageData.startsWith('data:') || imageData.startsWith('/9j/') || imageData.startsWith('iVBORw0KGgo')) {
+                inputImages.push({ base64: imageData });
+              } else {
+                inputImages.push({ url: imageData });
+              }
+            }
+
+            // Format resultTop according to model
+            const resultTop = result.analysis.plant
+              ? {
+                  plant: {
+                    commonName: result.analysis.plant.commonName || '',
+                    scientificName: result.analysis.plant.scientificName || '',
+                  },
+                  confidence: result.analysis.confidence || 0,
+                  summary: result.analysis.summary || '',
+                }
+              : null;
+
+            // Create analysis using service
+            const analysisRecord = await createAnalysis({
+              userId,
+              source: 'plantid',
+              inputImages,
+              resultTop,
+              raw: result.analysis,
+            });
+            analysisId = analysisRecord._id;
+            console.log('💾 Saved analysis record:', analysisId);
+          } else {
+            console.warn('⚠️ Analysis NOT saved. Reasons:', {
+              hasAnalysis: !!result.analysis,
+              hasImage: !!(imageData || imageUrl),
+              hasUserId: !!userId,
+              userId: userId
+            });
+          }
+
+          // Save user message WITH analysisId (so we can populate later)
           await saveMessageWithAnalysis({
             sessionId,
             userId,
             role: 'user',
-            message: message || '[Image]',  // ← 'message' not 'content'
-            messageType: imageData || imageUrl ? 'image' : 'text'
+            message: message || '[Image]',
+            messageType: (imageData || imageUrl) ? 'image' : 'text',
+            analysisId: analysisId  // ← Link user message to analysis
           });
-
-          // Create Analysis record if image was analyzed
-          let analysisId = null;
-          if (result.analysis && (imageData || imageUrl)) {
-            const analysisRecord = await Analysis.create({
-              user: userId,
-              sessionId,
-              plantId: result.analysis.plant?.id,
-              plantName: result.analysis.plant?.commonName || result.analysis.plant?.scientificName,
-              confidence: result.analysis.confidence,
-              isHealthy: result.analysis.isHealthy,
-              disease: result.analysis.disease?.name,
-              diseaseConfidence: result.analysis.disease?.probability,
-              imageUrl: imageUrl || imageData,
-              rawData: result.analysis
-            });
-            analysisId = analysisRecord._id;
-            console.log('💾 Saved analysis record:', analysisId);
-          }
 
           // Save assistant response
           await saveMessageWithAnalysis({

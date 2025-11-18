@@ -216,12 +216,25 @@ export const getHistory = async ({
 
     const [messages, total] = await Promise.all([
       ChatMessage.find(query)
+        .populate({
+          path: 'analysis',
+          select: 'inputImages resultTop source createdAt'
+        })
         .sort({ createdAt: 1 }) // Chronological order
         .skip(skip)
         .limit(limit)
         .lean(),
       ChatMessage.countDocuments(query),
     ]);
+
+    // Debug: Log populated data
+    console.log('📋 [getHistory] Messages loaded:', {
+      count: messages.length,
+      withAnalysis: messages.filter(m => m.analysis).length,
+      withImages: messages.filter(m => m.analysis?.inputImages?.length > 0).length,
+      firstMessageHasAnalysis: !!messages[0]?.analysis,
+      firstMessageImages: messages[0]?.analysis?.inputImages?.length || 0
+    });
 
     return {
       messages,

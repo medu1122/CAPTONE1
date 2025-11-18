@@ -26,6 +26,8 @@ export default defineConfig({
     include: ['cloudinary'],
   },
   server: {
+    host: '0.0.0.0', // Listen on all network interfaces for LAN access
+    port: 5173, // Default Vite port
     fs: {
       allow: ['..']
     }
