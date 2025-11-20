@@ -43,7 +43,7 @@ src/
 │       └── jwt.js        # JWT utilities
 └── modules/
     ├── auth/             # User authentication
-    ├── analyze/          # Plant analysis (AI)
+    ├── analyze/          # Plant image analysis (Plant.id integration)
     ├── analyses/         # Analysis history
     ├── chats/            # Chat history
     ├── chatSessions/     # Chat session management
@@ -51,10 +51,17 @@ src/
     ├── passwordReset/    # Password reset
     ├── plants/           # Plant management
     ├── alerts/           # Weather alerts
-    ├── weather/          # Weather data & alerts (NEW)
-    ├── productRecommendations/ # Product recommendations (NEW)
-    ├── aiAssistant/      # AI Assistant & GPT integration (NEW)
-    ├── chatAnalyze/      # Chat Analyze AI Layer (NEW)
+    ├── weather/          # Weather data & alerts
+    ├── productRecommendations/ # Product recommendations
+    ├── aiAssistant/      # AI Assistant & GPT integration
+    ├── chatAnalyze/      # Chat Analyze AI Layer
+    ├── treatments/        # Treatment recommendations (NEW)
+    │   ├── product.model.js          # Chemical products
+    │   ├── biologicalMethod.model.js # Biological methods
+    │   ├── culturalPractice.model.js  # Cultural practices
+    │   ├── treatment.service.js       # Treatment query logic
+    │   └── treatmentAdvisor.service.js # AI treatment advisor
+    ├── imageUpload/      # Image upload to Cloudinary (NEW)
     └── health/           # Health check
 ```
 
@@ -160,8 +167,9 @@ http://localhost:4000/api/v1
 ### 2. Plant Analysis (`/analyze`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | `/analyze` | Phân tích cây trồng từ ảnh/text | ❌ |
-| GET | `/analyze/stream` | **NEW** - Real-time analysis streaming (SSE) | ❌ |
+| POST | `/analyze/image` | **NEW** - Phân tích ảnh cây trồng (Plant.id + Treatments) | ❌ |
+| POST | `/analyze` | Phân tích cây trồng từ ảnh/text (legacy) | ❌ |
+| GET | `/analyze/stream` | Real-time analysis streaming (SSE) | ❌ |
 
 **Request Format:**
 ```bash
@@ -290,7 +298,85 @@ lon: 106.660172 (optional)
 | POST | `/chat-analyze/image-text` | Image + text processing | ❌ |
 | GET | `/chat-analyze/status` | System status | ❌ |
 
-### 12. Health Check (`/health`)
+### 12. Image Upload (`/image-upload`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/image-upload/upload` | Upload ảnh lên Cloudinary | ✅ |
+
+**Request Format:**
+```bash
+POST /api/v1/image-upload/upload
+Content-Type: multipart/form-data
+
+image: <file> (required, max 10MB, jpg/png/webp)
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "url": "https://res.cloudinary.com/.../image.jpg",
+    "publicId": "plant-analysis/xyz123",
+    "width": 1920,
+    "height": 1080,
+    "format": "jpg",
+    "bytes": 245678
+  }
+}
+```
+
+### 13. Treatments (`/treatments`) - NEW
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/treatments/recommendations` | Lấy gợi ý điều trị dựa trên bệnh/cây | ❌ |
+| GET | `/treatments/additional-info` | Lấy thông tin chi tiết sản phẩm | ❌ |
+
+**Request Format:**
+```bash
+GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "type": "chemical",
+      "title": "Thuốc Hóa học",
+      "items": [
+        {
+          "name": "Amistar® Top 325 SC",
+          "activeIngredient": "Azoxystrobin + Difenoconazole",
+          "manufacturer": "Syngenta Vietnam Ltd",
+          "targetDiseases": ["Nấm", "Đốm lá"],
+          "targetCrops": ["Lúa", "Ngô"],
+          "dosage": "500ml/ha",
+          "usage": "Pha với nước, phun đều...",
+          "imageUrl": "https://...",
+          "frequency": "7-10 ngày/lần",
+          "isolationPeriod": "14 ngày",
+          "precautions": ["Đeo găng tay", "Tránh gió"]
+        }
+      ]
+    },
+    {
+      "type": "biological",
+      "title": "Phương pháp Sinh học",
+      "items": [...]
+    },
+    {
+      "type": "cultural",
+      "title": "Biện pháp Canh tác",
+      "items": [...]
+    }
+  ]
+}
+```
+
+### 14. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -492,7 +578,7 @@ lon: 106.660172 (optional)
 }
 ```
 
-### 10. Product Recommendations Collection (NEW)
+### 10. Product Recommendations Collection
 ```javascript
 {
   _id: ObjectId,
@@ -520,6 +606,62 @@ lon: 106.660172 (optional)
   },
   isActive: Boolean (default: true),
   createdBy: ObjectId (ref: 'User', required),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 11. Products Collection (NEW - Chemical Treatments)
+```javascript
+{
+  _id: ObjectId,
+  name: String (required, indexed),
+  activeIngredient: String (required),
+  manufacturer: String (required),
+  targetDiseases: [String] (required),
+  targetCrops: [String] (required),
+  dosage: String (required),
+  usage: String (required),
+  price: String (optional),
+  imageUrl: String (optional),
+  source: String (required),
+  verified: Boolean (default: false),
+  frequency: String (optional),
+  isolationPeriod: String (optional),
+  precautions: [String] (optional),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 12. Biological Methods Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  name: String (required, indexed),
+  targetDiseases: [String] (required),
+  materials: String (required),
+  steps: String (required),
+  timeframe: String (required),
+  effectiveness: String (required),
+  source: String (required),
+  verified: Boolean (default: false),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 13. Cultural Practices Collection (NEW)
+```javascript
+{
+  _id: ObjectId,
+  category: String (required, enum: ['soil', 'water', 'fertilizer', 'light', 'spacing'], indexed),
+  action: String (required),
+  description: String (required),
+  priority: String (required, enum: ['High', 'Medium', 'Low'], default: 'Medium'),
+  applicableTo: [String] (required),
+  source: String (required),
+  verified: Boolean (default: false),
   createdAt: Date,
   updatedAt: Date
 }
@@ -1003,6 +1145,11 @@ GET /api/v1/health
 - ✅ **CORS Support** - Cross-origin SSE support
 - ✅ **Base64 Image Upload** - Direct image data transfer
 - ✅ **Guest User Support** - userId = null for unauthenticated users
+- ✅ **Image Upload Module** - Cloudinary integration for image storage
+- ✅ **Treatment System** - Chemical, biological, and cultural treatment recommendations
+- ✅ **AI Treatment Advisor** - GPT-powered detailed treatment advice
+- ✅ **Plant Analysis Separation** - Dedicated `/analyze/image` endpoint
+- ✅ **Treatment Collections** - products, biological_methods, cultural_practices
 - ✅ File upload handling
 - ✅ Rate limiting
 - ✅ Error handling

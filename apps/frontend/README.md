@@ -36,38 +36,59 @@ src/
 │   │   │   └── VerificationScreen.tsx
 │   │   ├── AuthPage.tsx
 │   │   └── index.tsx
-│   └── ChatAnalyzePage/ # Main chat analysis page
-│       ├── components/
-│       │   ├── analysis/    # Analysis result components
-│       │   │   ├── ImageAnalysisCard.tsx
-│       │   │   ├── OverviewCard.tsx
-│       │   │   └── ProductListCard.tsx
-│       │   ├── chat/        # Chat interface components
-│       │   │   ├── ChatHeader.tsx
-│       │   │   ├── ChatInput.tsx
-│       │   │   └── ChatMessages.tsx
-│       │   ├── history/     # Chat history components
-│       │   │   └── HistorySidebar.tsx
-│       │   ├── layout/      # Layout components
-│       │   │   └── Header.tsx
-│       │   └── weather/     # Weather information components
-│       │       └── WeatherLocationCard.tsx
-│       ├── hooks/           # Custom React hooks
-│       │   ├── useChat.ts
-│       │   ├── useChatHistory.ts
-│       │   └── useWeatherLocation.ts
-│       ├── lib/             # Utility libraries
-│       │   ├── mockApi.ts
-│       │   └── storage.ts
-│       ├── types/           # TypeScript type definitions
-│       │   └── analyze.types.ts
-│       ├── ChatAnalyzePage.tsx
-│       └── index.tsx
+│   ├── PlantAnalysisPage/ # Plant image analysis page (NEW)
+│   │   ├── components/
+│   │   │   ├── PlantInfoCard.tsx      # Plant identification info
+│   │   │   ├── DiseaseListCard.tsx    # Disease detection list
+│   │   │   └── TreatmentPanel.tsx     # Treatment recommendations
+│   │   ├── hooks/
+│   │   │   └── useImageAnalysis.ts    # Image upload & analysis logic
+│   │   ├── services/
+│   │   │   └── analysisService.ts     # API calls for analysis
+│   │   ├── types/
+│   │   │   └── index.ts               # TypeScript interfaces
+│   │   ├── PlantAnalysisPage.tsx
+│   │   └── index.ts
+│   ├── KnowledgePage/   # AI Knowledge Chat page (NEW)
+│   │   ├── components/
+│   │   │   ├── ChatInterface.tsx      # Chat UI
+│   │   │   └── KnowledgeHeader.tsx    # Page header
+│   │   ├── hooks/
+│   │   │   └── useKnowledgeChat.ts    # Chat logic
+│   │   ├── services/
+│   │   │   └── chatService.ts         # Chat API calls
+│   │   ├── types/
+│   │   │   └── index.ts               # TypeScript interfaces
+│   │   ├── KnowledgePage.tsx
+│   │   └── index.ts
+│   └── ChatAnalyzePage/ # Legacy chat analysis page (DEPRECATED)
 ├── assets/              # Static assets
 │   ├── icons/           # Icon files
 │   └── images/          # Image files
+├── contexts/            # React Context providers
+│   ├── AuthContext.tsx        # Authentication state
+│   └── ChatAnalyzeContext.tsx # Chat analysis state
+├── hooks/               # Custom React hooks
+│   ├── useErrorHandler.ts     # Error handling hook
+│   ├── usePersistentState.ts  # LocalStorage state hook
+│   ├── useStreamingResponse.tsx # SSE streaming hook
+│   └── useVoiceInput.tsx       # Voice input hook
 ├── lib/                 # Utility functions
 │   └── utils.ts
+├── services/            # API service functions
+│   ├── analysesService.ts      # Plant analysis API
+│   ├── authService.ts          # Authentication API
+│   ├── chatAnalyzeService.ts   # Chat analysis API
+│   ├── chatHistoryService.ts   # Chat history API
+│   ├── emailVerificationService.ts # Email verification API
+│   ├── geolocationService.ts   # Location services
+│   ├── imageUploadService.ts   # Image upload to Cloudinary (NEW)
+│   ├── plantBoxService.ts      # Plant box management
+│   ├── profileService.ts       # User profile API
+│   ├── sessionService.ts       # Chat session API
+│   ├── streamingChatService.ts # SSE chat streaming
+│   ├── streamingService.ts     # SSE general streaming
+│   └── weatherService.ts       # Weather API
 ├── App.tsx              # Main app component
 ├── App.css              # Global styles
 ├── index.css            # Base styles
@@ -92,7 +113,35 @@ src/
 - **Form Validation**: Real-time validation with error messages
 - **Password Security**: Strength meter and requirements checklist
 
-### 3. **Chat Analysis Page**
+### 3. **Plant Analysis Page** (NEW)
+- **Image Upload & Analysis**: Upload plant images for identification and disease detection
+- **Manual Analysis Flow**: Upload → Click "Phân tích" → View results → Reset for new analysis
+- **Plant Information Display**: 
+  - Plant name (common & scientific)
+  - Confidence scores with visual indicators
+  - Health status (healthy/diseased)
+- **Disease Detection**: 
+  - List of all detected diseases sorted by confidence
+  - Disease icons and confidence badges
+  - Detailed disease descriptions
+- **Treatment Recommendations**:
+  - **Chemical Treatments**: Grid of product cards with detailed modals
+    - Product images, active ingredients, manufacturer
+    - Target crops and diseases
+    - Dosage, usage, frequency, isolation period
+    - Safety precautions and pricing
+  - **Biological Methods**: List of organic treatment methods
+  - **Cultural Practices**: Agricultural best practices
+  - Empty state messages when no treatments found
+- **Responsive Design**: Mobile-first with adaptive layouts
+
+### 4. **Knowledge Page** (NEW)
+- **AI-Powered Chat**: Conversational AI for plant care questions
+- **Context-Aware Responses**: AI reads from analysis panel when available
+- **Knowledge Base**: Access to agricultural knowledge and best practices
+- **Clean Interface**: Focused chat experience without analysis clutter
+
+### 5. **Chat Analysis Page** (Legacy - DEPRECATED)
 - **Real-time Chat Interface**: Interactive chat with plant analysis AI
 - **Weather Integration**: Current weather information with:
   - Location-based weather data
@@ -116,9 +165,25 @@ src/
   - `useChat`: Chat functionality and message management
   - `useChatHistory`: Conversation history and persistence
   - `useWeatherLocation`: Weather data fetching and location management
+  - `useImageAnalysis`: Image upload, analysis, and result management (NEW)
+  - `useKnowledgeChat`: Knowledge page chat functionality (NEW)
 - **Type Safety**: Comprehensive TypeScript definitions with type-only imports
 - **State Management**: Local storage integration for persistence
 - **Weather Integration**: Mock weather API with realistic data generation
+
+### 5. **Treatment System** (NEW)
+- **Three Treatment Types**:
+  - **Chemical (Thuốc Hóa học)**: Product cards with detailed modals
+  - **Biological (Phương pháp Sinh học)**: Organic treatment methods
+  - **Cultural (Biện pháp Canh tác)**: Agricultural best practices
+- **Disease-Based Recommendations**: Treatments filtered by detected diseases
+- **Product Details Modal**: 
+  - Click product card to view full details
+  - Target crops and diseases
+  - Dosage, usage instructions, frequency
+  - Safety precautions and pricing
+- **Empty States**: Clear messages when no treatments available
+- **Data Source**: Treatments imported from Google Sheets → MongoDB
 
 ## 📋 ChatAnalyzePage Architecture
 
@@ -228,8 +293,13 @@ The application uses React Router DOM with the following routes:
 - `/auth` → Authentication page (login/register)
 - `/login` → Authentication page (login focused)
 - `/register` → Authentication page (register focused)
-- `/chat` → Chat analysis page
-- `/ChatAnalyzePage` → Alternative chat page route
+- `/analyze` → **Plant Analysis Page** (NEW) - Image upload & analysis
+- `/knowledge` → **Knowledge Page** (NEW) - AI chat for plant care questions
+- `/chat` → Chat analysis page (Legacy - DEPRECATED)
+- `/ChatAnalyzePage` → Alternative chat page route (Legacy - DEPRECATED)
+- `/profile` → User profile page
+- `/my-plants` → User's plant management page
+- `/community` → Community posts and discussions
 - `*` → 404 Not Found page
 
 ## 🚀 Performance Features

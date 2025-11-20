@@ -467,6 +467,87 @@ Indexes:
 
 ---
 
+### 14. products
+**Note:** Collection stores chemical treatment products imported from Google Sheets.
+
+Stores chemical treatment products (thuốc hóa học) for plant disease treatment.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| name | String | Product name (required, indexed) |
+| activeIngredient | String | Active ingredient (required) |
+| manufacturer | String | Manufacturer name (required) |
+| targetDiseases | Array<String> | Diseases this product treats (required) |
+| targetCrops | Array<String> | Crops this product is for (required) |
+| dosage | String | Dosage instructions (required) |
+| usage | String | Usage instructions (required) |
+| price | String | Product price (optional) |
+| imageUrl | String | Product image URL (optional) |
+| source | String | Data source (required) |
+| verified | Boolean | Verification status (default: false) |
+| frequency | String | Application frequency (optional) |
+| isolationPeriod | String | Days before harvest (optional) |
+| precautions | Array<String> | Safety precautions (optional) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ name: "text", activeIngredient: "text" }` - Text search
+- `{ verified: 1 }` - For filtering verified products
+
+---
+
+### 15. biological_methods
+**Note:** Collection stores biological treatment methods imported from Google Sheets.
+
+Stores biological treatment methods (phương pháp sinh học) for plant disease treatment.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| name | String | Method name (required, indexed) |
+| targetDiseases | Array<String> | Diseases this method treats (required) |
+| materials | String | Required materials (required) |
+| steps | String | Step-by-step instructions (required) |
+| timeframe | String | Treatment timeframe (required) |
+| effectiveness | String | Effectiveness description (required) |
+| source | String | Data source (required) |
+| verified | Boolean | Verification status (default: false) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ name: "text", materials: "text" }` - Text search
+- `{ verified: 1 }` - For filtering verified methods
+
+---
+
+### 16. cultural_practices
+**Note:** Collection stores cultural practices imported from Google Sheets.
+
+Stores cultural practices (biện pháp canh tác) for plant care and disease prevention.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| category | String | Practice category (required, enum: 'soil', 'water', 'fertilizer', 'light', 'spacing', indexed) |
+| action | String | Action name (required) |
+| description | String | Detailed description (required) |
+| priority | String | Priority level (required, enum: 'High', 'Medium', 'Low', default: 'Medium') |
+| applicableTo | Array<String> | Applicable crops (required) |
+| source | String | Data source (required) |
+| verified | Boolean | Verification status (default: false) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ category: 1, priority: 1 }` - For filtering by category and priority
+- `{ action: "text", description: "text" }` - Text search
+- `{ verified: 1 }` - For filtering verified practices
+
+---
+
 ## 📝 Notes
 
 1. **Collection Names:**
@@ -474,7 +555,7 @@ Indexes:
    - Always check `collection` option in schema for actual collection name
 
 2. **Collections Status:**
-   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes
+   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices
    - ⚠️ **Code exists, may need migration:** posts, alerts
 
 3. **TTL Indexes (Auto-delete expired documents):**
@@ -487,4 +568,4 @@ Indexes:
    - `GreenGrow` or `greengrow`
    - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
 
-**Last Updated:** 2025-01-16 (Added Plant Boxes collection for Plant Management System with AI care strategies)
+**Last Updated:** 2025-01-21 (Added Treatment collections: products, biological_methods, cultural_practices for plant disease treatment system)
