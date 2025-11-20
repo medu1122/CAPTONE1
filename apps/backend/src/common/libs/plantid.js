@@ -82,6 +82,15 @@ export const identifyPlant = async ({ imageData }) => {
     console.log('✅ Plant.id API response received');
 
     const data = response.data;
+    
+    // DEBUG: Log full response structure
+    console.log('🔍 [DEBUG] Plant.id response structure:', {
+      hasResult: !!data.result,
+      hasClassification: !!data.result?.classification,
+      hasDisease: !!data.result?.disease,
+      isHealthy: data.result?.is_healthy?.binary,
+      diseaseCount: data.result?.disease?.suggestions?.length || 0
+    });
 
     // Parse response
     const result = {
@@ -104,9 +113,16 @@ export const identifyPlant = async ({ imageData }) => {
       }));
     }
 
-    // Get disease information if unhealthy
-    if (!result.is_healthy && data.result?.disease?.suggestions) {
-      result.diseases = data.result.disease.suggestions.slice(0, 3).map(disease => ({
+    // Get disease information
+    // Always check for diseases, even if is_healthy = true
+    if (data.result?.disease?.suggestions && data.result.disease.suggestions.length > 0) {
+      console.log('🦠 [DEBUG] Found diseases:', data.result.disease.suggestions.length);
+      data.result.disease.suggestions.forEach((d, i) => {
+        console.log(`   ${i+1}. ${d.name}: ${(d.probability * 100).toFixed(1)}%`);
+      });
+      
+      // ✅ Show ALL diseases (no limit) - sorted by probability (already sorted by API)
+      result.diseases = data.result.disease.suggestions.map(disease => ({
         id: disease.id,
         name: disease.name,
         probability: disease.probability,
@@ -118,6 +134,10 @@ export const identifyPlant = async ({ imageData }) => {
           similarity: img.similarity
         })) || []
       }));
+    } else {
+      console.log('⚠️  [DEBUG] No diseases found in API response');
+      console.log('   is_healthy:', result.is_healthy);
+      console.log('   has disease object:', !!data.result?.disease);
     }
 
     return {
@@ -141,11 +161,91 @@ export const identifyPlant = async ({ imageData }) => {
 };
 
 /**
+ * Translate to Vietnamese using GPT
+ * @param {string} text - Text to translate
+ * @param {string} type - Type: 'plant' or 'disease'
+ * @returns {Promise<string>} Vietnamese translation
+ */
+const translateWithGPT = async (text, type = 'plant') => {
+  try {
+    const { generateAIResponse } = await import('../../modules/aiAssistant/ai.service.js');
+    
+    // 🚨 EXTREME STRICT PROMPT: Force GPT to return ONLY the name
+    const prompt = type === 'plant' 
+      ? `You are a translation bot. Return ONLY the Vietnamese plant name. NO explanations. NO sentences. NO prefixes.
+
+Plant name: "${text}"
+
+Examples:
+Input: "Oryza sativa" → Output: "Lúa"
+Input: "Solanum lycopersicum" → Output: "Cà chua"
+Input: "Vigna unguiculata" → Output: "Đậu lăng"
+
+⛔ DO NOT write:
+- "Cây này được gọi là..."
+- "Đây là..."
+- Any explanation
+
+✅ ONLY write the Vietnamese name (2-4 words max):
+`
+      : `You are a translation bot. Return ONLY the Vietnamese disease name. NO explanations. NO sentences.
+
+Disease name: "${text}"
+
+Examples:
+Input: "herbicide damage" → Output: "Thiệt hại do thuốc diệt cỏ"
+Input: "leaf spot" → Output: "Đốm lá"
+
+⛔ DO NOT write explanations.
+
+✅ ONLY write the Vietnamese disease name:
+`;
+    
+    const response = await generateAIResponse({
+      messages: [{ role: 'user', content: prompt }],
+      weather: null,
+      analysis: null,
+      products: null
+    });
+    
+    // Extract just the name from response (clean up any extra text)
+    let translated = response.data.message.trim();
+    
+    // Remove common prefixes that GPT might add
+    translated = translated
+      .replace(/^(Output:|Answer:|Tên tiếng Việt:|Vietnamese name:|Đây là|Cây này là|Bệnh này là|This is):?\s*/i, '')
+      .replace(/["'`]/g, '')  // Remove quotes
+      .replace(/\.$/, '')  // Remove trailing period
+      .trim();
+    
+    // If still contains explanatory text, take only first line or first few words
+    if (translated.includes('được gọi là') || translated.includes('trong tiếng Việt')) {
+      const match = translated.match(/là\s+([^.]+)/);
+      if (match) {
+        translated = match[1].trim();
+      }
+    }
+    
+    // Final cleanup: If longer than 50 chars, probably wrong - fallback to original
+    if (translated.length > 50) {
+      console.warn(`⚠️  Translation too long (${translated.length} chars), using original`);
+      translated = text;
+    }
+    
+    console.log(`🔄 Translated "${text}" → "${translated}"`);
+    return translated;
+  } catch (error) {
+    console.warn(`Translation failed for "${text}":`, error.message);
+    return text; // Fallback to original
+  }
+};
+
+/**
  * Format Plant.id response to match our application format
  * @param {object} plantIdResult - Raw Plant.id result
  * @returns {object} Formatted result
  */
-export const formatPlantIdResult = (plantIdResult) => {
+export const formatPlantIdResult = async (plantIdResult) => {
   const topSuggestion = plantIdResult.data.suggestions[0];
   
   if (!topSuggestion) {
@@ -157,30 +257,85 @@ export const formatPlantIdResult = (plantIdResult) => {
     };
   }
 
+  // Require at least 70% confidence to identify plant name
+  // Below 70% = unreliable, don't show specific plant name
+  const isReliable = topSuggestion.probability >= 0.7;
+  
+  if (!isReliable) {
+    console.log(`⚠️  Low plant confidence: ${(topSuggestion.probability * 100).toFixed(1)}% - Cannot reliably identify plant`);
+  }
+
+  // ✅ ALWAYS translate plant name (even if low confidence)
+  // Show top result regardless of confidence level
+  const plantNameVi = await translateWithGPT(topSuggestion.name, 'plant');
+
   const formatted = {
     plant: {
       id: topSuggestion.id,
-      commonName: topSuggestion.name,
-      scientificName: topSuggestion.id,  // Plant.id uses scientific name as ID
-      probability: topSuggestion.probability
+      commonName: plantNameVi,  // Vietnamese name (always show)
+      scientificName: topSuggestion.name,  // ✅ Always show scientific name
+      probability: topSuggestion.probability,
+      lowConfidence: !isReliable,  // Flag: < 70% = unreliable
+      reliable: isReliable  // Flag: >= 70% = reliable
     },
     isHealthy: plantIdResult.data.is_healthy,
     confidence: topSuggestion.probability,
-    disease: null
+    disease: null,
+    allDiseases: []  // ✅ NEW: All detected diseases
   };
 
-  // Add disease if unhealthy
-  if (!plantIdResult.data.is_healthy && plantIdResult.data.diseases) {
-    const topDisease = plantIdResult.data.diseases[0];
-    if (topDisease && topDisease.probability > 0.5) {  // Only include if probability > 50%
-      formatted.disease = {
-        id: topDisease.id,
-        name: topDisease.name,
-        probability: topDisease.probability,
-        description: topDisease.description,
-        treatment: topDisease.treatment
-      };
+  // Add disease information
+  // Check diseases REGARDLESS of is_healthy flag (Plant.id can be inconsistent)
+  if (plantIdResult.data.diseases && plantIdResult.data.diseases.length > 0) {
+    // ✅ NEW: Process ALL diseases (not just top 1)
+    const allDiseases = [];
+    
+    for (const disease of plantIdResult.data.diseases) {
+      // Only include diseases with confidence >= 5% (filter out noise)
+      if (disease && disease.probability >= 0.05) {
+        try {
+          // Translate disease name to Vietnamese using GPT
+          const diseaseNameVi = await translateWithGPT(disease.name, 'disease');
+          
+          allDiseases.push({
+            id: disease.id,
+            name: diseaseNameVi,  // Vietnamese name from GPT
+            originalName: disease.name,  // Keep original English name
+            probability: disease.probability,
+            description: disease.description,
+            treatment: disease.treatment
+          });
+        } catch (error) {
+          console.warn(`Failed to translate disease: ${disease.name}`, error);
+          // Add with original name if translation fails
+          allDiseases.push({
+            id: disease.id,
+            name: disease.name,
+            originalName: disease.name,
+            probability: disease.probability,
+            description: disease.description,
+            treatment: disease.treatment
+          });
+        }
+      }
     }
+    
+    formatted.allDiseases = allDiseases;
+    
+    // Set top disease (for backward compatibility)
+    const topDisease = allDiseases[0];
+    if (topDisease && topDisease.probability >= 0.5) {
+      formatted.disease = topDisease;
+      
+      // If disease detected with high confidence, mark as unhealthy
+      if (topDisease.probability > 0.5) {
+        formatted.isHealthy = false;
+      }
+      
+      console.log(`🦠 Top disease: ${topDisease.name} (${(topDisease.probability * 100).toFixed(1)}%)`);
+    }
+    
+    console.log(`🦠 Total diseases found: ${allDiseases.length}`);
   }
 
   return formatted;

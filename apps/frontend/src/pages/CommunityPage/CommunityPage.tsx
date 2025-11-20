@@ -60,24 +60,46 @@ export const CommunityPage: React.FC = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center space-x-6">
+              <a
+                href="/analyze"
+                className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors group"
+              >
+                <span className="text-lg">🔬</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Phân Tích</span>
+                  <span className="text-xs text-gray-500 group-hover:text-green-600">Nhận diện & bệnh</span>
+                </div>
+              </a>
+              <a
+                href="/knowledge"
+                className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors group"
+              >
+                <span className="text-lg">📚</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Kiến Thức</span>
+                  <span className="text-xs text-gray-500 group-hover:text-green-600">Hỏi đáp AI</span>
+                </div>
+              </a>
               <a
                 href="/community"
-                className="text-green-600 font-medium border-b-2 border-green-600 pb-1"
+                className="flex items-center gap-2 text-green-600 font-medium border-b-2 border-green-600 pb-1 group"
               >
-                Cộng đồng
+                <span className="text-lg">👥</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Cộng Đồng</span>
+                  <span className="text-xs text-green-500">Chia sẻ kinh nghiệm</span>
+                </div>
               </a>
               <a
-                href="/chat"
-                className="text-gray-600 hover:text-green-600 transition-colors"
+                href="/my-plants"
+                className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors group"
               >
-                Chat AI
-              </a>
-              <a
-                href="/home"
-                className="text-gray-600 hover:text-green-600 transition-colors"
-              >
-                Trang chủ
+                <span className="text-lg">🌿</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Vườn Của Tôi</span>
+                  <span className="text-xs text-gray-500 group-hover:text-green-600">Quản lý cây trồng</span>
+                </div>
               </a>
             </nav>
 

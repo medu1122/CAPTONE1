@@ -141,7 +141,7 @@ class ChatHistoryService {
   }
 
   /**
-   * Clear history for a session
+   * Clear history for a session (deletes entire session + messages)
    */
   async clearHistory(sessionId: string): Promise<boolean> {
     try {
@@ -154,8 +154,12 @@ class ChatHistoryService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      console.log('🗑️ [DELETE] Deleting session:', sessionId);
+
+      // ✅ FIX: Use correct endpoint /chat-sessions/:sessionId (not /chat/sessions)
+      // This deletes BOTH the session record AND all messages
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/chat/history?sessionId=${sessionId}`,
+        `${API_CONFIG.BASE_URL}/chat-sessions/${sessionId}`,
         {
           method: 'DELETE',
           headers,
@@ -163,12 +167,17 @@ class ChatHistoryService {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to clear history');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Delete failed:', errorData);
+        throw new Error(`Failed to delete session: ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log('✅ [DELETE] Session deleted successfully:', result);
 
       return true;
     } catch (error) {
-      console.error('❌ Error clearing history:', error);
+      console.error('❌ Error deleting session:', error);
       return false;
     }
   }

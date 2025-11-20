@@ -112,14 +112,18 @@ export class StreamingChatService {
                 if (parsed.result?.response) {
                   content = parsed.result.response;
                   fullResponse = content; // Use full response, not append
+                  
+                  // Pass full result object as metadata (includes treatments, additionalInfo)
+                  onChunk({ 
+                    content,
+                    metadata: parsed.result  // ← Pass full result object
+                  } as StreamingChatResponse);
                 }
                 // Format 2: { content: "..." } - streaming chunks
                 else if (parsed.content) {
                   content = parsed.content;
                   fullResponse += content;
-                }
-                
-                if (content) {
+                  
                   onChunk({ 
                     content,
                     metadata: parsed.metadata || parsed.result

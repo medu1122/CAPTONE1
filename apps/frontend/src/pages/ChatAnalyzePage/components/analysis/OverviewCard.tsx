@@ -38,10 +38,18 @@ export const OverviewCard: React.FC<OverviewCardProps> = ({ result }) => {
         <div className="mb-4">
           <div className="text-sm text-gray-700">
             <span className="font-medium">Loại cây:</span>{' '}
-            {result.plant.commonName}
-          </div>
-          <div className="text-sm text-gray-500 italic">
-            {result.plant.scientificName}
+            {result.plant.reliable ? (
+              <span className="font-semibold text-green-700">{result.plant.commonName}</span>
+            ) : (
+              <>
+                <span className="text-gray-500 italic">{result.plant.commonName}</span>
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
+                  <div className="font-semibold mb-1">⚠️ Không thể xác định chính xác</div>
+                  <div>Độ tin cậy chỉ {result.plant?.probability ? Math.round(result.plant.probability * 100) : 0}% (cần ≥70%).</div>
+                  <div className="mt-1">Vui lòng chụp ảnh rõ hơn, đầy đủ hơn để nhận diện chính xác.</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
         {hasDiagnosis && result.disease && (

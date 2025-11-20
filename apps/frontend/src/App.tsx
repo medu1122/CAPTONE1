@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
-import { ChatAnalyzePage } from './pages/ChatAnalyzePage/ChatAnalyzePage'
+import { PlantAnalysisPage } from './pages/PlantAnalysisPage'
+import { KnowledgePage } from './pages/KnowledgePage'
 import { CommunityPage } from './pages/CommunityPage'
 import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
@@ -9,7 +10,6 @@ import { ProfilePage } from './pages/ProfilePage/ProfilePage'
 import { MyPlantsPage } from './pages/MyPlantsPage/MyPlantsPage'
 import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
 import { AuthProvider } from './contexts/AuthContext'
-import { ChatAnalyzeProvider } from './contexts/ChatAnalyzeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 
@@ -25,26 +25,15 @@ function App() {
           <Route path="/register" element={<AuthPage />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
-          <Route 
-            path="/chat" 
-            element={
-              <ProtectedRoute>
-                <ChatAnalyzeProvider>
-                  <ChatAnalyzePage />
-                </ChatAnalyzeProvider>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/ChatAnalyzePage" 
-            element={
-              <ProtectedRoute>
-                <ChatAnalyzeProvider>
-                  <ChatAnalyzePage />
-                </ChatAnalyzeProvider>
-              </ProtectedRoute>
-            } 
-          />
+          {/* Plant Analysis Page - Image analysis only */}
+          <Route path="/analyze" element={<PlantAnalysisPage />} />
+          
+          {/* Knowledge Page - Q&A Chatbot */}
+          <Route path="/knowledge" element={<KnowledgePage />} />
+          
+          {/* Redirect old chat routes to new pages */}
+          <Route path="/chat" element={<Navigate to="/analyze" replace />} />
+          <Route path="/ChatAnalyzePage" element={<Navigate to="/analyze" replace />} />
           <Route 
             path="/community" 
             element={

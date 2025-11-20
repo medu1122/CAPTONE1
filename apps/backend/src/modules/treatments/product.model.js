@@ -18,7 +18,6 @@ const ProductSchema = new mongoose.Schema(
     targetDiseases: [{
       type: String,
       required: true,
-      index: true,
     }],
     targetCrops: [{
       type: String,
@@ -64,8 +63,9 @@ const ProductSchema = new mongoose.Schema(
 );
 
 // Indexes for search
-ProductSchema.index({ name: 'text', targetDiseases: 'text' });
-ProductSchema.index({ targetDiseases: 1, targetCrops: 1 });
+ProductSchema.index({ name: 'text', activeIngredient: 'text' });
+// Note: Cannot create compound index on two array fields (targetDiseases, targetCrops)
+// MongoDB will use single-field queries instead
 
 const Product = mongoose.model('Product', ProductSchema);
 

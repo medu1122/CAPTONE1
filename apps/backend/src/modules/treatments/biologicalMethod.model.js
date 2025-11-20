@@ -10,7 +10,6 @@ const BiologicalMethodSchema = new mongoose.Schema(
     targetDiseases: [{
       type: String,
       required: true,
-      index: true,
     }],
     materials: {
       type: String,
@@ -44,8 +43,7 @@ const BiologicalMethodSchema = new mongoose.Schema(
 );
 
 // Indexes for search
-BiologicalMethodSchema.index({ name: 'text', targetDiseases: 'text' });
-BiologicalMethodSchema.index({ targetDiseases: 1 });
+BiologicalMethodSchema.index({ name: 'text', materials: 'text' });
 
 const BiologicalMethod = mongoose.model('BiologicalMethod', BiologicalMethodSchema);
 

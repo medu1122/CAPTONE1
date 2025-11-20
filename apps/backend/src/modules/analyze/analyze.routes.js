@@ -1,20 +1,32 @@
 import express from 'express';
-import { analyzePlant } from './analyze.controller.js';
-import { streamAnalyzeResponse } from './analyze.stream.controller.js';
-import { uploadImage } from '../../common/middleware/upload.js';
-import { validateAnalyzeRequest } from './analyze.validation.js';
+import { authMiddleware } from '../../common/middleware/auth.js';
+import { 
+  analyzeImageController, 
+  getHistoryController,
+  getAnalysisByIdController 
+} from './analyze.controller.js';
 
 const router = express.Router();
 
-// POST /api/v1/analyze - Main analyze endpoint
-router.post(
-  '/', 
-  uploadImage.single('image'), 
-  validateAnalyzeRequest, 
-  analyzePlant
-);
+/**
+ * @route   POST /api/v1/analyze/image
+ * @desc    Analyze plant image (public endpoint, but saves if authenticated)
+ * @access  Public
+ */
+router.post('/image', analyzeImageController);
 
-// GET /api/v1/analyze/stream - Stream analyze endpoint
-router.get('/stream', streamAnalyzeResponse);
+/**
+ * @route   GET /api/v1/analyze/history
+ * @desc    Get user's analysis history
+ * @access  Private
+ */
+router.get('/history', authMiddleware, getHistoryController);
+
+/**
+ * @route   GET /api/v1/analyze/:id
+ * @desc    Get single analysis by ID
+ * @access  Private
+ */
+router.get('/:id', authMiddleware, getAnalysisByIdController);
 
 export default router;

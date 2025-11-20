@@ -2,6 +2,7 @@ import { getPlantCareInfo } from '../plants/plant.service.js';
 import { getRecommendations } from '../productRecommendations/productRecommendation.service.js';
 import { getWeatherData } from '../weather/weather.service.js';
 import { generateAIResponse } from '../aiAssistant/ai.service.js';
+import { getTreatmentRecommendations, getAdditionalInfo } from '../treatments/treatment.service.js';
 import { httpError } from '../../common/utils/http.js';
 
 /**
@@ -105,7 +106,32 @@ export const processTextOnly = async ({
       }
     }
 
-    // 7. Generate AI response WITH CHAT HISTORY CONTEXT
+    // 7. GET LAST ANALYSIS from session (if exists) - CRITICAL FOR FOLLOW-UP QUESTIONS
+    let lastAnalysisContext = null;
+    if (chatContext?.session?.lastAnalysis) {
+      try {
+        const lastAnalysis = chatContext.session.lastAnalysis;
+        if (lastAnalysis.resultTop) {
+          // Convert lastAnalysis format to analysis format expected by generateAIResponse
+          lastAnalysisContext = {
+            plant: lastAnalysis.resultTop.plant || null,
+            disease: lastAnalysis.resultTop.disease || null,
+            confidence: lastAnalysis.resultTop.confidence || 0,
+            isHealthy: lastAnalysis.resultTop.isHealthy || false
+          };
+          
+          console.log('🔄 [processTextOnly] Using last analysis from session:', {
+            plant: lastAnalysisContext.plant?.commonName,
+            disease: lastAnalysisContext.disease?.name,
+            confidence: Math.round(lastAnalysisContext.confidence * 100) + '%'
+          });
+        }
+      } catch (error) {
+        console.warn('Failed to extract last analysis:', error.message);
+      }
+    }
+    
+    // 8. Generate AI response WITH CHAT HISTORY CONTEXT + LAST ANALYSIS
     const messages = [
       // Add context from chat history (includes previous plant discussions)
       ...(contextPrompt ? [{ 
@@ -119,13 +145,14 @@ export const processTextOnly = async ({
     console.log('💬 Sending to GPT:', {
       messagesCount: messages.length,
       hasContext: !!contextPrompt,
+      hasLastAnalysis: !!lastAnalysisContext,
       hasWeather: !!weatherContext
     });
 
     const aiResponse = await generateAIResponse({
       messages,  // ← Now includes chat history!
       weather: weatherContext,
-      analysis: plantContext,
+      analysis: lastAnalysisContext || plantContext,  // ✅ Use last analysis if available!
       products: productContext
     });
 
@@ -196,7 +223,58 @@ export const processImageOnly = async ({ imageData, userId }) => {
       console.warn('Failed to get weather context:', error.message);
     }
 
-    // 5. Generate enhanced analysis result
+    // 5. Get treatment recommendations (FIXED: was missing in processImageOnly!)
+    let treatments = [];
+    let additionalInfo = [];
+    
+    try {
+      if (analysisResult?.disease) {
+        // Has disease -> Get full treatments (chemical, biological, cultural)
+        // Even if plant confidence is low, we can still provide general disease treatments!
+        console.log('🩺 [processImageOnly] Disease detected, getting treatment recommendations...');
+        
+        const diseaseConfidence = analysisResult.disease.probability || 0;
+        console.log(`   Disease confidence: ${Math.round(diseaseConfidence * 100)}%`);
+        
+        // Prefer originalName (English) for better matching
+        const diseaseName = analysisResult.disease.originalName || analysisResult.disease.name;
+        
+        // Use plant name only if confidence is high enough (≥70%)
+        const plantReliable = analysisResult.plant?.reliable || false;
+        const plantName = plantReliable 
+          ? (analysisResult.plant?.scientificName || analysisResult.plant?.commonName)
+          : null;  // Don't filter by plant if confidence too low
+        
+        console.log(`🔍 [processImageOnly] Querying treatments:`);
+        console.log(`   Disease: "${diseaseName}"`);
+        console.log(`   Plant: "${plantName || 'Unknown (will get general treatments)'}" (reliable: ${plantReliable})`);
+        
+        // Even with unknown plant, we can still get disease-group treatments
+        treatments = await getTreatmentRecommendations(
+          diseaseName,  // Use English name if available
+          plantName  // null = get general treatments for this disease
+        );
+        additionalInfo = await getAdditionalInfo(
+          diseaseName,
+          plantName
+        );
+        console.log(`✅ [processImageOnly] Got ${treatments.length} treatment types, ${additionalInfo.length} additional info items`);
+      } else if (analysisResult?.plant && !analysisResult.disease) {
+        // No disease but plant detected -> Get general care practices only
+        console.log('🌱 [processImageOnly] Plant is healthy, getting general care practices...');
+        const plantName = analysisResult.plant?.scientificName || analysisResult.plant?.commonName;
+        
+        treatments = await getTreatmentRecommendations(
+          null, // No disease
+          plantName
+        );
+        console.log(`✅ [processImageOnly] Got ${treatments.length} care practice types for healthy plant`);
+      }
+    } catch (error) {
+      console.warn('[processImageOnly] Failed to get treatment recommendations:', error.message);
+    }
+
+    // 6. Generate enhanced analysis result
     const enhancedResult = {
       ...analysisResult,
       plantInfo: plantContext,
@@ -204,7 +282,9 @@ export const processImageOnly = async ({ imageData, userId }) => {
       weatherContext: weatherContext,
       careInstructions: plantContext?.careInstructions || analysisResult.care,
       commonDiseases: plantContext?.commonDiseases || [],
-      growthStages: plantContext?.growthStages || []
+      growthStages: plantContext?.growthStages || [],
+      treatments: treatments,  // ← ADD TREATMENTS
+      additionalInfo: additionalInfo  // ← ADD ADDITIONAL INFO
     };
 
     // 6. Generate AI response to describe the plant
@@ -241,10 +321,14 @@ export const processImageOnly = async ({ imageData, userId }) => {
       type: 'image-only',
       response: aiResponse,  // ← Add text response
       analysis: enhancedResult,
+      treatments: treatments,  // ← ADD TREATMENTS
+      additionalInfo: additionalInfo,  // ← ADD ADDITIONAL INFO
       context: {
         hasPlantContext: !!plantContext,
         hasProductContext: !!productContext,
         hasWeatherContext: !!weatherContext,
+        hasTreatments: treatments?.length > 0,  // ← NEW
+        hasAdditionalInfo: additionalInfo?.length > 0,  // ← NEW
         confidence: analysisResult.confidence
       }
     };
@@ -273,10 +357,48 @@ export const processImageText = async ({ message, imageData, sessionId, userId }
     });
 
     // 1. LOAD CHAT HISTORY FOR CONTEXT
+    // 🔥 NEW LOGIC: When image is provided, LIMIT context to avoid confusion
+    // Each new image = new analysis = should not be affected by old plant data
     let chatContext = null;
-    if (sessionId) {
+    if (sessionId && imageData) {
+      // ✅ Image analysis: ONLY keep very recent text questions (no old images)
       try {
-        const { loadChatContextWithAnalysis, buildContextPromptFromHistory } = 
+        const { loadChatContextWithAnalysis } = 
+          await import('../chats/chat.service.js');
+        
+        const fullContext = await loadChatContextWithAnalysis({
+          sessionId,
+          userId,
+          limit: 10
+        });
+        
+        // Filter: Only keep recent text-only messages (within last 30 seconds)
+        const now = Date.now();
+        const recentMessages = fullContext.messages?.filter(msg => {
+          const isRecent = (now - new Date(msg.timestamp || 0).getTime()) < 30000;
+          const hasNoImage = !msg.imageUrl;
+          const isUserMessage = msg.role === 'user';
+          return isRecent && hasNoImage && isUserMessage;
+        }) || [];
+        
+        chatContext = {
+          session: fullContext.session,
+          messages: recentMessages
+        };
+        
+        console.log('📚 Loaded chat context (FILTERED for new image):', {
+          sessionId,
+          originalMessageCount: fullContext.messages?.length || 0,
+          filteredMessageCount: recentMessages.length,
+          hasSession: !!chatContext.session
+        });
+      } catch (error) {
+        console.warn('Failed to load chat context:', error.message);
+      }
+    } else if (sessionId && !imageData) {
+      // ✅ Text-only: Load full context normally
+      try {
+        const { loadChatContextWithAnalysis } = 
           await import('../chats/chat.service.js');
         
         chatContext = await loadChatContextWithAnalysis({
@@ -285,7 +407,7 @@ export const processImageText = async ({ message, imageData, sessionId, userId }
           limit: 10
         });
         
-        console.log('📚 Loaded chat context:', {
+        console.log('📚 Loaded chat context (full - text only):', {
           sessionId,
           messageCount: chatContext.messages?.length || 0,
           hasSession: !!chatContext.session
@@ -337,6 +459,57 @@ export const processImageText = async ({ message, imageData, sessionId, userId }
       }
     }
 
+    // 6. Get treatment recommendations (IMPROVED: works even with unknown plant)
+    let treatments = [];
+    let additionalInfo = [];
+    
+    try {
+      if (analysisResult?.disease) {
+        // Has disease -> Get full treatments (chemical, biological, cultural)
+        // Even if plant confidence is low, we can still provide general disease treatments!
+        console.log('🩺 [processImageText] Disease detected, getting treatment recommendations...');
+        
+        const diseaseConfidence = analysisResult.disease.probability || 0;
+        console.log(`   Disease confidence: ${Math.round(diseaseConfidence * 100)}%`);
+        
+        // Prefer originalName (English) for better matching
+        const diseaseName = analysisResult.disease.originalName || analysisResult.disease.name;
+        
+        // Use plant name only if confidence is high enough (≥70%)
+        const plantReliable = analysisResult.plant?.reliable || false;
+        const plantName = plantReliable 
+          ? (analysisResult.plant?.scientificName || analysisResult.plant?.commonName)
+          : null;  // Don't filter by plant if confidence too low
+        
+        console.log(`🔍 [processImageText] Querying treatments:`);
+        console.log(`   Disease: "${diseaseName}"`);
+        console.log(`   Plant: "${plantName || 'Unknown (will get general treatments)'}" (reliable: ${plantReliable})`);
+        
+        // Even with unknown plant, we can still get disease-group treatments
+        treatments = await getTreatmentRecommendations(
+          diseaseName,  // Use English name if available
+          plantName  // null = get general treatments for this disease
+        );
+        additionalInfo = await getAdditionalInfo(
+          diseaseName,
+          plantName
+        );
+        console.log(`✅ [processImageText] Got ${treatments.length} treatment types, ${additionalInfo.length} additional info items`);
+      } else if (analysisResult?.plant) {
+        // No disease (healthy plant) -> Get general care practices only
+        console.log('🌱 [processImageText] Plant is healthy, getting general care practices...');
+        const plantName = analysisResult.plant?.scientificName || analysisResult.plant?.commonName;
+        
+        treatments = await getTreatmentRecommendations(
+          null, // No disease
+          plantName
+        );
+        console.log(`✅ [processImageText] Got ${treatments.length} care practice types for healthy plant`);
+      }
+    } catch (error) {
+      console.warn('[processImageText] Failed to get treatment recommendations:', error.message);
+    }
+
     // 6. BUILD CONTEXT PROMPT from chat history
     let contextPrompt = '';
     if (chatContext && chatContext.messages?.length > 0) {
@@ -384,6 +557,8 @@ export const processImageText = async ({ message, imageData, sessionId, userId }
       type: 'image-text',
       response: aiResponse.data.message,
       analysis: analysisResult,
+      treatments: treatments,  // NEW
+      additionalInfo: additionalInfo,  // NEW
       context: {
         hasHistory: !!chatContext,
         historyMessageCount: chatContext?.messages?.length || 0,
@@ -391,6 +566,8 @@ export const processImageText = async ({ message, imageData, sessionId, userId }
         hasPlantContext: !!plantContext,
         hasProductContext: !!productContext,
         hasWeatherContext: !!weatherContext,
+        hasTreatments: treatments?.length > 0,  // NEW
+        hasAdditionalInfo: additionalInfo?.length > 0,  // NEW
         plantInfo: plantContext,
         weatherInfo: weatherContext,
         productInfo: productContext
@@ -483,8 +660,8 @@ const realPlantIdAnalysis = async ({ imageData }) => {
       confidence: plantIdResult.data.suggestions[0]?.probability
     });
     
-    // Format to our application format
-    const formatted = formatPlantIdResult(plantIdResult);
+    // Format to our application format (now async with GPT translation)
+    const formatted = await formatPlantIdResult(plantIdResult);
     
     return formatted;
   } catch (error) {

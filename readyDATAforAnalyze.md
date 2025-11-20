@@ -657,12 +657,111 @@ User nhận gợi ý đầy đủ ✅
 ---
 
 **Last Updated:** 2024-11-18
-**Version:** 2.1 - Updated with Actual Format from Sheets
-**Status:** 🟢 In Progress (2/3 sheets completed)
+**Version:** 3.0 - Backend + Import Script Complete
+**Status:** 🟢 Ready to Import
 
 **📝 PROGRESS:**
-- ✅ Sheet 1: THUOC (Products) - In Progress
-- ✅ Sheet 2: SINHHOC (Biological Methods) - In Progress  
-- 🟡 Sheet 3: CANHTAC (Cultural Practices) - To Do (15 phút với GPT)
+- ✅ Sheet 1: THUOC (Products) - Complete
+- ✅ Sheet 2: SINHHOC (Biological Methods) - Complete
+- ✅ Sheet 3: CANHTAC (Cultural Practices) - Complete (hoặc đang làm)
+- ✅ Backend Models - Complete
+- ✅ Backend Services - Complete
+- ✅ Import Script - Complete
 
-**🚀 CÒN 1 SHEET NỮA LÀ XONG! DÙNG GPT CHỈ MẤT 15 PHÚT!**
+---
+
+## 🎉 BACKEND ĐÃ SẴN SÀNG!
+
+### **✅ Completed:**
+1. Database models (Product, BiologicalMethod, CulturalPractice)
+2. Treatment service với query và format logic
+3. Integration vào chatAnalyze.service
+4. API endpoints (`/treatments/init-mock`, `/treatments/stats`)
+5. Import script từ CSV
+
+---
+
+## 📥 CÁCH IMPORT DATA VÀO DATABASE
+
+### **BƯỚC 1: Export Google Sheets to CSV**
+
+1. **Sheet THUOC:**
+   - File → Download → CSV (.csv)
+   - Lưu thành: `products.csv`
+
+2. **Sheet SINHHOC:**
+   - File → Download → CSV (.csv)
+   - Lưu thành: `biological_methods.csv`
+
+3. **Sheet CANHTAC:**
+   - File → Download → CSV (.csv)
+   - Lưu thành: `cultural_practices.csv`
+
+---
+
+### **BƯỚC 2: Copy CSV vào Backend**
+
+Copy 3 file vào thư mục:
+```
+CAPTONE1/apps/backend/data/
+```
+
+Cấu trúc:
+```
+apps/backend/data/
+├── products.csv
+├── biological_methods.csv
+└── cultural_practices.csv
+```
+
+---
+
+### **BƯỚC 3: Run Import Script**
+
+```bash
+cd /Users/macos/Documents/Captone1/CAPTONE1/apps/backend
+node scripts/importTreatments.js
+```
+
+**Output:**
+```
+🚀 Starting treatment data import...
+✅ Imported 30 products
+✅ Imported 10 biological methods
+✅ Imported 20 cultural practices
+🎉 Import completed! Total: 60 documents imported
+```
+
+---
+
+### **BƯỚC 4: Verify**
+
+Check stats:
+```bash
+curl http://localhost:4000/api/v1/treatments/stats
+```
+
+Expected:
+```json
+{
+  "success": true,
+  "data": {
+    "products": 30,
+    "biologicalMethods": 10,
+    "culturalPractices": 20,
+    "total": 60
+  }
+}
+```
+
+---
+
+## 📖 FULL DOCUMENTATION
+
+- **Import Guide:** `apps/backend/HOW_TO_IMPORT_DATA.md`
+- **Backend Status:** `apps/backend/BACKEND_TREATMENT_COMPLETE.md`
+- **Data Folder:** `apps/backend/data/README.md`
+
+---
+
+**🚀 HOÀN TẤT 3 SHEETS → IMPORT → DONE!**

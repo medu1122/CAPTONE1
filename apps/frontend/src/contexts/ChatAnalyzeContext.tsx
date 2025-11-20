@@ -434,6 +434,14 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
     setLoading(true)
     clearError()
     
+    // 🔄 CRITICAL: Clear old result when sending new image
+    // This ensures "Phân tích tổng quan" updates with new analysis
+    if (imageUrl) {
+      console.log('🔄 [ChatAnalyzeContext] Clearing old analysis result for new image')
+      setResult(null)
+      setStreamingText('')
+    }
+    
     try {
       // Get weather data if available
       let weatherData: any = undefined
@@ -494,26 +502,44 @@ export const ChatAnalyzeProvider: React.FC<ChatAnalyzeProviderProps> = ({ childr
           }
           
           // Handle metadata for analysis result
-          if (chunk.metadata) {
-            if (chunk.metadata.plantInfo || chunk.metadata.productInfo) {
+          // Backend sends: { result: { response: "...", analysis: {...}, treatments: [...], additionalInfo: [...] } }
+          const metadata = chunk.metadata || (chunk as any).result;
+          
+          if (metadata) {
+            // Backend structure: { response, analysis: { plant, disease, ... }, treatments, additionalInfo }
+            const analysis = metadata.analysis || {};
+            
+            if (analysis.plant || analysis.disease || metadata.treatments || metadata.additionalInfo) {
+              console.log('🔍 [ChatAnalyzeContext] Building analysis result from metadata:', {
+                hasPlant: !!analysis.plant,
+                hasDisease: !!analysis.disease,
+                hasTreatments: !!(metadata.treatments && metadata.treatments.length > 0),
+                hasAdditionalInfo: !!(metadata.additionalInfo && metadata.additionalInfo.length > 0)
+              });
+              
               analysisResult = {
-                plant: chunk.metadata.plantInfo || {
-                  commonName: 'Cây trồng',
-                  scientificName: 'Unknown'
-                },
-                disease: chunk.metadata.plantInfo?.disease || null,
-                confidence: 0.8,
-                care: chunk.metadata.plantInfo?.careInstructions || [
-                  'Tưới nước đều đặn',
-                  'Đảm bảo ánh sáng phù hợp',
-                  'Bón phân định kỳ'
-                ],
-                products: chunk.metadata.productInfo || [],
+                plant: analysis.plant || null,
+                disease: analysis.disease || null,
+                // ✅ FIX: Use disease confidence if disease exists, otherwise plant confidence
+                confidence: analysis.disease?.probability 
+                  ? analysis.disease.probability 
+                  : (analysis.confidence || analysis.plant?.probability || 0),
+                care: analysis.care || [],
+                products: analysis.products || [],
+                treatments: metadata.treatments || [],  // ← From backend result root
+                additionalInfo: metadata.additionalInfo || [],  // ← From backend result root
                 imageInsights: typeof input === 'object' && imageUrl ? {
                   previewUrl: imageUrl,
                   boxes: []
                 } : undefined
               }
+              
+              console.log('✅ Parsed analysis result:', {
+                hasTreatments: !!analysisResult.treatments && analysisResult.treatments.length > 0,
+                hasAdditionalInfo: !!analysisResult.additionalInfo && analysisResult.additionalInfo.length > 0,
+                treatmentsCount: analysisResult.treatments?.length || 0,
+                additionalInfoCount: analysisResult.additionalInfo?.length || 0
+              });
             }
           }
         },

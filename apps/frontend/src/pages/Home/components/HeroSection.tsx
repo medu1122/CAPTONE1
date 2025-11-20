@@ -1,9 +1,7 @@
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export function HeroSection() {
-  const [query, setQuery] = useState("");
   const backgroundHero = new URL("../../../assets/images/background_herosection.jpg", import.meta.url).href;
 
   return (
@@ -22,52 +20,71 @@ export function HeroSection() {
         <div className="w-full text-center">
           {/* Capstone Project Introduction */}
           <h1 className="text-4xl md:text-6xl mb-6 text-white drop-shadow-lg">
-            GreenGrow
+            🌿 GreenGrow
           </h1>
           
-          <p className="text-lg md:text-xl text-green-50 mb-8 max-w-2xl mx-auto drop-shadow-md">
-            Smart Plant Support System
+          <p className="text-lg md:text-xl text-green-50 mb-12 max-w-2xl mx-auto drop-shadow-md">
+            Hệ Thống Hỗ Trợ Trồng Trọt Thông Minh
           </p>
           
-          <div
-  className="
-    w-full mx-auto
-    max-w-[640px] sm:max-w-xl md:max-w-2xl lg:max-w-3xl
-    bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl
-    p-6 md:p-10 border border-white/20
-  "
->
-            {/* Ask AI Search Box */}
-            <div className="max-w-2xl mx-auto">
-              <div className="relative flex items-center mb-4">
-                <Input
-                  type="text"
-                  placeholder="Ask AI about your plant..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="flex-1 h-12 px-4 text-gray-700 bg-gray-100 border-0 rounded-l-lg focus:ring-2 focus:ring-green-500"
-                />
-                <Button className="h-12 px-6 bg-green-500 hover:bg-green-600 text-white rounded-r-lg border-0 flex items-center gap-2">
-                  📷
-                  <span className="hidden sm:inline">Search/Ask</span>
-                </Button>
-              </div>
-              
-              {/* Quick Suggestions */}
-              <div className="text-left">
-                <p className="text-sm text-gray-600 mb-2">Quick suggestions:</p>
-                <div className="flex flex-wrap gap-2">
-                  <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors">
-                    "Bệnh trên lá xoài"
-                  </button>
-                  <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors">
-                    "Cách tưới lan"
-                  </button>
-                  <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors">
-                    "Phòng ngừa sâu cuốn lá lúa"
-                  </button>
+          {/* Main Action Cards */}
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6 mb-12">
+            {/* Analyze Card */}
+            <Link to="/analyze">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 hover:scale-105 transition-transform cursor-pointer group">
+                <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">
+                  🔬
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Phân Tích Cây
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Upload ảnh để nhận diện cây, phát hiện bệnh, và xem gợi ý điều trị chi tiết
+                </p>
+                <div className="inline-block px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                  Bắt đầu phân tích →
                 </div>
               </div>
+            </Link>
+
+            {/* Knowledge Card */}
+            <Link to="/knowledge">
+              <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 hover:scale-105 transition-transform cursor-pointer group">
+                <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">
+                  📚
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                  Kiến Thức
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Hỏi đáp với AI về cây trồng, bệnh hại, cách chăm sóc và phương pháp trồng trọt
+                </p>
+                <div className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  Hỏi ngay →
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Quick Suggestions */}
+          <div className="max-w-2xl mx-auto bg-white/80 backdrop-blur-sm rounded-xl p-4">
+            <p className="text-sm text-gray-600 mb-2">💡 Gợi ý nhanh:</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link to="/knowledge">
+                <button className="px-4 py-2 text-sm bg-white hover:bg-gray-50 rounded-full text-gray-700 transition-colors shadow-sm border border-gray-200">
+                  "Bệnh đạo ôn lúa"
+                </button>
+              </Link>
+              <Link to="/knowledge">
+                <button className="px-4 py-2 text-sm bg-white hover:bg-gray-50 rounded-full text-gray-700 transition-colors shadow-sm border border-gray-200">
+                  "Cách chữa khô vằn"
+                </button>
+              </Link>
+              <Link to="/analyze">
+                <button className="px-4 py-2 text-sm bg-white hover:bg-gray-50 rounded-full text-gray-700 transition-colors shadow-sm border border-gray-200">
+                  "Phân tích ảnh cây"
+                </button>
+              </Link>
             </div>
           </div>
         </div>

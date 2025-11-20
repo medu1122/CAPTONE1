@@ -1,157 +1,205 @@
-import { httpError } from '../../common/utils/http.js';
+import { identifyPlant, formatPlantIdResult } from '../../common/libs/plantid.js';
+import { getTreatmentRecommendations, getAdditionalInfo } from '../treatments/treatment.service.js';
+import { generateTreatmentAdvice } from '../treatments/treatmentAdvisor.service.js';
 import { getPlantCareInfo } from '../plants/plant.service.js';
+import { httpError } from '../../common/utils/http.js';
 
 /**
- * Mock analysis service that returns AnalysisResult according to the required schema
- * @param {object} params - Analysis parameters
- * @param {string} params.text - Text query
- * @param {string} params.imageUrl - Image URL (data URL for testing)
- * @returns {object} AnalysisResult object
+ * Analyze Service - Pure Image Analysis (No Chat)
+ * Focuses on plant identification and disease detection
  */
-export const analyzeService = async ({ text, imageUrl }) => {
+
+/**
+ * Analyze plant image and return comprehensive results
+ * @param {object} params - Parameters
+ * @param {string} params.imageUrl - Image URL to analyze
+ * @param {string} params.userId - User ID (optional)
+ * @returns {Promise<object>} Complete analysis results
+ */
+export const analyzeImage = async ({ imageUrl, userId = null }) => {
   try {
-    // Mock data based on input
-    const hasImage = !!imageUrl;
-    const hasText = !!text;
+    console.log('🔬 [analyzeImage] Starting analysis:', { imageUrl: imageUrl?.substring(0, 50), userId });
+
+    // 1. Call Plant.id API
+    const plantIdResponse = await identifyPlant({ imageData: imageUrl });
     
-    // Determine plant based on input
-    let plantName, scientificName, confidence;
-    
-    if (hasText && text.includes('đốm nâu')) {
-      plantName = 'Cây Monstera';
-      scientificName = 'Monstera deliciosa';
-      confidence = 0.85;
-    } else if (hasText && text.includes('lá vàng')) {
-      plantName = 'Cây Fiddle Leaf Fig';
-      scientificName = 'Ficus lyrata';
-      confidence = 0.75;
-    } else if (hasImage) {
-      plantName = 'Cây Trầu Bà';
-      scientificName = 'Epipremnum aureum';
-      confidence = 0.90;
-    } else {
-      plantName = 'Cây Sen Đá';
-      scientificName = 'Echeveria elegans';
-      confidence = 0.60;
-    }
-    
-    // Determine disease based on confidence
-    let disease = null;
-    if (confidence <= 0.5) {
-      disease = null;
-    } else if (hasText && text.includes('đốm')) {
-      disease = {
-        name: 'Bệnh đốm lá',
-        description: 'Lá xuất hiện các đốm nâu, có thể do nấm hoặc vi khuẩn gây ra. Cần điều trị kịp thời để tránh lây lan.'
-      };
-    } else if (hasText && text.includes('vàng')) {
-      disease = {
-        name: 'Lá vàng do thiếu dinh dưỡng',
-        description: 'Lá chuyển màu vàng thường do thiếu nitơ hoặc ánh sáng không đủ. Cần bổ sung phân bón và điều chỉnh vị trí đặt cây.'
-      };
-    }
-    
-    // Get plant care information from database
-    let plantCareInfo = null;
-    try {
-      plantCareInfo = await getPlantCareInfo({ plantName });
-    } catch (error) {
-      console.warn('Failed to get plant care info:', error.message);
+    if (!plantIdResponse || !plantIdResponse.success) {
+      throw httpError(400, 'Plant identification failed');
     }
 
-    // Use database care instructions if available, otherwise use default
-    const care = plantCareInfo?.careInstructions ? [
-      `Tưới nước: ${plantCareInfo.careInstructions.watering}`,
-      `Ánh sáng: ${plantCareInfo.careInstructions.sunlight}`,
-      `Đất trồng: ${plantCareInfo.careInstructions.soil}`,
-      `Nhiệt độ: ${plantCareInfo.careInstructions.temperature}`,
-      ...(plantCareInfo.growthStages?.map(stage => 
-        `${stage.stage}: ${stage.description} (${stage.duration})`
-      ) || [])
-    ] : [
-      'Tưới nước khi đất khô 2-3cm trên bề mặt',
-      'Đặt cây ở nơi có ánh sáng gián tiếp, tránh ánh nắng trực tiếp',
-      'Bón phân hữu cơ 2-3 tuần một lần trong mùa sinh trưởng',
-      'Kiểm tra độ ẩm đất thường xuyên, tránh úng nước',
-      'Lau lá định kỳ để cây quang hợp tốt hơn'
-    ];
+    // 2. Format Plant.id result (translate + structure)
+    const plantIdResult = await formatPlantIdResult(plantIdResponse);
+
+    console.log('🌿 [analyzeImage] Plant.id result:', {
+      plant: plantIdResult.plant?.commonName,
+      disease: plantIdResult.disease?.name,
+      isHealthy: plantIdResult.isHealthy,
+      allDiseasesCount: plantIdResult.allDiseases?.length || 0
+    });
+
+    // 2. Extract analysis data
+    const analysis = {
+      plant: plantIdResult.plant,
+      disease: plantIdResult.disease,
+      isHealthy: plantIdResult.isHealthy,
+      confidence: plantIdResult.confidence
+    };
+
+    // 3. Get ALL diseases from Plant.id (not just top 1)
+    // Note: We need to enhance plantid.js to return all diseases
+    const allDiseases = plantIdResult.allDiseases || [];
     
-    // Mock products
-    const products = [
-      {
-        name: 'Phân bón hữu cơ cho cây trồng',
-        imageUrl: 'https://via.placeholder.com/150x150/4CAF50/FFFFFF?text=Phân+bón',
-        price: '125.000đ',
-        note: 'Phù hợp cho hầu hết các loại cây trồng trong nhà'
-      },
-      {
-        name: 'Chậu đất nung tự nhiên',
-        imageUrl: 'https://via.placeholder.com/150x150/8D6E63/FFFFFF?text=Chậu+đất',
-        price: '89.000đ',
-        note: 'Thoát nước tốt, giúp rễ cây phát triển khỏe mạnh'
-      },
-      {
-        name: 'Đất trồng cây đa năng',
-        imageUrl: 'https://via.placeholder.com/150x150/795548/FFFFFF?text=Đất+trồng',
-        price: '45.000đ',
-        note: 'Giàu dinh dưỡng, thoát nước tốt'
-      },
-      {
-        name: 'Bình tưới nước mini',
-        imageUrl: 'https://via.placeholder.com/150x150/2196F3/FFFFFF?text=Bình+tưới',
-        price: '75.000đ',
-        note: 'Thiết kế nhỏ gọn, dễ sử dụng cho cây cảnh'
-      }
-    ];
-    
-    // Image insights with bounding boxes (mock coordinates in percentages)
-    const imageInsights = {
-      imageUrl: imageUrl || 'https://via.placeholder.com/400x300/4CAF50/FFFFFF?text=Plant+Image',
-      boxes: [
-        {
-          top: 25.5,
-          left: 30.2,
-          width: 15.8,
-          height: 12.3,
-          label: hasText && text.includes('đốm') ? 'Vùng bệnh đốm lá' : 'Lá cây'
-        },
-        {
-          top: 45.0,
-          left: 50.5,
-          width: 20.0,
-          height: 18.5,
-          label: 'Thân cây chính'
-        },
-        {
-          top: 70.2,
-          left: 25.8,
-          width: 12.5,
-          height: 8.0,
-          label: 'Lá non'
+    if (allDiseases.length > 0) {
+      console.log(`🦠 [analyzeImage] Found ${allDiseases.length} possible diseases`);
+    }
+
+    // 4. Get treatments for EACH disease
+    const treatmentsByDisease = {};
+    const additionalInfoByDisease = {};
+    const aiAdviceByDisease = {};  // ✨ NEW: Store AI-generated advice
+
+    if (allDiseases.length > 0) {
+      for (const disease of allDiseases) {
+        // ✅ Use VIETNAMESE names for database query (DB has Vietnamese data)
+        const diseaseName = disease.name;  // Vietnamese name from GPT translation
+        const plantName = analysis.plant?.commonName;  // Vietnamese plant name
+        
+        console.log(`💊 [analyzeImage] Getting treatments for: "${diseaseName}" (plant: "${plantName}")`);
+        
+        const treatments = await getTreatmentRecommendations(diseaseName, plantName);
+        const additionalInfo = await getAdditionalInfo(diseaseName, plantName);
+        
+        treatmentsByDisease[disease.name] = treatments;
+        additionalInfoByDisease[disease.name] = additionalInfo;
+        
+        // ✨ NEW: Generate AI advice for this disease
+        try {
+          console.log(`🤖 [analyzeImage] Generating AI advice for: "${diseaseName}"`);
+          const aiAdvice = await generateTreatmentAdvice({
+            diseaseName,
+            diseaseConfidence: disease.confidence,
+            plantName,
+            treatments
+          });
+          aiAdviceByDisease[disease.name] = aiAdvice;
+          console.log(`✅ [analyzeImage] AI advice generated (${aiAdvice.length} chars)`);
+        } catch (error) {
+          console.warn(`⚠️  [analyzeImage] Failed to generate AI advice for "${diseaseName}":`, error.message);
+          aiAdviceByDisease[disease.name] = null;
         }
-      ]
-    };
-    
-    // Return AnalysisResult according to schema
-    return {
+      }
+    }
+
+    // 5. Get plant care info (if healthy or low disease confidence)
+    let careInfo = null;
+    if (analysis.isHealthy || (analysis.plant && !analysis.disease)) {
+      try {
+        const plantName = analysis.plant?.scientificName || analysis.plant?.commonName;
+        careInfo = await getPlantCareInfo({ plantName });
+      } catch (error) {
+        console.warn('Failed to get plant care info:', error.message);
+      }
+    }
+
+    // 6. Build result object
+    const result = {
+      // Plant identification
       plant: {
-        commonName: plantName,
-        scientificName: scientificName
+        commonName: analysis.plant?.commonName || null,
+        scientificName: analysis.plant?.scientificName || null,
+        confidence: analysis.plant?.probability || 0,
+        reliable: analysis.plant?.reliable || false
       },
-      disease: disease,
-      confidence: confidence,
-      care: care,
-      products: products,
-      imageInsights: imageInsights,
-      // Add enhanced plant information if available
-      plantInfo: plantCareInfo ? {
-        category: plantCareInfo.category,
-        commonDiseases: plantCareInfo.commonDiseases,
-        growthStages: plantCareInfo.growthStages
-      } : null
+      
+      // Health status
+      isHealthy: analysis.isHealthy,
+      
+      // All detected diseases (sorted by confidence)
+      diseases: allDiseases.map(d => ({
+        name: d.name,
+        originalName: d.originalName,
+        confidence: d.probability || d.confidence,
+        description: d.description || null
+      })),
+      
+      // Treatments organized by disease
+      treatments: treatmentsByDisease,
+      
+      // Additional information by disease
+      additionalInfo: additionalInfoByDisease,
+      
+      // ✨ NEW: AI-generated advice by disease
+      aiAdvice: aiAdviceByDisease,
+      
+      // General care info (for healthy plants)
+      care: careInfo || null,
+      
+      // Metadata
+      analyzedAt: new Date(),
+      imageUrl
     };
-    
+
+    console.log('✅ [analyzeImage] Analysis complete:', {
+      plant: result.plant.commonName,
+      diseaseCount: result.diseases.length,
+      hasTreatments: Object.keys(result.treatments).length > 0
+    });
+
+    return result;
+
   } catch (error) {
-    throw httpError(500, `Analysis failed: ${error.message}`);
+    console.error('❌ [analyzeImage] Error:', error);
+    throw httpError(error.statusCode || 500, error.message || 'Image analysis failed');
+  }
+};
+
+/**
+ * Get analysis history for a user
+ * @param {object} params - Parameters
+ * @param {string} params.userId - User ID
+ * @param {number} params.limit - Number of records (default: 10)
+ * @returns {Promise<array>} Array of analysis records
+ */
+export const getAnalysisHistory = async ({ userId, limit = 10 }) => {
+  try {
+    // Import Analysis model
+    const { default: Analysis } = await import('../analyses/analysis.model.js');
+    
+    const analyses = await Analysis.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    
+    return analyses;
+  } catch (error) {
+    console.error('❌ [getAnalysisHistory] Error:', error);
+    throw httpError(500, 'Failed to get analysis history');
+  }
+};
+
+/**
+ * Get single analysis by ID
+ * @param {object} params - Parameters
+ * @param {string} params.analysisId - Analysis ID
+ * @param {string} params.userId - User ID (for auth check)
+ * @returns {Promise<object>} Analysis record
+ */
+export const getAnalysisById = async ({ analysisId, userId }) => {
+  try {
+    const { default: Analysis } = await import('../analyses/analysis.model.js');
+    
+    const analysis = await Analysis.findOne({
+      _id: analysisId,
+      userId
+    }).lean();
+    
+    if (!analysis) {
+      throw httpError(404, 'Analysis not found');
+    }
+    
+    return analysis;
+  } catch (error) {
+    console.error('❌ [getAnalysisById] Error:', error);
+    throw httpError(error.statusCode || 500, error.message || 'Failed to get analysis');
   }
 };

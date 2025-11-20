@@ -34,16 +34,47 @@ export const Header: React.FC = () => {
       </button>
 
       {/* Desktop Navigation */}
-      <nav className="hidden md:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
-        <Link to="/community" className="text-gray-600 hover:text-green-600">
-          Cộng đồng
+      <nav className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
+        <Link 
+          to="/analyze" 
+          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+        >
+          <span className="text-xl">🔬</span>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">Phân Tích</span>
+            <span className="text-xs text-gray-500 group-hover:text-green-500">Nhận diện & bệnh</span>
+          </div>
         </Link>
-        <a href="#" className="text-gray-600 hover:text-green-600">
-          Thị trường
-        </a>
-        <a href="#" className="text-gray-600 hover:text-green-600">
-          Kiến thức
-        </a>
+        <Link 
+          to="/knowledge" 
+          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+        >
+          <span className="text-xl">📚</span>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">Kiến Thức</span>
+            <span className="text-xs text-gray-500 group-hover:text-green-500">Hỏi đáp AI</span>
+          </div>
+        </Link>
+        <Link 
+          to="/community" 
+          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+        >
+          <span className="text-xl">👥</span>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">Cộng Đồng</span>
+            <span className="text-xs text-gray-500 group-hover:text-green-500">Chia sẻ kinh nghiệm</span>
+          </div>
+        </Link>
+        <Link 
+          to="/my-plants" 
+          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+        >
+          <span className="text-xl">🌿</span>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">Vườn Của Tôi</span>
+            <span className="text-xs text-gray-500 group-hover:text-green-500">Quản lý cây trồng</span>
+          </div>
+        </Link>
       </nav>
 
       {/* Desktop Auth buttons */}
@@ -70,16 +101,51 @@ export const Header: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b shadow-md z-50">
           <div className="flex flex-col p-4">
-            <nav className="flex flex-col space-y-4 mb-4">
-              <Link to="/community" className="text-gray-600 hover:text-green-600 py-2" onClick={() => setMobileMenuOpen(false)}>
-                Cộng đồng
+            <nav className="flex flex-col space-y-3 mb-4">
+              <Link 
+                to="/analyze" 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="text-2xl">🔬</span>
+                <div>
+                  <div className="font-medium text-gray-900">Phân Tích</div>
+                  <div className="text-xs text-gray-500">Nhận diện cây & phát hiện bệnh</div>
+                </div>
               </Link>
-              <a href="#" className="text-gray-600 hover:text-green-600 py-2">
-                Thị trường
-              </a>
-              <a href="#" className="text-gray-600 hover:text-green-600 py-2">
-                Kiến thức
-              </a>
+              <Link 
+                to="/knowledge" 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="text-2xl">📚</span>
+                <div>
+                  <div className="font-medium text-gray-900">Kiến Thức</div>
+                  <div className="text-xs text-gray-500">Hỏi đáp với AI</div>
+                </div>
+              </Link>
+              <Link 
+                to="/community" 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="text-2xl">👥</span>
+                <div>
+                  <div className="font-medium text-gray-900">Cộng Đồng</div>
+                  <div className="text-xs text-gray-500">Chia sẻ kinh nghiệm</div>
+                </div>
+              </Link>
+              <Link 
+                to="/my-plants" 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="text-2xl">🌿</span>
+                <div>
+                  <div className="font-medium text-gray-900">Vườn Của Tôi</div>
+                  <div className="text-xs text-gray-500">Quản lý cây trồng</div>
+                </div>
+              </Link>
             </nav>
             <div className="flex flex-col space-y-3">
               {isAuthenticated ? (
