@@ -1,6 +1,98 @@
 import Product from './product.model.js';
 import BiologicalMethod from './biologicalMethod.model.js';
 import CulturalPractice from './culturalPractice.model.js';
+import { extractDiseaseKeywords, normalizeVietnamese } from '../../common/utils/vietnameseUtils.js';
+
+/**
+ * Search for disease names in database (for autocomplete/suggestions)
+ * Returns suggestions based on query - supports partial matching
+ * @param {string} query - Search query (can be empty for common diseases)
+ * @returns {Promise<string[]>} Array of unique disease names (sorted by relevance)
+ */
+export const searchDiseaseNames = async (query) => {
+  try {
+    const searchQuery = query ? query.trim() : '';
+    const normalizedQuery = searchQuery ? normalizeVietnamese(searchQuery) : '';
+
+    // Search in both products and biological_methods
+    const [products, biologicalMethods] = await Promise.all([
+      Product.find({ verified: true }).select('targetDiseases').lean(),
+      BiologicalMethod.find({ verified: true }).select('targetDiseases').lean(),
+    ]);
+
+    // Collect all unique disease names with scores
+    const diseaseMap = new Map(); // disease -> score
+    
+    [...products, ...biologicalMethods].forEach(item => {
+      if (item.targetDiseases && Array.isArray(item.targetDiseases)) {
+        item.targetDiseases.forEach(disease => {
+          if (disease && disease.trim()) {
+            const normalizedDisease = normalizeVietnamese(disease);
+            
+            if (!searchQuery || searchQuery.length < 2) {
+              // No query or too short: return all diseases (common diseases)
+              if (!diseaseMap.has(disease)) {
+                diseaseMap.set(disease, 1);
+              }
+            } else {
+              // Has query: calculate match score
+              let score = 0;
+              
+              // Exact match (highest priority)
+              if (normalizedDisease === normalizedQuery || disease.toLowerCase() === searchQuery.toLowerCase()) {
+                score = 100;
+              }
+              // Starts with query (high priority)
+              else if (normalizedDisease.startsWith(normalizedQuery) || disease.toLowerCase().startsWith(searchQuery.toLowerCase())) {
+                score = 80;
+              }
+              // Contains query (medium priority)
+              else if (normalizedDisease.includes(normalizedQuery) || disease.toLowerCase().includes(searchQuery.toLowerCase())) {
+                score = 60;
+              }
+              // Keyword match (lower priority)
+              else {
+                const keywords = extractDiseaseKeywords(searchQuery);
+                const diseaseKeywords = extractDiseaseKeywords(disease);
+                
+                // Check if any keyword matches
+                const keywordMatches = keywords.filter(k => {
+                  const normalizedK = normalizeVietnamese(k);
+                  return diseaseKeywords.some(dk => {
+                    const normalizedDk = normalizeVietnamese(dk);
+                    return normalizedDk.includes(normalizedK) || normalizedK.includes(normalizedDk);
+                  });
+                }).length;
+                
+                if (keywordMatches > 0) {
+                  score = 40 + (keywordMatches * 5); // 40-50 based on number of matches
+                }
+              }
+              
+              // Update score if disease already exists (keep highest score)
+              if (score > 0) {
+                const currentScore = diseaseMap.get(disease) || 0;
+                diseaseMap.set(disease, Math.max(currentScore, score));
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // Convert to array and sort by score (descending)
+    const diseases = Array.from(diseaseMap.entries())
+      .map(([disease, score]) => ({ disease, score }))
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.disease);
+
+    // Return top results (more results for better suggestions)
+    return diseases.slice(0, 15);
+  } catch (error) {
+    console.error('❌ [TreatmentService] Error searching disease names:', error);
+    return [];
+  }
+};
 
 /**
  * Get treatment recommendations based on disease and crop
@@ -91,28 +183,57 @@ const getChemicalTreatments = async (diseaseName, cropName) => {
       verified: true,
     };
 
-    // Search in targetDiseases array with keyword extraction
+    // Search in targetDiseases array with keyword extraction (supports no diacritics)
     if (diseaseName) {
-      // Extract keywords from disease name (remove common words)
-      const keywords = diseaseName
-        .toLowerCase()
-        .replace(/bệnh|disease|gây hại|trên|của|cây/gi, '')  // Remove common words
-        .trim()
-        .split(/[\s,]+/)  // Split by space or comma
-        .filter(k => k.length > 2);  // Only keep words > 2 chars
+      // Extract keywords (supports both with and without diacritics)
+      const keywords = extractDiseaseKeywords(diseaseName);
       
       console.log(`🔍 [TreatmentService] Disease keywords extracted:`, keywords);
       
-      // Search for ANY keyword match (OR condition)
+      // Search for ANY keyword match (OR condition) - both with and without diacritics
       if (keywords.length > 0) {
-        query.$or = keywords.map(keyword => ({
-          targetDiseases: {
-            $elemMatch: {
-              $regex: keyword,
-              $options: 'i'
+        const searchConditions = [];
+        
+        // For each keyword, search both original and normalized (no diacritics)
+        keywords.forEach(keyword => {
+          // Search with diacritics
+          searchConditions.push({
+            targetDiseases: {
+              $elemMatch: {
+                $regex: keyword,
+                $options: 'i'
+              }
             }
+          });
+          
+          // Also search normalized version (no diacritics) for better matching
+          const normalizedKeyword = normalizeVietnamese(keyword);
+          if (normalizedKeyword !== keyword.toLowerCase()) {
+            searchConditions.push({
+              targetDiseases: {
+                $elemMatch: {
+                  $regex: normalizedKeyword,
+                  $options: 'i'
+                }
+              }
+            });
           }
-        }));
+        });
+        
+        // Also search the full normalized disease name
+        const normalizedDisease = normalizeVietnamese(diseaseName);
+        if (normalizedDisease && normalizedDisease.length > 3) {
+          searchConditions.push({
+            targetDiseases: {
+              $elemMatch: {
+                $regex: normalizedDisease,
+                $options: 'i'
+              }
+            }
+          });
+        }
+        
+        query.$or = searchConditions;
       } else {
         // Fallback to original search if no keywords extracted
         query.targetDiseases = { 
@@ -175,28 +296,53 @@ const getBiologicalTreatments = async (diseaseName) => {
   try {
     const query = { verified: true };
 
-    // Search in targetDiseases array with keyword extraction
+    // Search in targetDiseases array with keyword extraction (supports no diacritics)
     if (diseaseName) {
-      // Extract keywords from disease name
-      const keywords = diseaseName
-        .toLowerCase()
-        .replace(/bệnh|disease|gây hại|trên|của|cây/gi, '')
-        .trim()
-        .split(/[\s,]+/)
-        .filter(k => k.length > 2);
+      // Extract keywords (supports both with and without diacritics)
+      const keywords = extractDiseaseKeywords(diseaseName);
       
       console.log(`🔍 [TreatmentService] Biological method keywords:`, keywords);
       
-      // Search for ANY keyword match
+      // Search for ANY keyword match (OR condition) - both with and without diacritics
       if (keywords.length > 0) {
-        query.$or = keywords.map(keyword => ({
-          targetDiseases: {
-            $elemMatch: {
-              $regex: keyword,
-              $options: 'i'
+        const searchConditions = [];
+        
+        keywords.forEach(keyword => {
+          searchConditions.push({
+            targetDiseases: {
+              $elemMatch: {
+                $regex: keyword,
+                $options: 'i'
+              }
             }
+          });
+          
+          const normalizedKeyword = normalizeVietnamese(keyword);
+          if (normalizedKeyword !== keyword.toLowerCase()) {
+            searchConditions.push({
+              targetDiseases: {
+                $elemMatch: {
+                  $regex: normalizedKeyword,
+                  $options: 'i'
+                }
+              }
+            });
           }
-        }));
+        });
+        
+        const normalizedDisease = normalizeVietnamese(diseaseName);
+        if (normalizedDisease && normalizedDisease.length > 3) {
+          searchConditions.push({
+            targetDiseases: {
+              $elemMatch: {
+                $regex: normalizedDisease,
+                $options: 'i'
+              }
+            }
+          });
+        }
+        
+        query.$or = searchConditions;
       } else {
         // Fallback to original search
         query.targetDiseases = { 

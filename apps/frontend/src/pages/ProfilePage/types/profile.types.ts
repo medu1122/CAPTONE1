@@ -26,23 +26,6 @@ export interface UserProfile {
     likes: number
     plants: number
   }
-  professionalProfile: {
-    isFarmer: boolean
-    isBuyer: boolean
-    farmerInfo?: {
-      farmName?: string
-      farmSize?: 'small' | 'medium' | 'large' | 'very-large'
-      farmType?: 'organic' | 'conventional' | 'hydroponic' | 'other'
-      crops?: string[]
-      experience?: 'less-1' | '1-3' | '3-5' | '5-10' | 'more-10'
-      certificates?: string[]
-    }
-    buyerInfo?: {
-      preferences?: string[]
-      budget?: 'low' | 'medium' | 'high' | 'very-high'
-      purchaseFrequency?: 'daily' | 'weekly' | 'monthly' | 'seasonal'
-    }
-  }
   createdAt: string
   updatedAt: string
   joinDate?: string

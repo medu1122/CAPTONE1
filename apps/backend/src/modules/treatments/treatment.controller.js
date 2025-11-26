@@ -1,4 +1,4 @@
-import { createMockData } from './treatment.service.js';
+import { createMockData, searchDiseaseNames } from './treatment.service.js';
 
 /**
  * Initialize mock data for testing
@@ -58,6 +58,29 @@ export const getStats = async (req, res, next) => {
     });
   } catch (error) {
     console.error('❌ [TreatmentController] Error getting stats:', error);
+    next(error);
+  }
+};
+
+/**
+ * Search disease names for autocomplete
+ * @route GET /api/v1/treatments/search-diseases
+ */
+export const searchDiseases = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    
+    // Allow empty query to return common diseases
+    const query = q ? q.trim() : '';
+    
+    const results = await searchDiseaseNames(query);
+    
+    return res.status(200).json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    console.error('❌ [TreatmentController] Error searching diseases:', error);
     next(error);
   }
 };

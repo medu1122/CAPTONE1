@@ -1,7 +1,9 @@
 import axios from 'axios'
+import { API_CONFIG } from '../config/api'
 import { getAccessToken } from '../services/authService'
+import type { UserProfile } from '../pages/ProfilePage/types/profile.types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = API_CONFIG.BASE_URL
 
 // Backend response types
 interface BackendUserProfile {
@@ -57,123 +59,12 @@ interface BackendUserProfile {
   updatedAt: string
 }
 
-// Frontend types (from profile.types.ts)
-export interface UserProfile {
-  _id: string
-  username: string
-  email: string
-  phone?: string
-  avatar?: string
-  bio?: string
-  isVerified?: boolean
-  address?: {
-    street?: string
-    province?: string
-    district?: string
-  }
-  settings: {
-    emailNotifications: boolean
-    smsNotifications: boolean
-    language: 'vi' | 'en'
-    theme: 'light' | 'dark'
-    privacy: 'public' | 'friends' | 'private'
-    showEmail: boolean
-    showPhone: boolean
-  }
-  statistics: {
-    posts: number
-    comments: number
-    likes: number
-    plants: number
-  }
-  professionalProfile: {
-    isFarmer: boolean
-    isBuyer: boolean
-    farmerInfo?: {
-      farmName?: string
-      farmSize?: 'small' | 'medium' | 'large' | 'very-large'
-      farmType?: 'organic' | 'conventional' | 'hydroponic' | 'other'
-      crops?: string[]
-      experience?: 'less-1' | '1-3' | '3-5' | '5-10' | 'more-10'
-      certificates?: string[]
-    }
-    buyerInfo?: {
-      preferences?: string[]
-      budget?: 'low' | 'medium' | 'high' | 'very-high'
-      purchaseFrequency?: 'daily' | 'weekly' | 'monthly' | 'seasonal'
-    }
-  }
-  createdAt: string
-  updatedAt: string
-  joinDate?: string
-  lastActiveAt?: string
-}
+// UserProfile type is imported from profile.types.ts
 
 /**
  * Transform backend profile to frontend format
  */
 const transformProfile = (backendProfile: BackendUserProfile): UserProfile => {
-  // Map farmSize from backend string to frontend enum
-  const mapFarmSize = (size: string | null | undefined): 'small' | 'medium' | 'large' | 'very-large' | undefined => {
-    if (!size) return undefined
-    const sizeMap: Record<string, 'small' | 'medium' | 'large' | 'very-large'> = {
-      'small': 'small',
-      'medium': 'medium',
-      'large': 'large',
-      'very-large': 'very-large',
-    }
-    return sizeMap[size.toLowerCase()] || undefined
-  }
-
-  // Map farmType from backend string to frontend enum
-  const mapFarmType = (type: string | null | undefined): 'organic' | 'conventional' | 'hydroponic' | 'other' | undefined => {
-    if (!type) return undefined
-    const typeMap: Record<string, 'organic' | 'conventional' | 'hydroponic' | 'other'> = {
-      'organic': 'organic',
-      'conventional': 'conventional',
-      'hydroponic': 'hydroponic',
-      'other': 'other',
-    }
-    return typeMap[type.toLowerCase()] || undefined
-  }
-
-  // Map experience from backend string to frontend enum
-  const mapExperience = (exp: string | null | undefined): 'less-1' | '1-3' | '3-5' | '5-10' | 'more-10' | undefined => {
-    if (!exp) return undefined
-    const expMap: Record<string, 'less-1' | '1-3' | '3-5' | '5-10' | 'more-10'> = {
-      'less-1': 'less-1',
-      '1-3': '1-3',
-      '3-5': '3-5',
-      '5-10': '5-10',
-      'more-10': 'more-10',
-    }
-    return expMap[exp.toLowerCase()] || undefined
-  }
-
-  // Map budgetRange from backend string to frontend enum
-  const mapBudget = (budget: string | null | undefined): 'low' | 'medium' | 'high' | 'very-high' | undefined => {
-    if (!budget) return undefined
-    const budgetMap: Record<string, 'low' | 'medium' | 'high' | 'very-high'> = {
-      'low': 'low',
-      'medium': 'medium',
-      'high': 'high',
-      'very-high': 'very-high',
-    }
-    return budgetMap[budget.toLowerCase()] || undefined
-  }
-
-  // Map purchaseFrequency from backend string to frontend enum
-  const mapFrequency = (freq: string | null | undefined): 'daily' | 'weekly' | 'monthly' | 'seasonal' | undefined => {
-    if (!freq) return undefined
-    const freqMap: Record<string, 'daily' | 'weekly' | 'monthly' | 'seasonal'> = {
-      'daily': 'daily',
-      'weekly': 'weekly',
-      'monthly': 'monthly',
-      'seasonal': 'seasonal',
-    }
-    return freqMap[freq.toLowerCase()] || undefined
-  }
-
   return {
     _id: backendProfile.id,
     username: backendProfile.name,
@@ -201,34 +92,6 @@ const transformProfile = (backendProfile: BackendUserProfile): UserProfile => {
       comments: backendProfile.stats?.totalComments || 0,
       likes: backendProfile.stats?.totalLikes || 0,
       plants: backendProfile.stats?.totalPlants || 0,
-    },
-    professionalProfile: {
-      isFarmer: !!(backendProfile.farmerProfile && (
-        backendProfile.farmerProfile.farmName ||
-        backendProfile.farmerProfile.farmSize ||
-        backendProfile.farmerProfile.farmType ||
-        (backendProfile.farmerProfile.crops && backendProfile.farmerProfile.crops.length > 0) ||
-        backendProfile.farmerProfile.experience ||
-        (backendProfile.farmerProfile.certifications && backendProfile.farmerProfile.certifications.length > 0)
-      )),
-      isBuyer: !!(backendProfile.buyerProfile && (
-        (backendProfile.buyerProfile.preferences && backendProfile.buyerProfile.preferences.length > 0) ||
-        backendProfile.buyerProfile.budgetRange ||
-        backendProfile.buyerProfile.purchaseFrequency
-      )),
-      farmerInfo: backendProfile.farmerProfile ? {
-        farmName: backendProfile.farmerProfile.farmName || undefined,
-        farmSize: mapFarmSize(backendProfile.farmerProfile.farmSize),
-        farmType: mapFarmType(backendProfile.farmerProfile.farmType),
-        crops: backendProfile.farmerProfile.crops || [],
-        experience: mapExperience(backendProfile.farmerProfile.experience),
-        certificates: backendProfile.farmerProfile.certifications || [],
-      } : undefined,
-      buyerInfo: backendProfile.buyerProfile ? {
-        preferences: backendProfile.buyerProfile.preferences || [],
-        budget: mapBudget(backendProfile.buyerProfile.budgetRange),
-        purchaseFrequency: mapFrequency(backendProfile.buyerProfile.purchaseFrequency),
-      } : undefined,
     },
     createdAt: backendProfile.createdAt,
     updatedAt: backendProfile.updatedAt,
@@ -281,48 +144,6 @@ const transformUpdateData = (frontendData: Partial<UserProfile>): any => {
     }
   }
 
-  // Professional Profile
-  if (frontendData.professionalProfile !== undefined) {
-    const prof = frontendData.professionalProfile
-
-    // Farmer Profile
-    if (prof.farmerInfo !== undefined) {
-      updateData.farmerProfile = {
-        farmName: prof.farmerInfo.farmName || null,
-        farmSize: prof.farmerInfo.farmSize || null,
-        farmType: prof.farmerInfo.farmType || null,
-        crops: prof.farmerInfo.crops || [],
-        experience: prof.farmerInfo.experience || null,
-        certifications: prof.farmerInfo.certificates || [],
-      }
-    } else if (prof.isFarmer === false) {
-      // If user unchecks "I am a farmer", clear farmer profile
-      updateData.farmerProfile = {
-        farmName: null,
-        farmSize: null,
-        farmType: null,
-        crops: [],
-        experience: null,
-        certifications: [],
-      }
-    }
-
-    // Buyer Profile
-    if (prof.buyerInfo !== undefined) {
-      updateData.buyerProfile = {
-        preferences: prof.buyerInfo.preferences || [],
-        budgetRange: prof.buyerInfo.budget || null,
-        purchaseFrequency: prof.buyerInfo.purchaseFrequency || null,
-      }
-    } else if (prof.isBuyer === false) {
-      // If user unchecks "I am a buyer", clear buyer profile
-      updateData.buyerProfile = {
-        preferences: [],
-        budgetRange: null,
-        purchaseFrequency: null,
-      }
-    }
-  }
 
   return updateData
 }
@@ -415,6 +236,96 @@ export const profileService = {
         window.location.href = '/auth'
       }
       throw new Error(error.response?.data?.message || error.message || 'Failed to upload image')
+    }
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    try {
+      const token = getAccessToken()
+      const response = await axios.post(
+        `${API_BASE_URL}/auth/profile/change-password`,
+        {
+          currentPassword,
+          newPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to change password')
+      }
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        window.location.href = '/auth'
+      }
+      throw new Error(error.response?.data?.message || error.message || 'Failed to change password')
+    }
+  },
+
+  /**
+   * Get public user profile (for viewing other users)
+   */
+  getPublicProfile: async (userId: string): Promise<any> => {
+    try {
+      const token = getAccessToken() // Optional: send token if available for privacy checks
+      const headers: any = {}
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/auth/users/${userId}`, {
+        headers,
+      })
+
+      if (response.data.success && response.data.data) {
+        const backendProfile = response.data.data
+        // Transform public profile (may have null email/phone)
+        return {
+          _id: backendProfile.id,
+          username: backendProfile.name,
+          email: backendProfile.email || undefined,
+          phone: backendProfile.phone || undefined,
+          avatar: backendProfile.profileImage || undefined,
+          bio: backendProfile.bio || undefined,
+          isVerified: backendProfile.isVerified,
+          address: backendProfile.location ? {
+            street: backendProfile.location.address || undefined,
+            province: backendProfile.location.province || undefined,
+            district: backendProfile.location.city || undefined,
+          } : undefined,
+          settings: {
+            emailNotifications: false, // Not shown in public profile
+            smsNotifications: false, // Not shown in public profile
+            language: 'vi',
+            theme: 'light',
+            privacy: backendProfile.profileVisibility || 'public',
+            showEmail: !!backendProfile.email,
+            showPhone: !!backendProfile.phone,
+          },
+          statistics: {
+            posts: backendProfile.stats?.totalPosts || 0,
+            comments: backendProfile.stats?.totalComments || 0,
+            likes: backendProfile.stats?.totalLikes || 0,
+            plants: backendProfile.stats?.totalPlants || 0,
+          },
+          createdAt: backendProfile.createdAt,
+          updatedAt: backendProfile.createdAt,
+          joinDate: backendProfile.stats?.joinDate || undefined,
+          profileVisibility: backendProfile.profileVisibility || 'public',
+        }
+      }
+      throw new Error(response.data.message || 'Failed to fetch profile')
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        throw new Error('Hồ sơ này ở chế độ riêng tư')
+      }
+      if (error.response?.status === 404) {
+        throw new Error('Không tìm thấy người dùng')
+      }
+      throw new Error(error.response?.data?.message || error.message || 'Failed to fetch profile')
     }
   },
 }

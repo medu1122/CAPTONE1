@@ -6,6 +6,7 @@ import type {
   UpdatePostData,
   PostFilters,
   CreateCommentData,
+  UpdateCommentData,
   Comment,
 } from '../types/community.types'
 import API_CONFIG from '../../../config/api'
@@ -87,6 +88,10 @@ const transformPost = (backendPost: any): Post => {
     comments: (backendPost.comments || []).map((comment: any) => ({
       _id: comment._id || comment.id,
       content: comment.content,
+      images: (comment.images || []).map((img: any) => ({
+        url: typeof img === 'string' ? img : (img.url || ''),
+        caption: typeof img === 'object' ? (img.caption || '') : '',
+      })).filter((img: any) => img.url),
       author: {
         _id: comment.author?._id || comment.author?.id,
         name: comment.author?.name || 'Unknown',
@@ -161,6 +166,15 @@ export const communityService = {
       return transformPost(backendData)
     } catch (error: any) {
       console.error('Error creating post:', error)
+      
+      // Check if it's a moderation error
+      if (error.response?.data?.code === 'CONTENT_MODERATION_FAILED') {
+        const moderationError = new Error(error.response?.data?.message || 'Nội dung không phù hợp')
+        ;(moderationError as any).code = 'CONTENT_MODERATION_FAILED'
+        ;(moderationError as any).moderationData = error.response?.data?.data || {}
+        throw moderationError
+      }
+      
       throw new Error(error.response?.data?.message || 'Failed to create post')
     }
   },
@@ -191,12 +205,20 @@ export const communityService = {
   // Comments
   createComment: async (
     postId: string,
-    data: CreateCommentData,
+    data: CreateCommentData | FormData,
   ): Promise<Comment> => {
     try {
+      // Check if data is FormData (file upload)
+      const isFormData = data instanceof FormData
+      
+      const config = isFormData ? {
+        timeout: 60000, // 60 seconds for file upload
+      } : {}
+      
       const response = await api.post(
         `${API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', postId)}/comments`,
-        data
+        data,
+        config
       )
       const backendData = response.data.data || response.data
       
@@ -206,6 +228,10 @@ export const communityService = {
         return {
           _id: lastComment._id || lastComment.id,
           content: lastComment.content,
+          images: (lastComment.images || []).map((img: any) => ({
+            url: typeof img === 'string' ? img : (img.url || ''),
+            caption: typeof img === 'object' ? (img.caption || '') : '',
+          })).filter((img: any) => img.url),
           author: {
             _id: lastComment.author?._id || lastComment.author?.id,
             name: lastComment.author?.name || 'Unknown',
@@ -232,7 +258,92 @@ export const communityService = {
       throw new Error('No comment returned from server')
     } catch (error: any) {
       console.error('Error creating comment:', error)
+      
+      // Check if it's a moderation error
+      if (error.response?.data?.code === 'CONTENT_MODERATION_FAILED') {
+        const moderationError = new Error(error.response?.data?.message || 'Nội dung bình luận không phù hợp')
+        ;(moderationError as any).code = 'CONTENT_MODERATION_FAILED'
+        ;(moderationError as any).moderationData = error.response?.data?.data || {}
+        throw moderationError
+      }
+      
       throw new Error(error.response?.data?.message || 'Failed to create comment')
+    }
+  },
+
+  updateComment: async (
+    postId: string,
+    commentId: string,
+    data: UpdateCommentData,
+  ): Promise<Post> => {
+    try {
+      // Check if data has files (FormData)
+      const isFormData = data.images && data.images.length > 0 && data.images[0] instanceof File;
+      
+      let response;
+      if (isFormData) {
+        const formData = new FormData();
+        formData.append('content', data.content);
+        if (data.replaceImages !== undefined) {
+          formData.append('replaceImages', String(data.replaceImages));
+        }
+        
+        // Append image files
+        if (data.images) {
+          data.images.forEach((img: File | { url: string; caption?: string }) => {
+            if (img instanceof File) {
+              formData.append('images', img);
+            }
+          });
+        }
+        
+        response = await api.put(
+          `${API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', postId)}/comments/${commentId}`,
+          formData,
+          {
+            timeout: 60000, // 60 seconds for file upload
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        );
+      } else {
+        response = await api.put(
+          `${API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', postId)}/comments/${commentId}`,
+          data
+        );
+      }
+      
+      const backendData = response.data.data || response.data
+      return transformPost(backendData)
+    } catch (error: any) {
+      console.error('Error updating comment:', error)
+      
+      // Check if it's a moderation error
+      if (error.response?.data?.code === 'CONTENT_MODERATION_FAILED') {
+        const moderationError = new Error(error.response?.data?.message || 'Nội dung bình luận không phù hợp')
+        ;(moderationError as any).code = 'CONTENT_MODERATION_FAILED'
+        ;(moderationError as any).moderationData = error.response?.data?.data || {}
+        throw moderationError
+      }
+      
+      throw new Error(error.response?.data?.message || 'Failed to update comment')
+    }
+  },
+
+  deleteComment: async (
+    postId: string,
+    commentId: string,
+  ): Promise<Post> => {
+    try {
+      const response = await api.delete(
+        `${API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', postId)}/comments/${commentId}`
+      )
+      const backendData = response.data.data || response.data
+      return transformPost(backendData)
+    } catch (error: any) {
+      console.error('Error deleting comment:', error)
+      throw new Error(error.response?.data?.message || 'Failed to delete comment')
     }
   },
 

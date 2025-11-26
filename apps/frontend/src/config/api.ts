@@ -1,19 +1,28 @@
 // API Configuration
 const getBaseURL = () => {
-  // If VITE_API_URL is set in .env, use it
+  // If VITE_API_URL is set in .env, use it (highest priority)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
   // Auto-detect based on current hostname
   const hostname = window.location.hostname;
+  const port = window.location.port || '5173';
   
   // If accessing via localhost, use localhost backend
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:4000/api/v1';
   }
   
-  // If accessing via LAN IP, use same IP for backend
+  // If accessing via LAN IP (IPv4 format), use same IP for backend
+  // Check if hostname is an IP address (IPv4)
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  if (ipv4Regex.test(hostname)) {
+    return `http://${hostname}:4000/api/v1`;
+  }
+  
+  // If accessing via domain name or other, try to use hostname
+  // This handles cases like accessing via computer name
   return `http://${hostname}:4000/api/v1`;
 };
 
@@ -141,6 +150,9 @@ export const API_CONFIG = {
       CHAT: '/plant-boxes/:id/chat',
       ADD_NOTE: '/plant-boxes/:id/notes',
       ADD_IMAGE: '/plant-boxes/:id/images'
+    },
+    TREATMENTS: {
+      SEARCH_DISEASES: '/treatments/search-diseases'
     }
   }
 }

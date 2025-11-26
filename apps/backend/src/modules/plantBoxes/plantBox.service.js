@@ -341,6 +341,66 @@ export const addImage = async ({ boxId, userId, image }) => {
   }
 };
 
+/**
+ * Add feedback for a disease
+ * @param {object} params - Parameters
+ * @param {string} params.boxId - Plant box ID
+ * @param {string} params.userId - User ID
+ * @param {string} params.diseaseIndex - Index of disease in currentDiseases array
+ * @param {object} params.feedback - Feedback data { status, notes }
+ * @returns {Promise<object>} Updated plant box
+ */
+export const addDiseaseFeedback = async ({ boxId, userId, diseaseIndex, feedback }) => {
+  try {
+    if (!boxId) {
+      throw httpError(400, 'Plant box ID is required');
+    }
+    if (!userId) {
+      throw httpError(400, 'User ID is required');
+    }
+    if (diseaseIndex === undefined || diseaseIndex === null) {
+      throw httpError(400, 'Disease index is required');
+    }
+
+    const plantBox = await PlantBox.findOne({ _id: boxId, user: userId });
+    if (!plantBox) {
+      throw httpError(404, 'Plant box not found');
+    }
+
+    if (!plantBox.currentDiseases || !plantBox.currentDiseases[diseaseIndex]) {
+      throw httpError(404, 'Disease not found');
+    }
+
+    // Add feedback to disease
+    const disease = plantBox.currentDiseases[diseaseIndex];
+    if (!disease.feedback) {
+      disease.feedback = [];
+    }
+    
+    disease.feedback.push({
+      date: new Date(),
+      status: feedback.status,
+      notes: feedback.notes || '',
+    });
+
+    // Update disease status based on feedback
+    if (feedback.status === 'resolved') {
+      disease.status = 'resolved';
+    } else if (feedback.status === 'better' && disease.status === 'active') {
+      disease.status = 'treating';
+    } else if (feedback.status === 'worse' && disease.status === 'treating') {
+      disease.status = 'active';
+    }
+
+    await plantBox.save();
+
+    return plantBox;
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(500, `Failed to add disease feedback: ${error.message}`);
+  }
+};
+
 export default {
   getUserPlantBoxes,
   getPlantBoxById,
@@ -350,5 +410,6 @@ export default {
   refreshCareStrategy,
   addNote,
   addImage,
+  addDiseaseFeedback,
 };
 

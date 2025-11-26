@@ -44,7 +44,11 @@ export const usePosts = (initialFilters?: PostFilters) => {
       const newPost = await communityService.createPost(data)
       setPosts((prev) => [newPost, ...prev])
       return newPost
-    } catch (err) {
+    } catch (err: any) {
+      // Re-throw moderation errors so CreatePostModal can handle them
+      if (err.code === 'CONTENT_MODERATION_FAILED') {
+        throw err
+      }
       setError('Không thể tạo bài viết. Vui lòng thử lại.')
       console.error(err)
       return null

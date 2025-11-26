@@ -25,8 +25,9 @@ router.use('/auth', authRoutes);
 router.use('/analyze', analyzeRoutes);  // ✅ NEW: /api/v1/analyze/* (Image analysis only)
 router.use('/image-upload', imageUploadRoutes);  // ✅ NEW: /api/v1/image-upload/upload
 router.use('/health', healthRoutes);
-router.use('/chat', chatRoutes);  // ✅ NEW: /api/v1/chat/ask (Simple Q&A)
-router.use('/chat/history', oldChatRoutes);  // Old chat-analyze routes (keep for compatibility)
+// Chat routes - mount both simple chat and chat history
+router.use('/chat', chatRoutes);  // ✅ /api/v1/chat/ask, /api/v1/chat/context
+router.use('/chat', oldChatRoutes);  // ✅ /api/v1/chat/messages, /api/v1/chat/history, /api/v1/chat/sessions, etc.
 router.use('/email-verification', emailVerificationRoutes);
 router.use('/password-reset', passwordResetRoutes);
 router.use('/chat-sessions', chatSessionRoutes);

@@ -7,10 +7,14 @@ import { AuthPage } from './pages/AuthPage'
 import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { LogoutPage } from './pages/LogoutPage'
 import { ProfilePage } from './pages/ProfilePage/ProfilePage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage/ResetPasswordPage'
 import { MyPlantsPage } from './pages/MyPlantsPage/MyPlantsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
+import { PublicProfilePage } from './pages/PublicProfilePage'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import VerifiedRoute from './components/VerifiedRoute'
 import './App.css'
 
 function App() {
@@ -25,15 +29,34 @@ function App() {
           <Route path="/register" element={<AuthPage />} />
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
-          {/* Plant Analysis Page - Image analysis only */}
-          <Route path="/analyze" element={<PlantAnalysisPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* Public Profile Page - View other users' profiles */}
+          <Route path="/users/:userId" element={<PublicProfilePage />} />
+          {/* Plant Analysis Page - Image analysis only - Requires verification */}
+          <Route 
+            path="/analyze" 
+            element={
+              <VerifiedRoute>
+                <PlantAnalysisPage />
+              </VerifiedRoute>
+            } 
+          />
           
-          {/* Knowledge Page - Q&A Chatbot */}
-          <Route path="/knowledge" element={<KnowledgePage />} />
+          {/* Knowledge Page - Q&A Chatbot - Requires verification */}
+          <Route 
+            path="/knowledge" 
+            element={
+              <VerifiedRoute>
+                <KnowledgePage />
+              </VerifiedRoute>
+            } 
+          />
           
           {/* Redirect old chat routes to new pages */}
           <Route path="/chat" element={<Navigate to="/analyze" replace />} />
           <Route path="/ChatAnalyzePage" element={<Navigate to="/analyze" replace />} />
+          
+          {/* Community Page - Only requires login, no verification needed */}
           <Route 
             path="/community" 
             element={
@@ -42,28 +65,42 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Profile Page - Requires verification */}
           <Route 
             path="/profile" 
             element={
-              <ProtectedRoute>
+              <VerifiedRoute>
                 <ProfilePage />
-              </ProtectedRoute>
+              </VerifiedRoute>
             } 
           />
+          
+          {/* Settings Page - Requires verification */}
+          <Route 
+            path="/settings" 
+            element={
+              <VerifiedRoute>
+                <SettingsPage />
+              </VerifiedRoute>
+            } 
+          />
+          
+          {/* My Plants Pages - Requires verification */}
           <Route 
             path="/my-plants" 
             element={
-              <ProtectedRoute>
+              <VerifiedRoute>
                 <MyPlantsPage />
-              </ProtectedRoute>
+              </VerifiedRoute>
             } 
           />
           <Route 
             path="/my-plants/:id" 
             element={
-              <ProtectedRoute>
+              <VerifiedRoute>
                 <PlantDetailPage />
-              </ProtectedRoute>
+              </VerifiedRoute>
             } 
           />
           <Route path="*" element={<div style={{ padding: 24 }}>Not Found</div>} />

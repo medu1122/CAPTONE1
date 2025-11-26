@@ -114,6 +114,26 @@ export const getProfile = async (req, res, next) => {
 };
 
 /**
+ * Get public user profile (for viewing other users)
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const getPublicProfile = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const viewerId = req.user?.id || null; // Optional: current user ID if authenticated
+    
+    const user = await authService.getPublicUserProfile(userId, viewerId);
+    const { statusCode, body } = httpSuccess(200, 'User profile retrieved', user);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Update current user profile
  * @param {object} req - Express request object
  * @param {object} res - Express response object
@@ -193,6 +213,25 @@ export const resendVerificationEmail = async (req, res, next) => {
   }
 };
 
+/**
+ * Change user password
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+    
+    const { statusCode, body } = httpSuccess(200, result.message);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   register,
   login,
@@ -200,8 +239,10 @@ export default {
   logout,
   logoutAll,
   getProfile,
+  getPublicProfile,
   updateProfile,
   uploadProfileImage,
   verifyEmail,
   resendVerificationEmail,
+  changePassword,
 };

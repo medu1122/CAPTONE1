@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapPinIcon, CalendarIcon, SproutIcon } from 'lucide-react'
+import { MapPinIcon, CalendarIcon, SproutIcon, InfoIcon } from 'lucide-react'
 import type { PlantBox } from '../../MyPlantsPage/types/plantBox.types'
 interface PlantOverviewCardProps {
   plantBox: PlantBox
@@ -83,6 +83,24 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
   }
   const healthBadge = getHealthBadge()
   const growthBadge = getGrowthBadge()
+
+  // Extract fruiting season info from careStrategy summary if available
+  const getFruitingInfo = () => {
+    if (!plantBox.careStrategy?.summary) return null
+    const summary = plantBox.careStrategy.summary
+    // Look for fruiting season keywords in summary
+    if (summary.includes('mùa ra trái') || summary.includes('ra trái') || summary.includes('thu hoạch')) {
+      // Extract the relevant part
+      const match = summary.match(/([^.]*(?:mùa ra trái|ra trái|thu hoạch)[^.]*)/i)
+      if (match) {
+        return match[1].trim()
+      }
+    }
+    return null
+  }
+
+  const fruitingInfo = getFruitingInfo()
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex gap-6">
@@ -148,6 +166,18 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
               </span>
             )}
           </div>
+
+          {/* Fruiting Season Info */}
+          {fruitingInfo && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <InfoIcon size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-blue-800">
+                  {fruitingInfo}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           {plantBox.specialRequirements && (

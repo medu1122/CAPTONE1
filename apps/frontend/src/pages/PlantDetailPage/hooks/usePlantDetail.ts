@@ -26,12 +26,31 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
           }
         : undefined,
       area: backendBox.location?.area,
-      soilType: backendBox.location?.soilType,
+      soilType: Array.isArray(backendBox.location?.soilType) 
+        ? backendBox.location.soilType 
+        : backendBox.location?.soilType 
+          ? [backendBox.location.soilType] 
+          : [],
       sunlight: backendBox.location?.sunlight,
     },
     quantity: backendBox.quantity,
     growthStage: backendBox.growthStage,
     currentHealth: backendBox.currentHealth,
+    currentDiseases: (backendBox.currentDiseases || []).map((disease: any) => ({
+      _id: disease._id,
+      name: disease.name,
+      symptoms: disease.symptoms,
+      severity: disease.severity,
+      detectedDate: disease.detectedDate ? new Date(disease.detectedDate).toISOString() : undefined,
+      treatmentPlan: disease.treatmentPlan,
+      status: disease.status,
+      feedback: (disease.feedback || []).map((fb: any) => ({
+        date: fb.date ? new Date(fb.date).toISOString() : new Date().toISOString(),
+        status: fb.status,
+        notes: fb.notes,
+      })),
+    })),
+    healthNotes: backendBox.healthNotes,
     images: (backendBox.images || []).map((img: any, idx: number) => ({
       _id: img._id || `img_${idx}`,
       url: img.url,
@@ -45,6 +64,7 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
       date: note.date ? new Date(note.date).toISOString() : new Date().toISOString(),
     })),
     specialRequirements: backendBox.specialRequirements,
+    careStrategy: backendBox.careStrategy || undefined, // Include careStrategy from backend
     createdAt: backendBox.createdAt
       ? new Date(backendBox.createdAt).toISOString()
       : new Date().toISOString(),
@@ -157,11 +177,26 @@ export const usePlantDetail = (plantBoxId: string) => {
     }
   }, [plantBoxId])
 
+  const refreshPlantBox = useCallback(async () => {
+    if (!plantBoxId) return
+
+    try {
+      const response = await getPlantBox(plantBoxId)
+      if (response.success && response.data) {
+        const mappedBox = mapBackendToFrontend(response.data)
+        setPlantBox(mappedBox)
+      }
+    } catch (err: any) {
+      console.error('Error refreshing plant box:', err)
+    }
+  }, [plantBoxId])
+
   return {
     plantBox,
     loading,
     error,
     updatePlantBox,
     addNote,
+    refreshPlantBox,
   }
 }

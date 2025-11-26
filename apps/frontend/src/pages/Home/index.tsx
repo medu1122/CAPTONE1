@@ -4,7 +4,7 @@ import {FeatureHighlights} from "./components/FeatureHighlights";
 import { HowItWorks } from "./components/HowItWorks";
 
 
-export default function App() {
+export default function Home() {
   return (
     <div className="min-h-screen bg-white relative">
       <Header />

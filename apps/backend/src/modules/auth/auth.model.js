@@ -80,19 +80,6 @@ const userSchema = new mongoose.Schema(
       joinDate: { type: Date, default: null },
       lastActiveAt: { type: Date, default: null },
     },
-    farmerProfile: {
-      farmName: { type: String, default: null },
-      farmSize: { type: String, default: null },
-      farmType: { type: String, default: null },
-      crops: [{ type: String }],
-      experience: { type: String, default: null },
-      certifications: [{ type: String }],
-    },
-    buyerProfile: {
-      preferences: [{ type: String }],
-      budgetRange: { type: String, default: null },
-      purchaseFrequency: { type: String, default: null },
-    },
   },
   {
     timestamps: true,
@@ -102,7 +89,6 @@ const userSchema = new mongoose.Schema(
 // Unique index on email is handled by unique: true in schema
 
 // Indexes for profile management
-userSchema.index({ 'farmerProfile.farmType': 1 });
 userSchema.index({ 'stats.totalPosts': -1 });
 userSchema.index({ 'stats.lastActiveAt': -1 });
 

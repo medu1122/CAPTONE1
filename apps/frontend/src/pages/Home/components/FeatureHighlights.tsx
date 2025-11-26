@@ -24,11 +24,6 @@ export function FeatureHighlights() {
         emoji: "👩‍🌾",
         title: "Farmer Community",
         description: "Connect with fellow farmers and share experiences"
-      },
-      {
-        emoji: "🛒",
-        title: "Wholesale Marketplace",
-        description: "Buy and sell agricultural products at wholesale prices"
       }
     ];
   

@@ -2,6 +2,7 @@ import { httpSuccess, httpError } from '../../common/utils/http.js';
 import Post from './post.model.js';
 import User from '../auth/auth.model.js';
 import cloudinaryService from '../../common/libs/cloudinary.js';
+import { moderatePost, moderateComment } from '../moderation/moderation.service.js';
 
 /**
  * Helper function to group comments by parent (convert flat structure to nested)
@@ -208,6 +209,29 @@ const createPost = async (req, res, next) => {
         plants = Array.isArray(req.body.plants) ? req.body.plants : [];
       }
     }
+    
+    // 🔍 Content Moderation - Check before saving
+    console.log('🔍 [POST] Running content moderation...');
+    const moderationResult = await moderatePost({
+      title: req.body.title,
+      content: req.body.content,
+    });
+    
+    if (!moderationResult.approved) {
+      console.log('❌ [POST] Content moderation failed:', moderationResult.reason);
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung không phù hợp với cộng đồng',
+        code: 'CONTENT_MODERATION_FAILED',
+        data: {
+          reason: moderationResult.reason,
+          issues: moderationResult.issues || [],
+          suggestedContent: moderationResult.suggestedContent || null,
+        },
+      });
+    }
+    
+    console.log('✅ [POST] Content moderation passed');
     
     const postData = {
       title: req.body.title,
@@ -484,10 +508,113 @@ const addComment = async (req, res, next) => {
       }
     }
     
+    // 🔍 Content Moderation - Check comment before saving
+    console.log('🔍 [COMMENT] Running content moderation...');
+    const moderationResult = await moderateComment({
+      content: req.body.content,
+    });
+    
+    if (!moderationResult.approved) {
+      console.log('❌ [COMMENT] Content moderation failed:', moderationResult.reason);
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung bình luận không phù hợp với cộng đồng',
+        code: 'CONTENT_MODERATION_FAILED',
+        data: {
+          reason: moderationResult.reason,
+          issues: moderationResult.issues || [],
+          suggestedContent: moderationResult.suggestedContent || null,
+        },
+      });
+    }
+    
+    console.log('✅ [COMMENT] Content moderation passed');
+    
+    // Handle image uploads for comment if any
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      console.log(`📤 [COMMENT] Uploading ${req.files.length} image(s) to Cloudinary...`);
+      
+      const hasCloudinaryConfig = 
+        process.env.CLOUDINARY_CLOUD_NAME && 
+        process.env.CLOUDINARY_API_KEY && 
+        process.env.CLOUDINARY_API_SECRET;
+      
+      if (!hasCloudinaryConfig) {
+        console.error('❌ [COMMENT] Cloudinary not configured');
+        return next(httpError(500, 'Image upload is not configured'));
+      }
+      
+      const uploadPromises = req.files.map(async (file, index) => {
+        try {
+          const uploadResult = await cloudinaryService.uploadBuffer(
+            file.buffer,
+            'comments',
+            {
+              transformation: [
+                { width: 1200, height: 1200, crop: 'limit' },
+                { quality: 'auto' },
+                { fetch_format: 'auto' },
+              ],
+            }
+          );
+          return {
+            url: uploadResult.secure_url,
+            caption: '',
+          };
+        } catch (error) {
+          console.error(`   ❌ Error uploading image ${index + 1}:`, error);
+          throw httpError(500, `Failed to upload image: ${error.message}`);
+        }
+      });
+      
+      const uploadResults = await Promise.allSettled(uploadPromises);
+      images = uploadResults
+        .filter(result => result.status === 'fulfilled')
+        .map(result => result.value);
+      
+      console.log(`✅ [COMMENT] ${images.length} image(s) uploaded successfully`);
+    } else if (req.body.images && Array.isArray(req.body.images)) {
+      // Handle base64 images from frontend (fallback)
+      const base64Promises = req.body.images.map(async (imageData) => {
+        if (imageData.url && imageData.url.startsWith('data:image/')) {
+          try {
+            const base64Data = imageData.url.replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            const uploadResult = await cloudinaryService.uploadBuffer(
+              buffer,
+              'comments',
+              {
+                transformation: [
+                  { width: 1200, height: 1200, crop: 'limit' },
+                  { quality: 'auto' },
+                ],
+              }
+            );
+            return {
+              url: uploadResult.secure_url,
+              caption: imageData.caption || '',
+            };
+          } catch (error) {
+            console.error('Error uploading base64 image:', error);
+            throw httpError(500, `Failed to upload image: ${error.message}`);
+          }
+        }
+        return {
+          url: imageData.url,
+          caption: imageData.caption || '',
+        };
+      });
+      
+      images = await Promise.all(base64Promises);
+    }
+    
     const comment = {
       content: req.body.content,
       author: req.user.id,
       parentComment: parentCommentId,
+      images: images,
     };
     
     post.comments.push(comment);
@@ -506,6 +633,216 @@ const addComment = async (req, res, next) => {
     post.comments = groupComments(post.comments);
     
     const { statusCode, body } = httpSuccess(201, 'Comment added successfully', post);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update comment
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+const updateComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    
+    if (!post) {
+      return next(httpError(404, 'Post not found'));
+    }
+    
+    const commentId = req.params.commentId;
+    const comment = post.comments.id(commentId);
+    
+    if (!comment) {
+      return next(httpError(404, 'Comment not found'));
+    }
+    
+    // Check if user is authorized to update
+    if (comment.author.toString() !== req.user.id && req.user.role !== 'admin') {
+      return next(httpError(403, 'Not authorized to update this comment'));
+    }
+    
+    // 🔍 Content Moderation - Check updated comment before saving
+    console.log('🔍 [UPDATE COMMENT] Running content moderation...');
+    const moderationResult = await moderateComment({
+      content: req.body.content,
+    });
+    
+    if (!moderationResult.approved) {
+      console.log('❌ [UPDATE COMMENT] Content moderation failed:', moderationResult.reason);
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung bình luận không phù hợp với cộng đồng',
+        code: 'CONTENT_MODERATION_FAILED',
+        data: {
+          reason: moderationResult.reason,
+          issues: moderationResult.issues || [],
+          suggestedContent: moderationResult.suggestedContent || null,
+        },
+      });
+    }
+    
+    console.log('✅ [UPDATE COMMENT] Content moderation passed');
+    
+    // Handle image uploads for comment if any
+    let images = comment.images || [];
+    if (req.files && req.files.length > 0) {
+      console.log(`📤 [UPDATE COMMENT] Uploading ${req.files.length} image(s) to Cloudinary...`);
+      
+      const hasCloudinaryConfig = 
+        process.env.CLOUDINARY_CLOUD_NAME && 
+        process.env.CLOUDINARY_API_KEY && 
+        process.env.CLOUDINARY_API_SECRET;
+      
+      if (!hasCloudinaryConfig) {
+        console.error('❌ [UPDATE COMMENT] Cloudinary not configured');
+        return next(httpError(500, 'Image upload is not configured'));
+      }
+      
+      const uploadPromises = req.files.map(async (file, index) => {
+        try {
+          const uploadResult = await cloudinaryService.uploadBuffer(
+            file.buffer,
+            'comments',
+            {
+              transformation: [
+                { width: 1200, height: 1200, crop: 'limit' },
+                { quality: 'auto' },
+                { fetch_format: 'auto' },
+              ],
+            }
+          );
+          return {
+            url: uploadResult.secure_url,
+            caption: '',
+          };
+        } catch (error) {
+          console.error(`   ❌ Error uploading image ${index + 1}:`, error);
+          throw httpError(500, `Failed to upload image: ${error.message}`);
+        }
+      });
+      
+      const uploadResults = await Promise.allSettled(uploadPromises);
+      const newImages = uploadResults
+        .filter(result => result.status === 'fulfilled')
+        .map(result => result.value);
+      
+      // Merge with existing images or replace
+      if (req.body.replaceImages === 'true') {
+        images = newImages;
+      } else {
+        images = [...images, ...newImages];
+      }
+      
+      console.log(`✅ [UPDATE COMMENT] ${newImages.length} image(s) uploaded successfully`);
+    } else if (req.body.images && Array.isArray(req.body.images)) {
+      // Handle base64 images from frontend (fallback)
+      const base64Promises = req.body.images.map(async (imageData) => {
+        if (imageData.url && imageData.url.startsWith('data:image/')) {
+          try {
+            const base64Data = imageData.url.replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            const uploadResult = await cloudinaryService.uploadBuffer(
+              buffer,
+              'comments',
+              {
+                transformation: [
+                  { width: 1200, height: 1200, crop: 'limit' },
+                  { quality: 'auto' },
+                ],
+              }
+            );
+            return {
+              url: uploadResult.secure_url,
+              caption: imageData.caption || '',
+            };
+          } catch (error) {
+            console.error('Error uploading base64 image:', error);
+            throw httpError(500, `Failed to upload image: ${error.message}`);
+          }
+        }
+        return {
+          url: imageData.url,
+          caption: imageData.caption || '',
+        };
+      });
+      
+      const newImages = await Promise.all(base64Promises);
+      if (req.body.replaceImages === 'true') {
+        images = newImages;
+      } else {
+        images = [...images, ...newImages];
+      }
+    }
+    
+    // Update comment
+    comment.content = req.body.content;
+    comment.images = images;
+    comment.updatedAt = new Date();
+    
+    await post.save();
+    
+    // Populate comment author
+    await post.populate('comments.author', 'name profileImage');
+    
+    // Group comments by parent
+    post.comments = groupComments(post.comments);
+    
+    const { statusCode, body } = httpSuccess(200, 'Comment updated successfully', post);
+    
+    res.status(statusCode).json(body);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete comment
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ */
+const deleteComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    
+    if (!post) {
+      return next(httpError(404, 'Post not found'));
+    }
+    
+    const commentId = req.params.commentId;
+    const comment = post.comments.id(commentId);
+    
+    if (!comment) {
+      return next(httpError(404, 'Comment not found'));
+    }
+    
+    // Check if user is authorized to delete
+    if (comment.author.toString() !== req.user.id && req.user.role !== 'admin') {
+      return next(httpError(403, 'Not authorized to delete this comment'));
+    }
+    
+    // Delete comment (this will also delete nested replies due to parentComment reference)
+    post.comments.pull(commentId);
+    await post.save();
+    
+    // Update user stats: decrement totalComments
+    await User.findByIdAndUpdate(comment.author, {
+      $inc: { 'stats.totalComments': -1 },
+    });
+    
+    // Populate comments for response
+    await post.populate('comments.author', 'name profileImage');
+    
+    // Group comments by parent
+    post.comments = groupComments(post.comments);
+    
+    const { statusCode, body } = httpSuccess(200, 'Comment deleted successfully', post);
     
     res.status(statusCode).json(body);
   } catch (error) {
@@ -584,5 +921,7 @@ export default {
   updatePost,
   deletePost,
   addComment,
+  updateComment,
+  deleteComment,
   toggleLike,
 };

@@ -7,6 +7,7 @@ import {
   refreshCareStrategy,
   addNote,
   addImage,
+  addDiseaseFeedback,
 } from './plantBox.service.js';
 import { generatePlantBoxChatResponse } from './plantBoxChat.service.js';
 import { getWeatherData } from '../weather/weather.service.js';
@@ -438,6 +439,66 @@ export const addImageController = async (req, res) => {
   }
 };
 
+/**
+ * Add feedback for a disease
+ * @route POST /api/v1/plant-boxes/:id/disease-feedback
+ */
+export const addDiseaseFeedbackController = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const { id } = req.params;
+    const { diseaseIndex, status, notes } = req.body;
+
+    if (diseaseIndex === undefined || diseaseIndex === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Disease index is required',
+      });
+    }
+
+    if (!status || !['worse', 'same', 'better', 'resolved'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid status is required (worse, same, better, resolved)',
+      });
+    }
+
+    const plantBox = await addDiseaseFeedback({
+      boxId: id,
+      userId,
+      diseaseIndex: parseInt(diseaseIndex),
+      feedback: {
+        status,
+        notes: notes || '',
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'Disease feedback added successfully',
+      data: plantBox,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export default {
   getMyPlantBoxes,
   getPlantBox,
@@ -448,5 +509,6 @@ export default {
   chatWithPlantBox,
   addNoteController,
   addImageController,
+  addDiseaseFeedbackController,
 };
 

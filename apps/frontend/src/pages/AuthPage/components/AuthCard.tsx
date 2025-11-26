@@ -1,20 +1,30 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import LoginForm from './LoginFrom'
 import RegisterForm from './RegisterFrom'
 import VerificationScreen from './VerificationScreen'
+import ForgotPasswordForm from './ForgotPasswordForm'
 interface AuthCardProps {
   isDarkMode: boolean
   showToast: (message: string, type: 'success' | 'error' | 'info') => void
 }
 type AuthTab = 'login' | 'register'
-type AuthView = AuthTab | 'verification'
+type AuthView = AuthTab | 'verification' | 'forgot-password'
 export const AuthCard: React.FC<AuthCardProps> = ({
   isDarkMode,
   showToast,
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState<AuthTab>('login')
   const [view, setView] = useState<AuthView>('login')
   const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    const viewParam = searchParams.get('view')
+    if (viewParam === 'forgot-password') {
+      setView('forgot-password')
+    }
+  }, [searchParams])
   const handleTabChange = (tab: AuthTab) => {
     setActiveTab(tab)
     setView(tab)
@@ -81,6 +91,17 @@ export const AuthCard: React.FC<AuthCardProps> = ({
           onResendEmail={handleResendEmail}
           onBackToLogin={() => setView('login')}
         />
+      ) : view === 'forgot-password' ? (
+        <div className="p-6">
+          <ForgotPasswordForm
+            isDarkMode={isDarkMode}
+            showToast={showToast}
+            onBack={() => {
+              setView('login')
+              setSearchParams({})
+            }}
+          />
+        </div>
       ) : (
         <>
           {/* Tabs */}

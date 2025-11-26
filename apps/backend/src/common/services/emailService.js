@@ -60,7 +60,7 @@ class EmailService {
    */
   async sendVerificationEmail(to, name, token, userId) {
     try {
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
+      const appUrl = process.env.APP_URL || 'http://localhost:5173';
       const verificationUrl = `${appUrl}/verify-email?token=${token}&uid=${userId}`;
 
       const mailOptions = {
@@ -95,7 +95,7 @@ class EmailService {
    */
   async sendPasswordResetEmail(to, name, token, userId) {
     try {
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
+      const appUrl = process.env.APP_URL || 'http://localhost:5173';
       const resetUrl = `${appUrl}/reset-password?token=${token}&uid=${userId}`;
 
       const mailOptions = {

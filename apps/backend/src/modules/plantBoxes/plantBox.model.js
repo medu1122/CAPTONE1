@@ -10,7 +10,7 @@ const locationSchema = new mongoose.Schema({
     lon: Number,
   },
   area: Number, // m²
-  soilType: String,
+  soilType: [String], // Array of soil types (multiple)
   sunlight: {
     type: String,
     enum: ['full', 'partial', 'shade'],
@@ -150,6 +150,39 @@ const plantBoxSchema = new mongoose.Schema(
       type: String,
       enum: ['excellent', 'good', 'fair', 'poor'],
     },
+    // Health Issues / Diseases
+    currentDiseases: [{
+      name: String,              // Disease name
+      symptoms: String,          // User description of symptoms
+      severity: {
+        type: String,
+        enum: ['mild', 'moderate', 'severe'],
+        default: 'moderate',
+      },
+      detectedDate: {
+        type: Date,
+        default: Date.now,
+      },
+      treatmentPlan: String,    // Suggested treatment plan
+      status: {
+        type: String,
+        enum: ['active', 'treating', 'resolved'],
+        default: 'active',
+      },
+      feedback: [{               // User feedback on disease status
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        status: {
+          type: String,
+          enum: ['worse', 'same', 'better', 'resolved'],
+          required: true,
+        },
+        notes: String,           // Additional notes from user
+      }],
+    }],
+    healthNotes: String,        // Additional health notes
     
     // Care Preferences
     careLevel: {

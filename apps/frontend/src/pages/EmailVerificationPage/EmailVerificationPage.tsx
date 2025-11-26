@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { CheckCircleIcon, XCircleIcon, MailIcon, ArrowLeftIcon } from 'lucide-react'
 import { emailVerificationService } from '../../services/emailVerificationService'
+import { useAuth } from '../../contexts/AuthContext'
 import { Toast } from '../../components/ui/Toast'
 
 type VerificationStatus = 'loading' | 'success' | 'error' | 'pending'
 
 export const EmailVerificationPage: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { refreshUser } = useAuth()
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState<VerificationStatus>('loading')
   const [message, setMessage] = useState('')
@@ -48,10 +51,18 @@ export const EmailVerificationPage: React.FC = () => {
       
       showToast('Email đã được xác thực thành công!', 'success')
       
-      // Redirect to login after 3 seconds
+      // Refresh user data to update isVerified status
+      try {
+        await refreshUser()
+      } catch (error) {
+        console.error('Failed to refresh user:', error)
+      }
+      
+      // Redirect to the page user was trying to access, or home
+      const from = (location.state as any)?.from?.pathname || '/home'
       setTimeout(() => {
-        navigate('/auth')
-      }, 3000)
+        navigate(from, { replace: true })
+      }, 2000)
       
     } catch (error: any) {
       console.error('Email verification error:', error)

@@ -11,29 +11,27 @@ import { httpError } from '../../common/utils/http.js';
  */
 export const askController = async (req, res, next) => {
   try {
-    const { message } = req.body;
+    const { message, sessionId } = req.body;
     const userId = req.user?.id || null;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       throw httpError(400, 'message is required');
     }
 
-    console.log('💬 [askController] Request:', { message: message.substring(0, 50), userId });
+    console.log('💬 [askController] Request:', { 
+      message: message.substring(0, 50), 
+      userId: userId || 'null',
+      sessionId: sessionId || 'none',
+      hasSessionId: !!sessionId
+    });
 
-    // Load last analysis for context (if user is logged in)
+    // ⚠️ NOTE: Chatbot is for knowledge Q&A only, NOT image analysis
+    // We don't load lastAnalysis because chatbot should always use Knowledge Question Mode
+    // If user wants to discuss their analyzed image, they should use PlantAnalysisPage
     let context = null;
-    if (userId) {
-      const lastAnalysis = await loadLastAnalysis(userId);
-      if (lastAnalysis) {
-        context = { lastAnalysis };
-        console.log('📊 [askController] Loaded last analysis:', {
-          plant: lastAnalysis.plant?.commonName,
-          disease: lastAnalysis.disease?.name
-        });
-      }
-    }
+    // Removed lastAnalysis loading - chatbot is text-only Q&A
 
-    const result = await chat({ message, userId, context });
+    const result = await chat({ message, userId, sessionId, context });
 
     res.json({
       success: true,

@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { API_CONFIG } from '../../../config/api'
 import type { AnalysisResult } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = API_CONFIG.BASE_URL
 
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData()

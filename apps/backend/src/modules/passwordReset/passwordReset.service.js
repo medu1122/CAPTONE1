@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import PasswordReset from './passwordReset.model.js';
 import User from '../auth/auth.model.js';
 import { httpError } from '../../common/utils/http.js';
+import emailService from '../../common/services/emailService.js';
 
 /**
  * Create password reset token for user
@@ -42,6 +43,21 @@ export const createResetToken = async (email) => {
       tokenHash,
       expiresAt,
     });
+
+    // Send password reset email
+    try {
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        user.name,
+        resetToken,
+        user._id.toString()
+      );
+      console.log(`✅ Password reset email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send password reset email:', emailError.message);
+      // Don't throw error, token is still created and user can request again
+      // Log the error but continue with the response
+    }
 
     return {
       resetToken,

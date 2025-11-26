@@ -3,10 +3,12 @@ import { PlusIcon } from 'lucide-react'
 import { PostCard } from './components/PostCard'
 import { PostFilters } from './components/PostFilters'
 import { CreatePostModal } from './components/CreatePostModal'
+import { EditPostModal } from './components/EditPostModal'
 import { usePosts } from './hooks/usePost'
 import { useAuth } from '../../contexts/AuthContext'
 import { LoadingSpinner } from '../../components/common/LoadingStates'
 import { UserMenu } from '../../components/UserMenu'
+import type { Post, UpdatePostData } from './types/community.types'
 
 export const CommunityPage: React.FC = () => {
   const { isAuthenticated } = useAuth()
@@ -17,11 +19,15 @@ export const CommunityPage: React.FC = () => {
     filters,
     pagination,
     createPost,
+    updatePost,
+    deletePost,
     likePost,
     updateFilters,
+    fetchPosts,
   } = usePosts()
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
 
   const handleCreatePost = async (data: any) => {
     await createPost(data)
@@ -39,6 +45,23 @@ export const CommunityPage: React.FC = () => {
   const handleComment = (_postId: string) => {
     // Refresh posts to get latest comments
     // This is handled by PostCard component which calls fetchPosts after creating comment
+  }
+
+  const handleEdit = (post: Post) => {
+    setEditingPost(post)
+  }
+
+  const handleEditSubmit = async (id: string, data: UpdatePostData) => {
+    await updatePost(id, data)
+    setEditingPost(null)
+    await fetchPosts() // Refresh to get updated post
+  }
+
+  const handleDelete = async (postId: string) => {
+    const success = await deletePost(postId)
+    if (success) {
+      await fetchPosts() // Refresh to remove deleted post
+    }
   }
 
   return (
@@ -207,6 +230,8 @@ export const CommunityPage: React.FC = () => {
                     post={post}
                     onLike={handleLike}
                     onComment={handleComment}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                   />
                 ))}
 
@@ -252,6 +277,14 @@ export const CommunityPage: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreatePost}
+      />
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        isOpen={!!editingPost}
+        post={editingPost}
+        onClose={() => setEditingPost(null)}
+        onSubmit={handleEditSubmit}
       />
     </div>
   )

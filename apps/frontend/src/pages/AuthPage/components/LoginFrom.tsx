@@ -183,12 +183,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         )}
       </div>
       <div className="flex items-center justify-end">
-        <a
-          href="#"
+        <button
+          type="button"
+          onClick={() => navigate('/auth?view=forgot-password')}
           className={`text-sm font-medium ${isDarkMode ? 'text-green-400 hover:text-green-300' : 'text-green-600 hover:text-green-500'}`}
         >
           Quên mật khẩu?
-        </a>
+        </button>
       </div>
       <button
         type="submit"

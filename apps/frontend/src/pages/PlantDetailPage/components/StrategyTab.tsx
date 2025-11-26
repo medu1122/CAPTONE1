@@ -40,21 +40,45 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
   }
   if (!strategy) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📅</div>
-        <h3 className="text-lg font-bold text-gray-900 mb-2">
-          Chưa có chiến lược chăm sóc
-        </h3>
-        <p className="text-sm text-gray-600 mb-6">
-          Tạo chiến lược dựa trên thời tiết và thông tin cây
-        </p>
-        <button
-          onClick={onRefresh}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 mx-auto"
-        >
-          <RefreshCwIcon size={16} />
-          <span className="text-base font-medium">Tạo chiến lược</span>
-        </button>
+      <div className="text-center py-16 relative">
+        {refreshing ? (
+          // Loading state when creating strategy
+          <div className="flex flex-col items-center">
+            <RefreshCwIcon className="animate-spin text-green-600 mb-4" size={48} />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Đang tạo chiến lược chăm sóc...
+            </h3>
+            <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
+              Hệ thống đang phân tích thời tiết và tạo chiến lược chăm sóc tối ưu cho 7 ngày tới
+            </p>
+            <div className="flex gap-1 justify-center">
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        ) : (
+          // Empty state
+          <>
+            <div className="text-6xl mb-4">📅</div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Chưa có chiến lược chăm sóc
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Tạo chiến lược dựa trên thời tiết và thông tin cây
+            </p>
+            <button
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 mx-auto"
+            >
+              <RefreshCwIcon size={16} className={refreshing ? 'animate-spin' : ''} />
+              <span className="text-base font-medium">
+                {refreshing ? 'Đang tạo...' : 'Tạo chiến lược'}
+              </span>
+            </button>
+          </>
+        )}
       </div>
     )
   }

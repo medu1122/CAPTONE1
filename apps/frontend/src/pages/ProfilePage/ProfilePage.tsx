@@ -6,7 +6,6 @@ import { BasicInfoSection } from './components/BasicInfoSection'
 import { AddressSection } from './components/AddressSection'
 import { SettingsSection } from './components/SettingsSection'
 import { StatisticsSection } from './components/StatisticsSection'
-import { ProfessionalProfileSection } from './components/ProfessionalProfileSection'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { profileService } from '../../services/profileService'
@@ -15,7 +14,7 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<
-    'basic' | 'address' | 'settings' | 'stats' | 'professional'
+    'basic' | 'address' | 'settings' | 'stats'
   >('basic')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{
@@ -105,10 +104,6 @@ export const ProfilePage: React.FC = () => {
       id: 'stats' as const,
       label: 'Thống kê',
     },
-    {
-      id: 'professional' as const,
-      label: 'Hồ sơ nghề nghiệp',
-    },
   ]
   if (!isAuthenticated || loading) {
     return (
@@ -187,13 +182,6 @@ export const ProfilePage: React.FC = () => {
             />
           )}
           {activeTab === 'stats' && <StatisticsSection profile={profile} />}
-          {activeTab === 'professional' && (
-            <ProfessionalProfileSection
-              profile={profile}
-              onUpdate={handleUpdateProfile}
-              showToast={showToast}
-            />
-          )}
         </div>
       </div>
       {toast && <Toast message={toast.message} type={toast.type} />}

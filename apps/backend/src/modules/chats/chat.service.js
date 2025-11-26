@@ -63,13 +63,15 @@ export const appendMessage = async ({
   meta = {} 
 }) => {
   try {
-    if (!userId) {
-      throw httpError(400, 'User ID is required');
+    // Allow userId to be null for guest users
+    // But sessionId is required
+    if (!sessionId) {
+      throw httpError(400, 'Session ID is required');
     }
 
     const chatMessage = new ChatMessage({
       sessionId,
-      user: userId,
+      user: userId || null, // Allow null for guest users
       role,
       message,
       attachments,
@@ -80,7 +82,7 @@ export const appendMessage = async ({
     const savedMessage = await chatMessage.save();
     
     // Update session statistics
-    await updateSessionStats(sessionId);
+    await updateSessionStats(sessionId, userId);
     
     return savedMessage;
   } catch (error) {
@@ -97,23 +99,35 @@ export const appendMessage = async ({
  * @param {string} sessionId - Session ID
  * @returns {Promise<void>}
  */
-export const updateSessionStats = async (sessionId) => {
+export const updateSessionStats = async (sessionId, userId = null) => {
   try {
     // Count messages for this session
     const messagesCount = await ChatMessage.countDocuments({ sessionId });
 
-    // Get the last message timestamp
+    // Get the last message timestamp and first message for snippet
     const lastMessage = await ChatMessage.findOne({ sessionId })
       .sort({ createdAt: -1 })
-      .select('createdAt');
+      .select('createdAt message');
 
-    // Update session statistics
+    const firstMessage = await ChatMessage.findOne({ sessionId, role: 'user' })
+      .sort({ createdAt: 1 })
+      .select('message');
+
+    // Update or create session
     await ChatSession.findOneAndUpdate(
       { sessionId },
       {
-        messagesCount,
-        lastMessageAt: lastMessage ? lastMessage.createdAt : new Date(),
-      }
+        $set: {
+          user: userId || null, // Allow null for guest users
+          messagesCount,
+          lastMessageAt: lastMessage ? lastMessage.createdAt : new Date(),
+        },
+        $setOnInsert: {
+          sessionId,
+          createdAt: new Date(),
+        }
+      },
+      { upsert: true, new: true }
     );
   } catch (error) {
     // Don't throw error for stats update, just log it
@@ -141,24 +155,50 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
       skip
     });
     
+    // Build query - support guest users
+    const query = {};
+    if (userId !== null && userId !== undefined) {
+      query.user = userId;
+    } else {
+      query.user = null; // Explicitly match guest users
+    }
+    
     // Get sessions from ChatSession collection - support guest users
     const [sessions, total] = await Promise.all([
-      ChatSession.find({ user: userId })  // ✅ Can be null for guest users
+      ChatSession.find(query)
         .sort({ lastMessageAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      ChatSession.countDocuments({ user: userId }),
+      ChatSession.countDocuments(query),
     ]);
 
+    // Get first message for each session to use as snippet
+    const sessionsWithFirstMessage = await Promise.all(
+      sessions.map(async (session) => {
+        const firstMessage = await ChatMessage.findOne({ 
+          sessionId: session.sessionId,
+          role: 'user'
+        })
+          .sort({ createdAt: 1 })
+          .select('message')
+          .lean();
+        
+        return {
+          ...session,
+          firstMessage: firstMessage?.message || null
+        };
+      })
+    );
+
     console.log('🔍 [listSessions Service] Found:', {
-      sessionsCount: sessions.length,
+      sessionsCount: sessionsWithFirstMessage.length,
       total,
-      firstSessionUser: sessions[0]?.user
+      firstSessionUser: sessionsWithFirstMessage[0]?.user
     });
 
     return {
-      sessions,
+      sessions: sessionsWithFirstMessage,
       pagination: {
         page,
         limit,
@@ -197,10 +237,14 @@ export const getHistory = async ({
     const skip = (page - 1) * limit;
     
     // Build query - support guest users (userId = null)
-    const query = { 
-      sessionId,
-      user: userId  // ✅ Can be null for guest users
-    };
+    // For guest users, only match by sessionId
+    const query = { sessionId };
+    if (userId !== null && userId !== undefined) {
+      query.user = userId;
+    } else {
+      // For guest users, match messages with null user
+      query.user = null;
+    }
     
     // Add search filter
     if (q && q.trim()) {

@@ -7,6 +7,7 @@ export interface User {
     _id: string
     content: string
     author: User
+    images?: PostImage[]
     createdAt: string
     updatedAt?: string
     replies?: Comment[]
@@ -55,5 +56,12 @@ export interface User {
   export interface CreateCommentData {
     content: string
     parentId?: string
+    images?: File[] | PostImage[]
+  }
+  
+  export interface UpdateCommentData {
+    content: string
+    images?: File[] | PostImage[]
+    replaceImages?: boolean
   }
   

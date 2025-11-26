@@ -134,6 +134,8 @@ const loginUser = async (credentials, userAgent, ip) => {
       email: user.email,
       role: user.role,
       status: user.status,
+      isVerified: user.isVerified,
+      profileImage: user.profileImage || null,
     },
     accessToken,
     refreshToken,
@@ -280,13 +282,71 @@ const getUserProfile = async (userId) => {
     settings: user.settings,
     // Stats
     stats: user.stats,
-    // Profiles
-    farmerProfile: user.farmerProfile,
-    buyerProfile: user.buyerProfile,
     // Timestamps
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
+};
+
+/**
+ * Get public user profile (for viewing other users' profiles)
+ * @param {string} userId - User ID to view
+ * @param {string} viewerId - Current user ID (optional, for privacy checks)
+ * @returns {object} Public user profile
+ */
+const getPublicUserProfile = async (userId, viewerId = null) => {
+  const user = await User.findById(userId);
+  
+  if (!user) {
+    throw httpError(404, 'User not found');
+  }
+  
+  // Check if user is active
+  if (!user.isActive()) {
+    throw httpError(404, 'User not found'); // Don't reveal if account is blocked
+  }
+  
+  // Get privacy settings
+  const privacy = user.settings?.privacy || {};
+  const profileVisibility = privacy.profileVisibility || 'public';
+  const showEmail = privacy.showEmail || false;
+  const showPhone = privacy.showPhone || false;
+  
+  // Check if viewer can see this profile
+  const isOwner = viewerId && viewerId.toString() === user._id.toString();
+  const canViewPrivate = isOwner; // Only owner can view private profiles
+  
+  if (profileVisibility === 'private' && !canViewPrivate) {
+    throw httpError(403, 'This profile is private');
+  }
+  
+  // Build public profile data
+  const publicProfile = {
+    id: user._id,
+    name: user.name,
+    profileImage: user.profileImage,
+    isVerified: user.isVerified,
+    bio: user.bio,
+    // Location (always show if profile is public)
+    location: profileVisibility === 'public' ? user.location : null,
+    // Stats (always show)
+    stats: {
+      totalPosts: user.stats?.totalPosts || 0,
+      totalComments: user.stats?.totalComments || 0,
+      totalLikes: user.stats?.totalLikes || 0,
+      totalPlants: user.stats?.totalPlants || 0,
+      joinDate: user.stats?.joinDate || null,
+    },
+    // Privacy settings (for display purposes)
+    profileVisibility,
+    // Email and phone (only if user allows or is owner)
+    email: (showEmail || isOwner) ? user.email : null,
+    phone: (showPhone || isOwner) ? user.phone : null,
+    // Timestamps
+    createdAt: user.createdAt,
+  };
+  
+  return publicProfile;
 };
 
 /**
@@ -424,8 +484,6 @@ const updateProfile = async (userId, profileData) => {
     'profileImage',
     'location',
     'settings',
-    'farmerProfile',
-    'buyerProfile',
   ];
   
   // Update allowed fields only
@@ -450,18 +508,6 @@ const updateProfile = async (userId, profileData) => {
             ...user.settings?.privacy,
             ...profileData[field]?.privacy,
           },
-        };
-      } else if (field === 'farmerProfile' && typeof profileData[field] === 'object') {
-        // Merge farmerProfile object
-        user.farmerProfile = {
-          ...user.farmerProfile,
-          ...profileData[field],
-        };
-      } else if (field === 'buyerProfile' && typeof profileData[field] === 'object') {
-        // Merge buyerProfile object
-        user.buyerProfile = {
-          ...user.buyerProfile,
-          ...profileData[field],
         };
       } else {
         user[field] = profileData[field];
@@ -542,6 +588,41 @@ const resendVerificationEmail = async (email) => {
   }
 };
 
+/**
+ * Change user password
+ * @param {string} userId - User ID
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {object} Success message
+ */
+const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId).select('+passwordHash');
+  
+  if (!user) {
+    throw httpError(404, 'User not found');
+  }
+  
+  // Verify current password
+  const isPasswordMatch = await user.comparePassword(currentPassword);
+  if (!isPasswordMatch) {
+    throw httpError(400, 'Current password is incorrect');
+  }
+  
+  // Check if new password is different from current
+  const isSamePassword = await user.comparePassword(newPassword);
+  if (isSamePassword) {
+    throw httpError(400, 'New password must be different from current password');
+  }
+  
+  // Update password (will be hashed by pre-save middleware)
+  user.passwordHash = newPassword;
+  await user.save();
+  
+  return {
+    message: 'Password changed successfully',
+  };
+};
+
 export default {
   createUser,
   loginUser,
@@ -549,8 +630,10 @@ export default {
   logoutUser,
   logoutAllDevices,
   getUserProfile,
+  getPublicUserProfile,
   updateProfile,
   uploadProfileImage,
   verifyEmail,
   resendVerificationEmail,
+  changePassword,
 };

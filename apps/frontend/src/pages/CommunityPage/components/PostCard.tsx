@@ -1,35 +1,73 @@
-import React, { useState, useEffect } from 'react'
-import { HeartIcon, MessageCircleIcon, CornerDownRightIcon } from 'lucide-react'
-import type { Post, Comment } from '../types/community.types'
+import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { HeartIcon, MessageCircleIcon, EditIcon, TrashIcon, MoreVerticalIcon, ImageIcon, XIcon } from 'lucide-react'
+import type { Post, Comment, UpdateCommentData } from '../types/community.types'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useComments } from '../hooks/useComments'
+import { getAvatarUrl, getUserAvatar } from '../../../utils/avatar'
+import { ModerationModal } from './ModerationModal'
+import { CommentItem } from './CommentItem'
 
 interface PostCardProps {
   post: Post
   onLike: (postId: string) => void
   onComment: (postId: string) => void
+  onEdit?: (post: Post) => void
+  onDelete?: (postId: string) => void
 }
 
 export const PostCard: React.FC<PostCardProps> = ({
   post,
   onLike,
   onComment,
+  onEdit,
+  onDelete,
 }) => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState('')
+  const [commentImages, setCommentImages] = useState<File[]>([])
+  const [commentImagePreviews, setCommentImagePreviews] = useState<string[]>([])
   const [isLiked, setIsLiked] = useState(false)
   const [localComments, setLocalComments] = useState(post.comments)
-  const [replyingTo, setReplyingTo] = useState<string | null>(null)
-  const [replyText, setReplyText] = useState<Record<string, string>>({})
+  const [showMenu, setShowMenu] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const commentFileInputRef = useRef<HTMLInputElement>(null)
+  
+  const isAuthor = user && post.author._id === user.id
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (showMenu && !target.closest('.relative')) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMenu])
 
   // Update local comments when post changes
   useEffect(() => {
     setLocalComments(post.comments)
   }, [post.comments])
 
-  const { createComment, createReply, loading: commentLoading } = useComments(post.id, {
+  const { 
+    createComment, 
+    createReply, 
+    updateComment,
+    deleteComment,
+    loading: commentLoading 
+  } = useComments(post.id, {
     onCommentCreated: () => {
+      onComment(post.id) // Refresh post data
+    },
+    onCommentUpdated: () => {
+      onComment(post.id) // Refresh post data
+    },
+    onCommentDeleted: () => {
       onComment(post.id) // Refresh post data
     },
   })
@@ -41,40 +79,111 @@ export const PostCard: React.FC<PostCardProps> = ({
     }
   }, [user, post.likes])
 
+  const [commentModerationError, setCommentModerationError] = useState<{
+    reason: string
+    issues: any[]
+    suggestedContent: string | null
+  } | null>(null)
+
+  const handleCommentImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước ảnh không được vượt quá 5MB!')
+        return
+      }
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh!')
+        return
+      }
+
+      setCommentImages([file])
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setCommentImagePreviews([reader.result as string])
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveCommentImage = () => {
+    setCommentImages([])
+    setCommentImagePreviews([])
+    if (commentFileInputRef.current) {
+      commentFileInputRef.current.value = ''
+    }
+  }
+
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!commentText.trim() || !user) return
 
     try {
-      const newComment = await createComment({ content: commentText.trim() })
+      // Create FormData if has images
+      let commentData: any
+      if (commentImages.length > 0) {
+        const formData = new FormData()
+        formData.append('content', commentText.trim())
+        commentImages.forEach((img) => {
+          formData.append('images', img)
+        })
+        commentData = formData
+      } else {
+        commentData = { content: commentText.trim() }
+      }
+
+      const newComment = await createComment(commentData)
       if (newComment) {
         setCommentText('')
+        setCommentImages([])
+        setCommentImagePreviews([])
+        setCommentModerationError(null)
+        if (commentFileInputRef.current) {
+          commentFileInputRef.current.value = ''
+        }
         // Optimistically add comment to local state
         setLocalComments((prev: typeof post.comments) => [...prev, newComment])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating comment:', error)
+      
+      // Check if it's a moderation error
+      if (error.code === 'CONTENT_MODERATION_FAILED' && error.moderationData) {
+        setCommentModerationError({
+          reason: error.moderationData.reason || 'Nội dung bình luận không phù hợp với cộng đồng',
+          issues: error.moderationData.issues || [],
+          suggestedContent: error.moderationData.suggestedContent || null,
+        })
+      } else {
+        alert(error.message || 'Không thể thêm bình luận. Vui lòng thử lại!')
+      }
     }
   }
 
-  const handleReplySubmit = async (commentId: string) => {
-    const replyContent = replyText[commentId]?.trim()
-    if (!replyContent || !user) return
-
+  const handleUpdateComment = async (commentId: string, data: UpdateCommentData) => {
     try {
-      const newReply = await createReply(commentId, replyContent)
-      if (newReply) {
-        setReplyText((prev) => {
-          const updated = { ...prev }
-          delete updated[commentId]
-          return updated
-        })
-        setReplyingTo(null)
-        // Refresh comments to show new reply
-        onComment(post.id)
-      }
-    } catch (error) {
-      console.error('Error creating reply:', error)
+      await updateComment(commentId, data)
+      onComment(post.id) // Refresh post data
+    } catch (error: any) {
+      throw error // Re-throw để CommentItem xử lý
+    }
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await deleteComment(commentId)
+      onComment(post.id) // Refresh post data
+    } catch (error: any) {
+      throw error // Re-throw để CommentItem xử lý
+    }
+  }
+
+  const handleReply = async (commentId: string, content: string, images?: File[]) => {
+    try {
+      await createReply(commentId, content, images)
+      onComment(post.id) // Refresh post data
+    } catch (error: any) {
+      throw error // Re-throw để CommentItem xử lý
     }
   }
   const getCategoryBadge = () => {
@@ -128,13 +237,23 @@ export const PostCard: React.FC<PostCardProps> = ({
       {/* Header */}
       <div className="p-4 flex items-start justify-between">
         <div className="flex items-start gap-3">
-          <img
-            src={post.author.profileImage || 'https://i.pravatar.cc/150?img=0'}
-            alt={post.author.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div>
-            <h3 className="font-medium text-gray-900">{post.author.name}</h3>
+          <button
+            onClick={() => navigate(`/users/${post.author._id}`)}
+            className="flex-shrink-0"
+          >
+            <img
+              src={getAvatarUrl(post.author.profileImage)}
+              alt={post.author.name}
+              className="w-10 h-10 rounded-full object-cover hover:ring-2 hover:ring-green-500 transition-all cursor-pointer"
+            />
+          </button>
+          <div className="flex-1">
+            <button
+              onClick={() => navigate(`/users/${post.author._id}`)}
+              className="font-medium text-gray-900 hover:text-green-600 transition-colors cursor-pointer"
+            >
+              {post.author.name}
+            </button>
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span>{getTimeAgo(post.createdAt)}</span>
               <span>•</span>
@@ -142,6 +261,41 @@ export const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
+        {/* Edit/Delete Menu */}
+        {isAuthor && (
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <MoreVerticalIcon size={20} />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <button
+                  onClick={() => {
+                    setShowMenu(false)
+                    onEdit?.(post)
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <EditIcon size={16} />
+                  Chỉnh sửa
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMenu(false)
+                    setShowDeleteConfirm(true)
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <TrashIcon size={16} />
+                  Xóa bài viết
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {/* Content */}
       <div className="px-4 pb-3">
@@ -245,27 +399,63 @@ export const PostCard: React.FC<PostCardProps> = ({
           <form onSubmit={handleCommentSubmit} className="mt-4 mb-4">
             <div className="flex gap-2">
               <img
-                src={
-                  (user as any)?.profileImage || 'https://i.pravatar.cc/150?img=0'
-                }
+                src={getUserAvatar(user as any)}
                 alt={user?.name || 'User'}
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
               />
-              <div className="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Viết bình luận..."
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                />
-                <button
-                  type="submit"
-                  disabled={!commentText.trim() || commentLoading || !user}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {commentLoading ? 'Đang gửi...' : 'Gửi'}
-                </button>
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Viết bình luận..."
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                  />
+                  <input
+                    ref={commentFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCommentImageChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => commentFileInputRef.current?.click()}
+                    className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors"
+                    title="Thêm ảnh"
+                  >
+                    <ImageIcon size={20} />
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim() || commentLoading || !user}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {commentLoading ? 'Đang gửi...' : 'Gửi'}
+                  </button>
+                </div>
+                {/* Image Preview */}
+                {commentImagePreviews.length > 0 && (
+                  <div className="flex gap-2">
+                    {commentImagePreviews.map((preview, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={preview}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveCommentImage}
+                          className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <XIcon size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </form>
@@ -273,130 +463,70 @@ export const PostCard: React.FC<PostCardProps> = ({
           {localComments.length > 0 && (
             <div className="space-y-3">
               {localComments.map((comment: Comment) => (
-                <div key={comment._id} className="space-y-2">
-                  {/* Main Comment */}
-                  <div className="flex gap-2">
-                    <img
-                      src={
-                        comment.author.profileImage ||
-                        'https://i.pravatar.cc/150?img=0'
-                      }
-                      alt={comment.author.name}
-                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1">
-                      <div className="bg-white rounded-lg px-3 py-2 border border-gray-200">
-                        <p className="font-medium text-sm text-gray-900">
-                          {comment.author.name}
-                        </p>
-                        <p className="text-sm text-gray-700 mt-1">
-                          {comment.content}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 px-3">
-                        <span className="text-xs text-gray-400">
-                          {getTimeAgo(comment.createdAt)}
-                        </span>
-                        {user && (
-                          <button
-                            onClick={() => {
-                              setReplyingTo(replyingTo === comment._id ? null : comment._id)
-                              if (replyingTo !== comment._id) {
-                                setReplyText((prev) => ({
-                                  ...prev,
-                                  [comment._id]: '',
-                                }))
-                              }
-                            }}
-                            className="text-xs text-gray-600 hover:text-green-600 font-medium"
-                          >
-                            Trả lời
-                          </button>
-                        )}
-                      </div>
-                      {/* Reply Input */}
-                      {replyingTo === comment._id && user && (
-                        <div className="mt-2 flex gap-2">
-                          <CornerDownRightIcon
-                            size={16}
-                            className="text-gray-400 mt-2 flex-shrink-0"
-                          />
-                          <div className="flex-1 flex gap-2">
-                            <input
-                              type="text"
-                              value={replyText[comment._id] || ''}
-                              onChange={(e) =>
-                                setReplyText((prev) => ({
-                                  ...prev,
-                                  [comment._id]: e.target.value,
-                                }))
-                              }
-                              placeholder={`Trả lời ${comment.author.name}...`}
-                              className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => handleReplySubmit(comment._id)}
-                              disabled={!replyText[comment._id]?.trim() || commentLoading}
-                              className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {commentLoading ? 'Đang gửi...' : 'Gửi'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setReplyingTo(null)
-                                setReplyText((prev) => {
-                                  const updated = { ...prev }
-                                  delete updated[comment._id]
-                                  return updated
-                                })
-                              }}
-                              className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              Hủy
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {/* Replies */}
-                      {comment.replies && comment.replies.length > 0 && (
-                        <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200">
-                          {comment.replies.map((reply: Comment) => (
-                            <div key={reply._id} className="flex gap-2">
-                              <img
-                                src={
-                                  reply.author.profileImage ||
-                                  'https://i.pravatar.cc/150?img=0'
-                                }
-                                alt={reply.author.name}
-                                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                              />
-                              <div className="flex-1">
-                                <div className="bg-white rounded-lg px-3 py-2 border border-gray-200">
-                                  <p className="font-medium text-sm text-gray-900">
-                                    {reply.author.name}
-                                  </p>
-                                  <p className="text-sm text-gray-700 mt-1">
-                                    {reply.content}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-3 mt-1 px-3">
-                                  <span className="text-xs text-gray-400">
-                                    {getTimeAgo(reply.createdAt)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <CommentItem
+                  key={comment._id}
+                  comment={comment}
+                  postId={post.id}
+                  onUpdate={handleUpdateComment}
+                  onDelete={handleDeleteComment}
+                  onReply={handleReply}
+                  onRefresh={() => onComment(post.id)}
+                />
               ))}
             </div>
           )}
         </div>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Xác nhận xóa bài viết
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Bạn có chắc chắn muốn xóa bài viết này? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={async () => {
+                  setShowDeleteConfirm(false)
+                  await onDelete?.(post.id)
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comment Moderation Modal */}
+      {commentModerationError && (
+        <ModerationModal
+          isOpen={!!commentModerationError}
+          onClose={() => setCommentModerationError(null)}
+          reason={commentModerationError.reason}
+          issues={commentModerationError.issues}
+          suggestedContent={commentModerationError.suggestedContent}
+          originalContent={{ content: commentText }}
+          onEdit={(edited) => {
+            // Update comment text with edited content
+            setCommentText(edited.content)
+            // Close moderation modal, keep comment form open
+            setCommentModerationError(null)
+            // User can now edit and click submit again
+          }}
+          type="comment"
+        />
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import axios from 'axios'
+import { API_CONFIG } from '../config/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = API_CONFIG.BASE_URL
 
 // Create axios instance with default config
 const api = axios.create({
@@ -206,6 +207,30 @@ export const authService = {
       const response = await api.get('/auth/verify-status')
       return response.data
     }
+  },
+
+  // Password reset methods
+  passwordReset: {
+    // Request password reset
+    requestReset: async (email: string) => {
+      const response = await api.post('/password-reset/request', { email })
+      return response.data
+    },
+
+    // Validate reset token
+    validateToken: async (resetToken: string) => {
+      const response = await api.post('/password-reset/validate-token', { resetToken })
+      return response.data
+    },
+
+    // Reset password with token
+    resetPassword: async (resetToken: string, newPassword: string) => {
+      const response = await api.post('/password-reset/reset', {
+        resetToken,
+        newPassword,
+      })
+      return response.data
+    },
   }
 }
 

@@ -14,7 +14,7 @@ export interface PlantBox {
         lng: number
       }
       area?: number // m²
-      soilType?: string
+      soilType?: string[] // Array of soil types (multiple)
       sunlight?: 'full' | 'partial' | 'shade'
     }
     quantity?: number
@@ -26,9 +26,12 @@ export interface PlantBox {
       | 'fruiting'
       | 'harvest'
     currentHealth?: 'excellent' | 'good' | 'fair' | 'poor' | 'critical'
+    currentDiseases?: PlantDisease[]
+    healthNotes?: string
     images?: PlantImage[]
     notes?: PlantNote[]
     specialRequirements?: string
+    careStrategy?: CareStrategy | null // AI-generated care strategy
     createdAt: string
     updatedAt: string
   }
@@ -45,6 +48,23 @@ export interface PlantBox {
     type: 'care' | 'observation' | 'issue' | 'milestone'
     content: string
     date: string
+  }
+  
+  export interface DiseaseFeedback {
+    date: string
+    status: 'worse' | 'same' | 'better' | 'resolved'
+    notes?: string
+  }
+
+  export interface PlantDisease {
+    _id?: string
+    name: string
+    symptoms?: string
+    severity?: 'mild' | 'moderate' | 'severe'
+    detectedDate?: string
+    treatmentPlan?: string
+    status?: 'active' | 'treating' | 'resolved'
+    feedback?: DiseaseFeedback[]
   }
   
   export interface CareAction {
@@ -81,6 +101,7 @@ export interface PlantBox {
     plantBoxId: string
     lastUpdated: string
     next7Days: DailyStrategy[]
+    summary?: string
   }
   
   export interface PlantBoxFilters {
@@ -103,11 +124,13 @@ export interface PlantBox {
         lng: number
       }
       area?: number
-      soilType?: string
+      soilType?: string[] // Array of soil types
       sunlight?: 'full' | 'partial' | 'shade'
     }
     quantity?: number
     growthStage?: PlantBox['growthStage']
     specialRequirements?: string
+    currentDiseases?: PlantDisease[]
+    healthNotes?: string
   }
   

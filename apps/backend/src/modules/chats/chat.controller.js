@@ -39,7 +39,7 @@ export const startSession = async (req, res, next) => {
 export const sendMessage = async (req, res, next) => {
   try {
     const { sessionId, role, message, attachments, related, meta } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id || null; // Support guest users
     
     const savedMessage = await chatService.appendMessage({
       sessionId,
@@ -78,11 +78,15 @@ export const getHistory = async (req, res, next) => {
     const { sessionId, page, limit, q, from, to } = req.query;
     const userId = req.user?.id || null;  // ✅ Support guest users
     
+    if (!sessionId) {
+      return next(httpError(400, 'sessionId is required'));
+    }
+    
     const result = await chatService.getHistory({
       sessionId,
       userId,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
       q,
       from,
       to,

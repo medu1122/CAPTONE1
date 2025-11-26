@@ -14,8 +14,8 @@ export function HowItWorks() {
     },
     {
       emoji: "📖",
-      title: "Knowledge Hub & Marketplace",
-      description: "Explore our Knowledge Hub for more information or visit the Marketplace for solutions."
+      title: "Knowledge Hub",
+      description: "Explore our Knowledge Hub for comprehensive plant care information and expert guidance."
     }
   ];
 

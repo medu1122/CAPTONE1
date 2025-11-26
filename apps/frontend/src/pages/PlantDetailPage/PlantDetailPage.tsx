@@ -9,6 +9,7 @@ import { TimelineTab } from './components/TimelineTab'
 import { GalleryTab } from './components/GalleryTab'
 import { NotesTab } from './components/NotesTab'
 import { MiniChatBot } from './components/MiniChatBot'
+import { DiseaseFeedbackCard } from './components/DiseaseFeedbackCard'
 import { usePlantDetail } from './hooks/usePlantDetail'
 import { useCareStrategy } from './hooks/useCareStrategy'
 import { Loader2Icon } from 'lucide-react'
@@ -22,7 +23,7 @@ export const PlantDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('strategy')
-  const { plantBox, loading, error, addNote } = usePlantDetail(id || '')
+  const { plantBox, loading, error, addNote, refreshPlantBox } = usePlantDetail(id || '')
   const {
     strategy,
     loading: strategyLoading,
@@ -112,6 +113,22 @@ export const PlantDetailPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-8 py-6">
         <PlantOverviewCard plantBox={plantBox} />
+
+        {/* Disease Feedback Section */}
+        {plantBox.currentDiseases && plantBox.currentDiseases.length > 0 && (
+          <div className="mb-6 space-y-4">
+            <h3 className="text-lg font-bold text-gray-900">🦠 Tình trạng bệnh</h3>
+            {plantBox.currentDiseases.map((disease, index) => (
+              <DiseaseFeedbackCard
+                key={disease._id || index}
+                plantBoxId={plantBox._id}
+                disease={disease}
+                diseaseIndex={index}
+                onUpdate={refreshPlantBox}
+              />
+            ))}
+          </div>
+        )}
 
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 

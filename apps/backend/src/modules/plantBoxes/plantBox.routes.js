@@ -9,6 +9,7 @@ import {
   chatWithPlantBox,
   addNoteController,
   addImageController,
+  addDiseaseFeedbackController,
 } from './plantBox.controller.js';
 import {
   validateCreatePlantBox,
@@ -107,6 +108,17 @@ router.post(
   authMiddleware,
   validateAddImage,
   addImageController
+);
+
+/**
+ * @route POST /api/v1/plant-boxes/:id/disease-feedback
+ * @desc Add feedback for a disease
+ * @access Private
+ */
+router.post(
+  '/:id/disease-feedback',
+  authMiddleware,
+  addDiseaseFeedbackController
 );
 
 export default router;

@@ -36,7 +36,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }
                 : 'bg-white border border-gray-200 text-gray-900'
             }`}
           >
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {typeof message.content === 'string' 
+                ? message.content 
+                : typeof message.content === 'object' 
+                  ? JSON.stringify(message.content) 
+                  : String(message.content || '')}
+            </p>
             <p
               className={`text-xs mt-2 ${message.role === 'user' ? 'text-green-100' : 'text-gray-500'}`}
             >

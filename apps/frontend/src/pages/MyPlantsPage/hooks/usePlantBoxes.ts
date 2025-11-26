@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useAuth } from '../../../contexts/AuthContext'
 import type {
   PlantBox,
   PlantBoxFilters,
@@ -35,12 +36,26 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
           }
         : undefined,
       area: backendBox.location?.area,
-      soilType: backendBox.location?.soilType,
+      soilType: Array.isArray(backendBox.location?.soilType) 
+        ? backendBox.location.soilType 
+        : backendBox.location?.soilType 
+          ? [backendBox.location.soilType] 
+          : [],
       sunlight: backendBox.location?.sunlight,
     },
     quantity: backendBox.quantity,
     growthStage: backendBox.growthStage,
     currentHealth: backendBox.currentHealth,
+    currentDiseases: (backendBox.currentDiseases || []).map((disease: any) => ({
+      _id: disease._id,
+      name: disease.name,
+      symptoms: disease.symptoms,
+      severity: disease.severity,
+      detectedDate: disease.detectedDate ? new Date(disease.detectedDate).toISOString() : undefined,
+      treatmentPlan: disease.treatmentPlan,
+      status: disease.status,
+    })),
+    healthNotes: backendBox.healthNotes,
     images: (backendBox.images || []).map((img: any, idx: number) => ({
       _id: img._id || `img_${idx}`,
       url: img.url,
@@ -70,21 +85,52 @@ const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox>): any
     plantType: data.type === 'active' ? 'existing' : 'planned',
     plantName: data.plantName?.trim(),
     scientificName: data.scientificName?.trim() || undefined,
-    location: {
-      name: data.location?.name?.trim() || '',
-      coordinates: data.location?.coordinates
-        ? {
-            lat: data.location.coordinates.lat,
-            lon: data.location.coordinates.lng,
+    location: (() => {
+      const location: any = {
+        name: data.location?.name?.trim() || '',
+        coordinates: data.location?.coordinates
+          ? {
+              lat: data.location.coordinates.lat,
+              lon: data.location.coordinates.lng,
+            }
+          : undefined,
+        area: data.location?.area || undefined,
+        sunlight: data.location?.sunlight || 'full',
+      }
+      
+      // Only include soilType if it has valid values (always as array)
+      const soilType = data.location?.soilType as string[] | string | undefined
+      if (soilType) {
+        // Convert to array if it's a string
+        const soilTypeArray = Array.isArray(soilType) 
+          ? soilType 
+          : (typeof soilType === 'string' && soilType.trim() ? [soilType.trim()] : [])
+        
+        if (soilTypeArray.length > 0) {
+          const filtered = soilTypeArray
+            .filter((s) => s && typeof s === 'string' && s.trim())
+            .map((s) => (s as string).trim())
+          if (filtered.length > 0) {
+            location.soilType = filtered
           }
-        : undefined,
-      area: data.location?.area || undefined,
-      soilType: data.location?.soilType?.trim() || undefined,
-      sunlight: data.location?.sunlight || 'full',
-    },
+        }
+      }
+      
+      return location
+    })(),
     quantity: data.quantity || 1,
     growthStage: data.growthStage || undefined,
     specialRequirements: data.specialRequirements?.trim() || undefined,
+    currentDiseases: data.currentDiseases && data.currentDiseases.length > 0
+      ? data.currentDiseases.map((disease: any) => ({
+          name: disease.name?.trim(),
+          symptoms: disease.symptoms?.trim() || undefined,
+          severity: disease.severity || 'moderate',
+          detectedDate: disease.detectedDate ? new Date(disease.detectedDate) : new Date(),
+          status: disease.status || 'active',
+        }))
+      : undefined,
+    healthNotes: data.healthNotes?.trim() || undefined,
   }
 
   // Remove undefined values from location
@@ -94,7 +140,10 @@ const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox>): any
   if (!mapped.location.area) {
     delete mapped.location.area
   }
-  if (!mapped.location.soilType) {
+  // Remove soilType if undefined, null, empty string, or empty array
+  if (!mapped.location.soilType || 
+      (Array.isArray(mapped.location.soilType) && mapped.location.soilType.length === 0) ||
+      (typeof mapped.location.soilType === 'string' && mapped.location.soilType.trim() === '')) {
     delete mapped.location.soilType
   }
 
@@ -119,6 +168,7 @@ const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox>): any
 }
 
 export const usePlantBoxes = () => {
+  const { isAuthenticated } = useAuth()
   const [boxes, setBoxes] = useState<PlantBox[]>([])
   const [filteredBoxes, setFilteredBoxes] = useState<PlantBox[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,11 +178,28 @@ export const usePlantBoxes = () => {
     type: 'all',
     sortBy: 'newest',
   })
+  const loadingRef = useRef(false) // Prevent multiple simultaneous calls
 
   useEffect(() => {
     const loadBoxes = async () => {
+      // Don't load if not authenticated
+      if (!isAuthenticated) {
+        console.log('⏸️ [usePlantBoxes] Not authenticated, skipping...')
+        setLoading(false)
+        setBoxes([])
+        return
+      }
+
+      // Prevent multiple simultaneous calls
+      if (loadingRef.current) {
+        console.log('⏸️ [usePlantBoxes] Already loading, skipping...')
+        return
+      }
+
+      loadingRef.current = true
       setLoading(true)
       setError(null)
+      
       try {
         const plantType: 'existing' | 'planned' | null =
           filters.type === 'active'
@@ -140,11 +207,16 @@ export const usePlantBoxes = () => {
             : filters.type === 'planned'
               ? 'planned'
               : null
+        
+        console.log('📡 [usePlantBoxes] Loading boxes with filters:', { plantType, filters })
+        
         const response = await getPlantBoxes({
           plantType: plantType as 'existing' | 'planned' | null,
           page: 1,
           limit: 100,
         })
+
+        console.log('✅ [usePlantBoxes] Response:', response)
 
         if (response.success && response.data) {
           const mappedBoxes = response.data.plantBoxes.map(mapBackendToFrontend)
@@ -154,18 +226,28 @@ export const usePlantBoxes = () => {
           setBoxes([])
         }
       } catch (err: any) {
-        console.error('Failed to load boxes:', err)
-        setError(err.message || 'Failed to load plant boxes')
+        console.error('❌ [usePlantBoxes] Failed to load boxes:', err)
+        // Don't set error if it's a redirect (401 -> /auth)
+        if (err?.response?.status !== 401 && !err.message?.includes('auth')) {
+          setError(err.message || 'Failed to load plant boxes')
+        }
         setBoxes([])
       } finally {
         setLoading(false)
+        loadingRef.current = false
       }
     }
 
     loadBoxes()
-  }, [filters.type])
+  }, [filters.type, isAuthenticated])
 
   useEffect(() => {
+    // Only filter if we have boxes loaded
+    if (boxes.length === 0 && !loading) {
+      setFilteredBoxes([])
+      return
+    }
+
     let result = [...boxes]
 
     if (filters.search) {
@@ -204,7 +286,7 @@ export const usePlantBoxes = () => {
     }
 
     setFilteredBoxes(result)
-  }, [boxes, filters])
+  }, [boxes, filters.search, filters.type, filters.sortBy, loading])
 
   const updateFilters = useCallback((newFilters: Partial<PlantBoxFilters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }))
@@ -214,8 +296,10 @@ export const usePlantBoxes = () => {
     async (data: CreatePlantBoxData): Promise<PlantBox> => {
       try {
         const backendData = mapFrontendToBackend(data)
-        console.log('📤 [CreateBox] Frontend data:', data)
-        console.log('📤 [CreateBox] Backend data:', backendData)
+        console.log('📤 [CreateBox] Frontend data:', JSON.stringify(data, null, 2))
+        console.log('📤 [CreateBox] Backend data:', JSON.stringify(backendData, null, 2))
+        console.log('📤 [CreateBox] soilType value:', backendData.location?.soilType)
+        console.log('📤 [CreateBox] soilType type:', typeof backendData.location?.soilType, Array.isArray(backendData.location?.soilType))
         
         const response = await createPlantBoxAPI(backendData)
 
@@ -229,6 +313,12 @@ export const usePlantBoxes = () => {
       } catch (err: any) {
         console.error('❌ [CreateBox] Error:', err)
         console.error('❌ [CreateBox] Error response:', err?.response?.data)
+        if (err?.response?.data?.errors) {
+          console.error('❌ [CreateBox] Validation errors:', JSON.stringify(err.response.data.errors, null, 2))
+          err.response.data.errors.forEach((error: any) => {
+            console.error(`  - ${error.field}: ${error.message}`)
+          })
+        }
         throw err
       }
     },
@@ -274,6 +364,11 @@ export const usePlantBoxes = () => {
     }
   }, [])
 
+  // Calculate stats from all boxes (not filtered)
+  const totalCount = boxes.length
+  const activeCount = boxes.filter((b) => b.type === 'active').length
+  const plannedCount = boxes.filter((b) => b.type === 'planned').length
+
   return {
     boxes: filteredBoxes,
     loading,
@@ -283,8 +378,8 @@ export const usePlantBoxes = () => {
     createBox,
     updateBox,
     deleteBox,
-    totalCount: boxes.length,
-    activeCount: boxes.filter((b) => b.type === 'active').length,
-    plannedCount: boxes.filter((b) => b.type === 'planned').length,
+    totalCount,
+    activeCount,
+    plannedCount,
   }
 }

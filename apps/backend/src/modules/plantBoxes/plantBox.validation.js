@@ -19,12 +19,12 @@ export const validateCreatePlantBox = (req, res, next) => {
         lon: Joi.number().min(-180).max(180).optional(),
       }).optional(),
       area: Joi.number().min(0).optional(),
-      soilType: Joi.string().optional(),
+      soilType: Joi.array().items(Joi.string()).min(0).optional().allow(null),
       sunlight: Joi.string().valid('full', 'partial', 'shade').optional(),
     }).required(),
     quantity: Joi.number().integer().min(1).optional(),
     growthStage: Joi.string()
-      .valid('seed', 'seedling', 'vegetative', 'flowering', 'fruiting')
+      .valid('seed', 'seedling', 'vegetative', 'flowering', 'fruiting', 'harvest')
       .optional(),
     currentHealth: Joi.string()
       .valid('excellent', 'good', 'fair', 'poor')
@@ -43,6 +43,17 @@ export const validateCreatePlantBox = (req, res, next) => {
       .optional(),
     specialRequirements: Joi.string().max(1000).optional(),
     companionPlants: Joi.array().items(Joi.string()).optional(),
+    currentDiseases: Joi.array().items(
+      Joi.object({
+        name: Joi.string().required(),
+        symptoms: Joi.string().optional(),
+        severity: Joi.string().valid('mild', 'moderate', 'severe').optional(),
+        detectedDate: Joi.date().optional(),
+        treatmentPlan: Joi.string().optional(),
+        status: Joi.string().valid('active', 'treating', 'resolved').optional(),
+      })
+    ).optional(),
+    healthNotes: Joi.string().max(1000).optional(),
     notifications: Joi.object({
       enabled: Joi.boolean().optional(),
       email: Joi.boolean().optional(),
@@ -87,12 +98,12 @@ export const validateUpdatePlantBox = (req, res, next) => {
         lon: Joi.number().min(-180).max(180).optional(),
       }).optional(),
       area: Joi.number().min(0).optional(),
-      soilType: Joi.string().optional(),
+      soilType: Joi.array().items(Joi.string()).min(0).optional().allow(null),
       sunlight: Joi.string().valid('full', 'partial', 'shade').optional(),
     }).optional(),
     quantity: Joi.number().integer().min(1).optional(),
     growthStage: Joi.string()
-      .valid('seed', 'seedling', 'vegetative', 'flowering', 'fruiting')
+      .valid('seed', 'seedling', 'vegetative', 'flowering', 'fruiting', 'harvest')
       .optional(),
     currentHealth: Joi.string()
       .valid('excellent', 'good', 'fair', 'poor')

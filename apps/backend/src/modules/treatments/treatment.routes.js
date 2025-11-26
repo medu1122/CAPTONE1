@@ -1,5 +1,5 @@
 import express from 'express';
-import { initMockData, getStats } from './treatment.controller.js';
+import { initMockData, getStats, searchDiseases } from './treatment.controller.js';
 
 const router = express.Router();
 
@@ -16,6 +16,14 @@ router.post('/init-mock', initMockData);
  * @access Public
  */
 router.get('/stats', getStats);
+
+/**
+ * @route GET /api/v1/treatments/search-diseases
+ * @desc Search disease names for autocomplete (supports fuzzy matching, no diacritics)
+ * @access Public
+ * @query {string} q - Search query
+ */
+router.get('/search-diseases', searchDiseases);
 
 export default router;
 

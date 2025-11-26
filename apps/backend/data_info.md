@@ -418,6 +418,9 @@ Stores community posts and discussions.
 | ├─ content | String | Comment content (required) |
 | ├─ author | ObjectId | Author (ref: users, required) |
 | ├─ parentComment | ObjectId / null | Parent comment for replies (ref: Comment) |
+| ├─ images | Array | Comment images (default: []) |
+| │  ├─ url | String | Image URL |
+| │  └─ caption | String | Image caption |
 | ├─ createdAt | Date | Creation time |
 | └─ updatedAt | Date | Last update |
 | plants | Array<ObjectId> | Related plants (ref: plants, default: []) |

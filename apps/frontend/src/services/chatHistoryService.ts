@@ -98,7 +98,23 @@ class ChatHistoryService {
 
       console.log('✅ [DEBUG] History loaded:', response.data);
 
-      return response.data.data?.messages || [];
+      // Handle different response formats
+      let messages = []
+      if (response.data?.data?.messages) {
+        messages = response.data.data.messages
+      } else if (response.data?.messages) {
+        messages = response.data.messages
+      } else if (Array.isArray(response.data)) {
+        messages = response.data
+      }
+
+      // Ensure messages is an array
+      if (!Array.isArray(messages)) {
+        console.warn('⚠️ [chatHistoryService] Messages is not an array:', messages)
+        return []
+      }
+
+      return messages
     } catch (error) {
       console.error('❌ Error loading history:', error);
       return [];

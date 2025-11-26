@@ -273,3 +273,26 @@ export const addImageToPlantBox = async (
   return response.data
 }
 
+/**
+ * Add feedback for a disease
+ */
+export interface AddDiseaseFeedbackRequest {
+  diseaseIndex: number
+  status: 'worse' | 'same' | 'better' | 'resolved'
+  notes?: string
+}
+
+export interface AddDiseaseFeedbackResponse {
+  success: boolean
+  message: string
+  data: PlantBox
+}
+
+export const addDiseaseFeedback = async (
+  id: string,
+  data: AddDiseaseFeedbackRequest
+): Promise<AddDiseaseFeedbackResponse> => {
+  const response = await api.post(`/plant-boxes/${id}/disease-feedback`, data)
+  return response.data
+}
+

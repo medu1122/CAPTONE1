@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { XIcon, ImageIcon, TagIcon } from 'lucide-react'
 import type { CreatePostData } from '../types/community.types'
+import { ModerationModal } from './ModerationModal'
 
 interface CreatePostModalProps {
   isOpen: boolean
@@ -22,6 +23,11 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [moderationError, setModerationError] = useState<{
+    reason: string
+    issues: any[]
+    suggestedContent: string | null
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const categories = [
@@ -135,7 +141,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       const formData = new FormData()
       formData.append('title', title.trim())
       formData.append('content', content.trim())
-      formData.append('category', category)
+      formData.append('category', category || 'discussion')
       formData.append('tags', JSON.stringify(tags))
       
       // Append image file if selected
@@ -153,13 +159,28 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       setTags([])
       setSelectedImage(null)
       setImagePreview('')
+      setModerationError(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
       onClose()
     } catch (error: any) {
       console.error('Error creating post:', error)
-      // Show more specific error message
+      
+      // Check if it's a moderation error
+      if (error.code === 'CONTENT_MODERATION_FAILED' && error.moderationData) {
+        // Keep the form open with current content, just show moderation modal
+        setModerationError({
+          reason: error.moderationData.reason || 'Nội dung không phù hợp với cộng đồng',
+          issues: error.moderationData.issues || [],
+          suggestedContent: error.moderationData.suggestedContent || null,
+        })
+        setIsSubmitting(false)
+        // Don't close the modal, let user edit and retry
+        return
+      }
+      
+      // Show more specific error message for other errors
       if (error.message?.includes('timeout')) {
         alert('Upload ảnh mất quá nhiều thời gian. Vui lòng thử lại với ảnh nhỏ hơn hoặc kiểm tra kết nối mạng.')
       } else if (error.message?.includes('Failed to upload image')) {
@@ -167,7 +188,6 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       } else {
         alert(error.message || 'Có lỗi xảy ra khi đăng bài. Vui lòng thử lại!')
       }
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -355,6 +375,29 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Moderation Modal */}
+      {moderationError && (
+        <ModerationModal
+          isOpen={!!moderationError}
+          onClose={() => setModerationError(null)}
+          reason={moderationError.reason}
+          issues={moderationError.issues}
+          suggestedContent={moderationError.suggestedContent}
+          originalContent={{ title, content }}
+          onEdit={(edited) => {
+            // Update form fields with edited content
+            if (edited.title !== undefined) {
+              setTitle(edited.title)
+            }
+            setContent(edited.content)
+            // Close moderation modal, keep create post modal open
+            setModerationError(null)
+            // User can now edit and click "Đăng bài" again
+          }}
+          type="post"
+        />
+      )}
     </div>
   )
 }

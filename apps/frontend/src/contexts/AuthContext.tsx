@@ -9,6 +9,7 @@ interface User {
   role: string
   status: string
   isVerified: boolean
+  profileImage?: string
 }
 
 interface AuthContextType {

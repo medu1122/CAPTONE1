@@ -12,14 +12,21 @@ export const requestPasswordReset = async (req, res, next) => {
     const { email } = req.body;
     const result = await passwordResetService.createResetToken(email);
     
+    // Don't return resetToken in response for security (it's sent via email)
+    // Only return success message
     const { statusCode, body } = httpSuccess(200, 'If the email exists, a reset link has been sent', {
-      resetToken: result.resetToken,
+      // resetToken removed for security - only sent via email
       expiresAt: result.expiresAt,
-      userEmail: result.userEmail,
+      // userEmail removed for security - don't reveal if email exists
     });
     
     res.status(statusCode).json(body);
   } catch (error) {
+    // Handle the special case where user doesn't exist (returns 200 for security)
+    if (error.statusCode === 200) {
+      const { statusCode, body } = httpSuccess(200, error.message, {});
+      return res.status(statusCode).json(body);
+    }
     next(error);
   }
 };

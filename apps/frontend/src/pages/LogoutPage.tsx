@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '../config/api';
 
 export const LogoutPage = () => {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export const LogoutPage = () => {
         // Call backend logout API if token exists
         if (refreshToken && (window as any).accessToken) {
           try {
-            await fetch('http://localhost:4000/api/v1/auth/logout', {
+            await fetch(`${API_CONFIG.BASE_URL}/auth/logout`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

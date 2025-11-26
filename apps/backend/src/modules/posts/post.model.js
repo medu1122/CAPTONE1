@@ -16,6 +16,10 @@ const commentSchema = new mongoose.Schema(
       ref: 'Comment',
       default: null,
     },
+    images: [{
+      url: String,
+      caption: String,
+    }],
   },
   {
     timestamps: true,

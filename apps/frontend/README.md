@@ -21,7 +21,6 @@ src/
 ├── pages/               # Page components
 │   ├── Home/            # Landing page
 │   │   ├── components/
-│   │   │   ├── CommunityMarketplace.tsx
 │   │   │   ├── FarmerCommunity.tsx
 │   │   │   ├── FeatureHighlights.tsx
 │   │   │   ├── Header.tsx
@@ -101,7 +100,6 @@ src/
 - Hero section with compelling call-to-action
 - Feature highlights showcasing app capabilities
 - How it works section explaining the process
-- Community marketplace integration
 - Farmer community section
 
 ### 2. **Authentication Page**

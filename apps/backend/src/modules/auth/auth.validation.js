@@ -229,21 +229,39 @@ export const validateUpdateProfile = (req, res, next) => {
         showPhone: Joi.boolean().optional(),
       }).optional(),
     }).optional(),
-    farmerProfile: Joi.object({
-      farmName: Joi.string().allow(null, '').optional(),
-      farmSize: Joi.string().allow(null, '').optional(),
-      farmType: Joi.string().allow(null, '').optional(),
-      crops: Joi.array().items(Joi.string()).optional(),
-      experience: Joi.string().allow(null, '').optional(),
-      certifications: Joi.array().items(Joi.string()).optional(),
-    }).optional(),
-    buyerProfile: Joi.object({
-      preferences: Joi.array().items(Joi.string()).optional(),
-      budgetRange: Joi.string().allow(null, '').optional(),
-      purchaseFrequency: Joi.string().allow(null, '').optional(),
-    }).optional(),
   }).min(1).messages({
     'object.min': 'At least one field must be provided for update',
+  });
+  
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return next(httpError(400, error.details[0].message));
+  }
+  
+  next();
+};
+
+/**
+ * Validate change password request
+ */
+export const validateChangePassword = (req, res, next) => {
+  const schema = Joi.object({
+    currentPassword: Joi.string()
+      .required()
+      .messages({
+        'string.empty': 'Current password is required',
+        'any.required': 'Current password is required',
+      }),
+    newPassword: Joi.string()
+      .required()
+      .min(8)
+      .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)'))
+      .messages({
+        'string.empty': 'New password is required',
+        'string.min': 'New password must be at least 8 characters',
+        'string.pattern.base': 'New password must contain at least one lowercase letter, one uppercase letter, and one number',
+        'any.required': 'New password is required',
+      }),
   });
   
   const { error } = schema.validate(req.body);
@@ -262,4 +280,5 @@ export default {
   validateVerifyEmail,
   validateResendVerification,
   validateUpdateProfile,
+  validateChangePassword,
 };
