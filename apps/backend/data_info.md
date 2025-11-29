@@ -551,6 +551,40 @@ Indexes:
 
 ---
 
+### 17. province_agriculture
+**Note:** Collection stores province-specific agricultural data including soil types, crop calendars, and related articles.
+
+Stores agricultural information for each province/city in Vietnam.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| provinceCode | String | Province code (unique, indexed, e.g., "HN", "HCM") |
+| simpleMapsId | String / null | SVG map ID from simplemaps.com (e.g., "VNHN", "VNSG") |
+| provinceName | String | Province name (required) |
+| soilTypes | Array<Object> | Soil types in the province |
+| ├─ type | String | Soil type name (e.g., "Đất xám bạc màu trên đá trầm tích") |
+| ├─ domsoil | String | DOM soil classification |
+| └─ faosoil | String | FAO soil classification |
+| cropCalendar | Array<Object> | Crop planting/harvesting calendar by month |
+| ├─ month | Number | Month (1-12, required) |
+| ├─ planting | Array<String> | Crops that can be planted this month |
+| └─ harvesting | Array<String> | Crops that can be harvested this month |
+| articles | Array<Object> | Related articles and resources |
+| ├─ title | String | Article title (required) |
+| ├─ url | String | Article URL (required) |
+| ├─ source | String | Article source/publication |
+| └─ date | Date | Publication date |
+| source | String | Data source (default: "Open Development Mekong - CC-BY-SA-4.0") |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ provinceCode: 1 }` unique
+- `{ provinceName: "text" }` - Text search
+
+---
+
 ## 📝 Notes
 
 1. **Collection Names:**
@@ -558,7 +592,7 @@ Indexes:
    - Always check `collection` option in schema for actual collection name
 
 2. **Collections Status:**
-   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices
+   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices, province_agriculture
    - ⚠️ **Code exists, may need migration:** posts, alerts
 
 3. **TTL Indexes (Auto-delete expired documents):**
@@ -571,4 +605,4 @@ Indexes:
    - `GreenGrow` or `greengrow`
    - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
 
-**Last Updated:** 2025-01-21 (Added Treatment collections: products, biological_methods, cultural_practices for plant disease treatment system)
+**Last Updated:** 2025-01-21 (Added province_agriculture collection for Vietnam map feature with soil types, crop calendars, and articles)

@@ -124,6 +124,16 @@ export const CommunityPage: React.FC = () => {
                   <span className="text-xs text-gray-500 group-hover:text-green-600">Quản lý cây trồng</span>
                 </div>
               </a>
+              <a
+                href="/map"
+                className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors group"
+              >
+                <span className="text-lg">🗺️</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-sm font-medium">Bản đồ Nông vụ</span>
+                  <span className="text-xs text-gray-500 group-hover:text-green-600">Đất đai & cây trồng</span>
+                </div>
+              </a>
             </nav>
 
             {/* Actions */}

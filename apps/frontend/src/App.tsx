@@ -12,6 +12,7 @@ import { MyPlantsPage } from './pages/MyPlantsPage/MyPlantsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
+import { VietnamMapPage } from './pages/VietnamMapPage/VietnamMapPage'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifiedRoute from './components/VerifiedRoute'
@@ -55,6 +56,9 @@ function App() {
           {/* Redirect old chat routes to new pages */}
           <Route path="/chat" element={<Navigate to="/analyze" replace />} />
           <Route path="/ChatAnalyzePage" element={<Navigate to="/analyze" replace />} />
+          
+          {/* Vietnam Map Page - Public access */}
+          <Route path="/map" element={<VietnamMapPage />} />
           
           {/* Community Page - Only requires login, no verification needed */}
           <Route 

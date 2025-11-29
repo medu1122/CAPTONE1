@@ -82,12 +82,12 @@ const importProductsFromSheet = async (doc) => {
       usage: row.get('Cách dùng'),
       price: row.get('Giá'),
       imageUrl: row.get('Image URL') || '/images/products/placeholder.png',
-      source: row.get('Nguồn'),
+      source: row.get('Nguồn') || 'Google Sheets - THUOC', // Default source if not provided
       verified: true,
       frequency: row.get('Tần suất'),
       isolationPeriod: row.get('Cách ly'),
       precautions: (row.get('Lưu ý') || '').split(',').map(s => s.trim()).filter(Boolean),
-    })).filter(p => p.name); // Filter out empty rows
+    })).filter(p => p.name && p.source); // Filter out empty rows and rows without source
 
     // Clear existing products
     await Product.deleteMany({});
@@ -130,9 +130,9 @@ const importBiologicalFromSheet = async (doc) => {
       steps: row.get('Cách thực hiện'),
       timeframe: row.get('Thời gian'),
       effectiveness: row.get('Hiệu quả (%)'),
-      source: row.get('Nguồn'),
+      source: row.get('Nguồn') || 'Google Sheets - SINHHOC', // Default source if not provided
       verified: row.get('Verified') === '✓' || true,
-    })).filter(m => m.name);
+    })).filter(m => m.name && m.source);
 
     // Clear existing methods
     await BiologicalMethod.deleteMany({});
@@ -187,10 +187,10 @@ const importCulturalFromSheet = async (doc) => {
         description: row.get('Mô tả chi tiết'),
         priority: row.get('Ưu tiên') || 'Medium',
         applicableTo: (row.get('Áp dụng cho') || '').split(',').map(s => s.trim()).filter(Boolean),
-        source: row.get('Nguồn'),
+        source: row.get('Nguồn') || 'Google Sheets - CANHTAC', // Default source if not provided
         verified: row.get('Verified') === '✓' || true,
       };
-    }).filter(p => p.action);
+    }).filter(p => p.action && p.source);
 
     // Clear existing practices
     await CulturalPractice.deleteMany({});

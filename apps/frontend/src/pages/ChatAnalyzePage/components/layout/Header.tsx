@@ -75,6 +75,16 @@ export const Header: React.FC = () => {
             <span className="text-xs text-gray-500 group-hover:text-green-500">Quản lý cây trồng</span>
           </div>
         </Link>
+        <Link 
+          to="/map" 
+          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+        >
+          <span className="text-xl">🗺️</span>
+          <div className="flex flex-col items-start">
+            <span className="text-sm font-medium">Bản đồ Nông vụ</span>
+            <span className="text-xs text-gray-500 group-hover:text-green-500">Đất đai & cây trồng</span>
+          </div>
+        </Link>
       </nav>
 
       {/* Desktop Auth buttons */}
@@ -144,6 +154,17 @@ export const Header: React.FC = () => {
                 <div>
                   <div className="font-medium text-gray-900">Vườn Của Tôi</div>
                   <div className="text-xs text-gray-500">Quản lý cây trồng</div>
+                </div>
+              </Link>
+              <Link 
+                to="/map" 
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="text-2xl">🗺️</span>
+                <div>
+                  <div className="font-medium text-gray-900">Bản đồ Nông vụ</div>
+                  <div className="text-xs text-gray-500">Đất đai & cây trồng</div>
                 </div>
               </Link>
             </nav>

@@ -1,7 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserMenu } from "@/components/UserMenu";
 
 export function Header() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -46,6 +50,16 @@ export function Header() {
             </div>
           </Link>
           <Link 
+            to="/map" 
+            className="flex items-center gap-2 text-white/90 hover:text-white transition-colors drop-shadow-md group"
+          >
+            <span className="text-xl">🗺️</span>
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-medium">Bản đồ Nông vụ</span>
+              <span className="text-xs text-white/70 group-hover:text-white/90">Đất đai & cây trồng</span>
+            </div>
+          </Link>
+          <Link 
             to="/my-plants" 
             className="flex items-center gap-2 text-white/90 hover:text-white transition-colors drop-shadow-md group"
           >
@@ -57,18 +71,26 @@ export function Header() {
           </Link>
         </nav>
         
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Chỉ hiển thị khi chưa đăng nhập */}
         <div className="flex items-center gap-3">
-          <Link to="/login">
-            <Button variant="outline" className="hidden sm:inline-flex border-white/30 text-white hover:bg-white/10 hover:text-white">
-              Đăng Nhập
-            </Button>
-          </Link>
-          <Link to="/register">
-            <Button className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
-              Đăng Ký
-            </Button>
-          </Link>
+          {isAuthenticated ? (
+            <div className="[&_button]:text-white [&_button]:hover:bg-white/10 [&_span]:text-white [&_img]:ring-white/30">
+              <UserMenu />
+            </div>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" className="hidden sm:inline-flex border-white/30 text-white hover:bg-white/10 hover:text-white">
+                  Đăng Nhập
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
+                  Đăng Ký
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

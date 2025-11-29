@@ -1,0 +1,2 @@
+export { VietnamMapPage } from './VietnamMapPage';
+

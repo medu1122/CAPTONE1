@@ -61,20 +61,29 @@ MỤC TIÊU DUY NHẤT: Kiểm tra xem bình luận có chứa từ ngữ TỤC 
 
 MỤC TIÊU DUY NHẤT: Kiểm tra xem bài đăng có phù hợp với cộng đồng nông nghiệp hay không, và đưa ra phản hồi chi tiết nếu không phù hợp.
 
-🚫 CÁC HÀNH VI CẦN CHẶN:
-1. **Xúc phạm, lăng mạ**: Từ ngữ thô tục, chửi bới, xúc phạm người khác
+🚫 CÁC HÀNH VI CẦN CHẶN (CHỈ CHẶN CÁC TRƯỜNG HỢP NÀY):
+1. **Xúc phạm, lăng mạ**: Từ ngữ thô tục, chửi bới, xúc phạm người khác (ví dụ: "đồ ngu", "thằng ngu", "con chó", "đồ khùng", "điên", "ngu xuẩn", "dốt"...)
 2. **Phân biệt đối xử**: Phân biệt giới tính, dân tộc, tôn giáo, vùng miền
-3. **Spam**: Quảng cáo, link spam, nội dung không liên quan
+3. **Spam QUẢNG CÁO**: Link mua bán, quảng cáo sản phẩm rõ ràng, số điện thoại bán hàng, giá cả, khuyến mãi
 4. **Phá hoại**: Cố ý gây rối, tấn công cá nhân, đe dọa
 5. **Nội dung không phù hợp**: Bạo lực, khiêu dâm, chính trị nhạy cảm
-6. **Nội dung quá ngắn/không có giá trị**: Bài đăng quá ngắn, không cung cấp thông tin hữu ích
+6. **Nội dung HOÀN TOÀN không liên quan**: Nội dung về game, phim ảnh, thể thao, giải trí (KHÔNG liên quan đến nông nghiệp)
 
-✅ NỘI DUNG PHÙ HỢP:
-- Câu hỏi về nông nghiệp, cây trồng, bệnh cây
-- Chia sẻ kinh nghiệm, mẹo hay
-- Thảo luận về kỹ thuật trồng trọt
-- Hỏi đáp về thuốc, phân bón
-- Nội dung liên quan đến nông nghiệp`;
+✅ NỘI DUNG PHÙ HỢP (CHẤP NHẬN CÁC TRƯỜNG HỢP SAU):
+- ✅ Câu hỏi về nông nghiệp, cây trồng, bệnh cây (DÙ NGẮN hay DÀI)
+- ✅ Câu hỏi ngắn gọn: "cách trồng lúa sao vậy ae", "cây này là gì?", "cách chữa bệnh này?"
+- ✅ Ngôn ngữ thân thiện, không trang trọng: "ae", "anh em", "bạn", "mọi người", "ai biết không?"
+- ✅ Chia sẻ kinh nghiệm, mẹo hay
+- ✅ Thảo luận về kỹ thuật trồng trọt
+- ✅ Hỏi đáp về thuốc, phân bón
+- ✅ Nội dung liên quan đến nông nghiệp (dù cách diễn đạt đơn giản)
+
+⚠️ QUY TẮC ĐẶC BIỆT:
+- KHÔNG từ chối vì nội dung ngắn nếu đó là câu hỏi hợp lệ về nông nghiệp
+- KHÔNG từ chối vì ngôn ngữ thân thiện, không trang trọng (như "ae", "anh em")
+- KHÔNG từ chối vì thiếu thông tin chi tiết - câu hỏi đơn giản cũng được chấp nhận
+- CHỈ từ chối nếu có từ ngữ XÚC PHẠM, QUẢNG CÁO RÕ RÀNG, hoặc HOÀN TOÀN không liên quan đến nông nghiệp
+- Spam nhẹ (nhưng không quảng cáo) → CÓ THỂ CHẤP NHẬN nếu liên quan đến nông nghiệp`;
     }
     
     // Common format and rules
@@ -127,8 +136,20 @@ Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng
 Input: "Đồ ngu, cây này trồng như thế nào?"
 Output: {"approved": false, "reason": "Nội dung chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Đồ ngu'", "suggestion": "Thay thế bằng: 'Xin chào, cây này trồng như thế nào?'"}], "suggestedContent": "Xin chào, cây này trồng như thế nào?"}
 
+Input: "cách trồng lúa sao vậy ae"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về kỹ thuật trồng lúa", "issues": [], "suggestedContent": null}
+
+Input: "cây này là gì?"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về cây trồng", "issues": [], "suggestedContent": null}
+
+Input: "cách chữa bệnh này ae?"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về bệnh cây", "issues": [], "suggestedContent": null}
+
 Input: "hi"
-Output: {"approved": false, "reason": "Nội dung quá ngắn và không cung cấp thông tin hữu ích cho cộng đồng nông nghiệp", "issues": [{"type": "spam", "severity": "low", "location": "toàn bộ nội dung", "suggestion": "Cung cấp thêm thông tin hoặc câu hỏi liên quan đến nông nghiệp"}], "suggestedContent": "Xin chào, tôi muốn hỏi về kỹ thuật trồng cây nào đó."}
+Output: {"approved": false, "reason": "Nội dung quá ngắn và không liên quan đến nông nghiệp", "issues": [{"type": "spam", "severity": "low", "location": "toàn bộ nội dung", "suggestion": "Cung cấp thêm thông tin hoặc câu hỏi liên quan đến nông nghiệp"}], "suggestedContent": "Xin chào, tôi muốn hỏi về kỹ thuật trồng cây nào đó."}
+
+Input: "Mua phân bón giá rẻ tại đây: https://example.com"
+Output: {"approved": false, "reason": "Nội dung có dấu hiệu quảng cáo rõ ràng", "issues": [{"type": "spam", "severity": "high", "location": "toàn bộ nội dung", "suggestion": "Vui lòng chia sẻ kinh nghiệm thay vì quảng cáo sản phẩm"}], "suggestedContent": null}
 
 Input: "Cây lúa bị bệnh đốm lá, ai biết cách chữa không?"
 Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}`;

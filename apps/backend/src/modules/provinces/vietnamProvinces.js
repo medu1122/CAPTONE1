@@ -1,14 +1,5 @@
-// Danh sách tỉnh thành Việt Nam với tọa độ trung tâm
-export interface VietnamProvince {
-  code: string
-  name: string
-  coordinates: {
-    lat: number
-    lng: number
-  }
-}
-
-export const vietnamProvinces: VietnamProvince[] = [
+// Copy of vietnamProvinces data for backend use
+export const vietnamProvinces = [
   { code: 'HN', name: 'Hà Nội', coordinates: { lat: 21.0285, lng: 105.8542 } },
   { code: 'HCM', name: 'Hồ Chí Minh', coordinates: { lat: 10.8231, lng: 106.6297 } },
   { code: 'HP', name: 'Hải Phòng', coordinates: { lat: 20.8449, lng: 106.6881 } },
@@ -69,38 +60,5 @@ export const vietnamProvinces: VietnamProvince[] = [
   { code: 'VL', name: 'Vĩnh Long', coordinates: { lat: 10.2537, lng: 105.9750 } },
   { code: 'VP', name: 'Vĩnh Phúc', coordinates: { lat: 21.3081, lng: 105.5972 } },
   { code: 'YB', name: 'Yên Bái', coordinates: { lat: 21.7051, lng: 104.8694 } },
-  { code: 'KT', name: 'Kon Tum', coordinates: { lat: 14.3545, lng: 108.0076 } },
-  { code: 'BDU', name: 'Bình Dương', coordinates: { lat: 11.3254, lng: 106.4772 } },
-  { code: 'HAU', name: 'Hậu Giang', coordinates: { lat: 9.7844, lng: 105.4706 } },
-]
-
-// Helper function to get province by name
-export const getProvinceByName = (name: string): VietnamProvince | undefined => {
-  return vietnamProvinces.find(
-    (p) => p.name.toLowerCase().includes(name.toLowerCase()) ||
-           name.toLowerCase().includes(p.name.toLowerCase())
-  )
-}
-
-// Helper function to get province by coordinates (find nearest)
-export const getProvinceByCoordinates = (
-  lat: number,
-  lng: number
-): VietnamProvince | undefined => {
-  let nearest: VietnamProvince | undefined
-  let minDistance = Infinity
-
-  vietnamProvinces.forEach((province) => {
-    const distance = Math.sqrt(
-      Math.pow(province.coordinates.lat - lat, 2) +
-      Math.pow(province.coordinates.lng - lng, 2)
-    )
-    if (distance < minDistance) {
-      minDistance = distance
-      nearest = province
-    }
-  })
-
-  return nearest
-}
+];
 

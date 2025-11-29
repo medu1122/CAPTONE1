@@ -2,7 +2,6 @@ import axios from 'axios';
 import { httpError } from '../../common/utils/http.js';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 /**
  * Call OpenAI GPT API
@@ -11,7 +10,7 @@ const OPENAI_BASE_URL = 'https://api.openweathermap.org/data/2.5';
  * @param {object} params.context - Additional context (weather, analysis, etc.)
  * @returns {Promise<object>} GPT response
  */
-export const callGPT = async ({ messages, context = {} }) => {
+export const callGPT = async ({ messages, context = {}, temperature, maxTokens }) => {
   try {
     if (!OPENAI_API_KEY) {
       throw httpError(500, 'OpenAI API key not configured');
@@ -471,14 +470,14 @@ Bạn: "Cảm ơn bạn đã hỏi! Tôi là trợ lý nông nghiệp, luôn s�
       });
     }
 
-    // Call OpenAI API
+    // Call OpenAI API with extended timeout for GPT calls
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-3.5-turbo',
         messages: openaiMessages,
-        max_tokens: 1000,
-        temperature: 0.7,
+        max_tokens: maxTokens || 1000,
+        temperature: temperature !== undefined ? temperature : 0.7,
         top_p: 1,
         frequency_penalty: 0,
         presence_penalty: 0,
@@ -488,6 +487,7 @@ Bạn: "Cảm ơn bạn đã hỏi! Tôi là trợ lý nông nghiệp, luôn s�
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
+        timeout: 60000, // 60 seconds timeout for GPT API
       }
     );
 

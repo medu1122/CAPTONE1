@@ -17,6 +17,7 @@ import analysisRoutes from './modules/analyses/analysis.routes.js';
 import plantBoxRoutes from './modules/plantBoxes/plantBox.routes.js';
 import treatmentRoutes from './modules/treatments/treatment.routes.js';
 import imageUploadRoutes from './modules/imageUpload/imageUpload.routes.js';
+import provinceRoutes from './modules/provinces/province.routes.js';
 
 const router = express.Router();
 
@@ -40,5 +41,6 @@ router.use('/posts', postRoutes);
 router.use('/analyses', analysisRoutes);
 router.use('/plant-boxes', plantBoxRoutes);
 router.use('/treatments', treatmentRoutes);  // NEW
+router.use('/provinces', provinceRoutes);  // NEW
 
 export default router;
