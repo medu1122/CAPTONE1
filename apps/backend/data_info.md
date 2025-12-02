@@ -55,6 +55,8 @@ Stores registered user accounts and profile management.
 | └─ purchaseFrequency | String / null | Purchase frequency |
 | resetPasswordToken | String / null | Password reset token |
 | resetPasswordExpire | Date / null | Password reset expiration |
+| mutedUntil | Date / null | Mute expiration time (null = not muted) |
+| muteReason | String / null | Reason for mute (max: 500 chars) |
 | createdAt | Date | Creation time |
 | updatedAt | Date | Last update |
 
@@ -63,6 +65,12 @@ Indexes:
 - `{ "farmerProfile.farmType": 1 }` - For filtering farmers
 - `{ "stats.totalPosts": -1 }` - For sorting by activity
 - `{ "stats.lastActiveAt": -1 }` - For sorting by last activity
+- `{ role: 1 }` - For filtering by role (user/admin)
+- `{ status: 1 }` - For filtering by status (active/blocked)
+- `{ isVerified: 1 }` - For filtering verified/unverified users
+- `{ role: 1, status: 1 }` - Compound index for admin queries
+- `{ createdAt: 1 }` - For user growth statistics
+- `{ mutedUntil: 1 }` - For finding muted users
 
 ---
 
@@ -82,6 +90,7 @@ Refresh token storage for session management.
 Indexes:
 - `{ user: 1, expiresAt: 1 }`
 - `{ expiresAt: 1 }` TTL
+- `{ expiresAt: 1, createdAt: -1 }` - For finding active tokens (online users query)
 
 ---
 
@@ -206,6 +215,9 @@ Stores results from Plant.id API for linkage to chat or user history.
 
 Indexes:
 - `{ user: 1, createdAt: -1 }`
+- `{ createdAt: 1 }` - For daily analysis count queries
+- `{ source: 1, createdAt: -1 }` - For filtering by source (plantid/manual/ai)
+- `{ "resultTop.plant.commonName": 1 }` - For top plants statistics
 
 ### 8. plants
 | Field            | Type                  | Description                                                  |
@@ -426,6 +438,8 @@ Stores community posts and discussions.
 | plants | Array<ObjectId> | Related plants (ref: plants, default: []) |
 | category | String | Post category (enum: "question", "discussion", "tip", "problem", "success", "other", default: "discussion") |
 | status | String | Post status (enum: "draft", "pending", "published", "rejected", "archived", default: "published") |
+| reportCount | Number | Number of reports (default: 0) |
+| lastReportedAt | Date / null | Last report timestamp |
 | createdAt | Date | Creation time |
 | updatedAt | Date | Last update |
 
@@ -435,6 +449,9 @@ Indexes:
 - `{ category: 1, createdAt: -1 }`
 - `{ status: 1, createdAt: -1 }`
 - `{ createdAt: -1 }`
+- `{ createdAt: 1 }` - For daily posts count
+- `{ reportCount: -1, createdAt: -1 }` - For finding most reported posts
+- `{ lastReportedAt: -1 }` - For finding recently reported posts
 
 ---
 
@@ -585,6 +602,71 @@ Indexes:
 
 ---
 
+### 18. complaints
+**Note:** Collection stores user complaints about system features and issues.
+
+Stores user complaints (khiếu nại) about various features of the application.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| _id | ObjectId | Primary key |
+| user | ObjectId (ref: users) | User who submitted complaint (required) |
+| type | String | Complaint type (enum: "analysis", "chatbot", "my-plants", "map", "general", required) |
+| category | String | Complaint category (enum: "error", "suggestion", "bug", "other", default: "other") |
+| title | String | Complaint title (required, max: 200 chars) |
+| description | String | Detailed description (required, max: 2000 chars) |
+| relatedId | ObjectId / null | Related item ID (analysisId, postId, plantBoxId, etc.) |
+| relatedType | String / null | Related item type (enum: "analysis", "post", "plant", "plantBox", "map", etc.) |
+| status | String | Status (enum: "pending", "reviewing", "resolved", "rejected", default: "pending") |
+| adminNotes | String / null | Admin internal notes (max: 1000 chars) |
+| resolvedAt | Date / null | Resolution timestamp |
+| resolvedBy | ObjectId / null | Admin who resolved (ref: users) |
+| attachments | Array | File attachments (default: []) |
+| ├─ url | String | File URL |
+| ├─ filename | String | Filename |
+| └─ mimeType | String | MIME type |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ user: 1, createdAt: -1 }` - User's complaints sorted by date
+- `{ status: 1, createdAt: -1 }` - For admin filtering by status
+- `{ type: 1, status: 1 }` - For filtering by type and status
+- `{ relatedId: 1, relatedType: 1 }` - For finding related complaints
+- `{ title: "text", description: "text" }` - Text search
+
+---
+
+### 19. reports
+**Note:** Collection stores user reports about inappropriate posts or comments.
+
+Stores user reports (báo cáo) about posts or comments that violate community guidelines.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| _id | ObjectId | Primary key |
+| user | ObjectId (ref: users) | User who submitted report (required) |
+| type | String | Report type (enum: "post", "comment", required) |
+| targetId | ObjectId | Target item ID (ref: posts or comment _id, required) |
+| targetType | String | Target type (enum: "post", "comment", required) |
+| reason | String | Report reason (enum: "spam", "inappropriate", "harassment", "fake", "other", required) |
+| description | String / null | Detailed description (max: 1000 chars) |
+| status | String | Status (enum: "pending", "reviewing", "resolved", "dismissed", default: "pending") |
+| adminNotes | String / null | Admin internal notes (max: 1000 chars) |
+| resolvedAt | Date / null | Resolution timestamp |
+| resolvedBy | ObjectId / null | Admin who resolved (ref: users) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ user: 1, createdAt: -1 }` - User's reports sorted by date
+- `{ targetId: 1, targetType: 1 }` - For finding reports for a specific post/comment
+- `{ status: 1, createdAt: -1 }` - For admin filtering by status
+- `{ type: 1, reason: 1 }` - For filtering by type and reason
+- `{ description: "text" }` - Text search
+
+---
+
 ## 📝 Notes
 
 1. **Collection Names:**
@@ -594,6 +676,7 @@ Indexes:
 2. **Collections Status:**
    - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices, province_agriculture
    - ⚠️ **Code exists, may need migration:** posts, alerts
+   - ❌ **MISSING - Need to create:** complaints, reports
 
 3. **TTL Indexes (Auto-delete expired documents):**
    - `auth_tokens.expiresAt` - Auto delete expired tokens
@@ -605,4 +688,4 @@ Indexes:
    - `GreenGrow` or `greengrow`
    - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
 
-**Last Updated:** 2025-01-21 (Added province_agriculture collection for Vietnam map feature with soil types, crop calendars, and articles)
+**Last Updated:** 2025-01-21 (Added complaints and reports collections for admin dashboard, added mute functionality to users, added report tracking to posts, and enhanced indexes for statistics queries)

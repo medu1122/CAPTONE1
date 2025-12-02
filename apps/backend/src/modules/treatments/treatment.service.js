@@ -4,6 +4,123 @@ import CulturalPractice from './culturalPractice.model.js';
 import { extractDiseaseKeywords, normalizeVietnamese } from '../../common/utils/vietnameseUtils.js';
 
 /**
+ * Build expanded disease tokens from an AI disease string.
+ * Adds synonyms and group-level tokens to improve recall when matching.
+ */
+const buildDiseaseTokens = (diseaseName) => {
+  if (!diseaseName) return [];
+  const tokens = [];
+  const lower = (diseaseName || '').toLowerCase();
+  const normalized = normalizeVietnamese(lower);
+
+  // Base keywords from util
+  const baseKeywords = extractDiseaseKeywords(lower) || [];
+  baseKeywords.forEach(k => tokens.push(normalizeVietnamese(k)));
+
+  // Generic groups - IMPORTANT: Add both normalized AND original for better matching
+  if (lower.includes('nấm') || normalized.includes('nam')) {
+    tokens.push('nam');
+    tokens.push('nấm'); // Keep original with diacritics
+  }
+  if (lower.includes('vi khuẩn') || normalized.includes('vi khuan')) {
+    tokens.push('vi khuan');
+    tokens.push('vi khuẩn'); // Keep original
+  }
+  if (lower.includes('tuyến trùng') || normalized.includes('tuyen trung')) {
+    tokens.push('tuyen trung');
+    tokens.push('tuyến trùng'); // Keep original
+  }
+
+  // Symptom → disease mappings
+  if (lower.includes('lỗ thủng') || lower.includes('lỗ thủng lá')) {
+    tokens.push('dom la', 'than thu', 'đốm lá', 'thán thư');
+  }
+  if (lower.includes('cháy lá') || normalized.includes('chay la')) {
+    tokens.push('chay la', 'dom la', 'cháy lá', 'đốm lá');
+  }
+  if (lower.includes('vàng lá') || normalized.includes('vang la')) {
+    tokens.push('vang la', 'vàng lá');
+  }
+  if (lower.includes('đốm lá') || normalized.includes('dom la')) {
+    tokens.push('dom la', 'đốm lá');
+  }
+
+  // Specific names and synonyms - Add both normalized AND original
+  if (lower.includes('thán thư') || normalized.includes('than thu')) {
+    tokens.push('than thu', 'thán thư');
+  }
+  if (lower.includes('nấm hồng') || normalized.includes('nam hong')) {
+    tokens.push('nam hong', 'nấm hồng');
+  }
+  if (lower.includes('mốc xám') || normalized.includes('moc xam') || lower.includes('gray mold')) {
+    tokens.push('moc xam', 'mốc xám');
+  }
+  if (lower.includes('sương mai') || lower.includes('mốc sương') || normalized.includes('suong mai') || lower.includes('downy mildew')) {
+    tokens.push('suong mai', 'oomycetes', 'sương mai', 'mốc sương');
+  }
+  if (lower.includes('giả sương mai')) {
+    tokens.push('suong mai', 'oomycetes', 'giả sương mai');
+  }
+  if (lower.includes('oomycetes')) {
+    tokens.push('oomycetes', 'suong mai');
+  }
+  if (lower.includes('rỉ sắt') || normalized.includes('ri sat')) {
+    tokens.push('ri sat', 'rỉ sắt');
+  }
+  if (lower.includes('đốm vằn') || normalized.includes('dom van')) {
+    tokens.push('dom van', 'kho van', 'đốm vằn', 'khô vằn');
+  }
+  if (lower.includes('khô vằn') || normalized.includes('kho van') || lower.includes('sheath blight')) {
+    tokens.push('kho van', 'khô vằn');
+  }
+  if (lower.includes('đạo ôn') || normalized.includes('dao on') || lower.includes('blast')) {
+    tokens.push('dao on', 'đạo ôn');
+  }
+  if (lower.includes('bạc lá') || normalized.includes('bac la') || lower.includes('bacterial leaf blight')) {
+    tokens.push('bac la', 'vi khuan', 'bạc lá', 'vi khuẩn');
+  }
+  if (lower.includes('lem lép') || normalized.includes('lem lep')) {
+    tokens.push('lem lep', 'lem lép');
+  }
+  if (lower.includes('thối rễ') || normalized.includes('thoi re')) {
+    tokens.push('thoi re', 'thối rễ');
+  }
+  if (lower.includes('xì mủ') || normalized.includes('xi mu')) {
+    tokens.push('xi mu', 'vi khuan', 'xì mủ', 'vi khuẩn');
+  }
+
+  return Array.from(new Set(tokens.filter(Boolean)));
+};
+
+/**
+ * Expand crop name to broader crop groups for better recall.
+ */
+const buildCropTokens = (cropName) => {
+  if (!cropName) return [];
+  const tokens = [];
+  const lower = cropName.toLowerCase();
+  const normalized = normalizeVietnamese(lower);
+
+  if (lower.includes('sầu riêng') || normalized.includes('sau rieng')) {
+    tokens.push('sau rieng', 'cay an trai', 'sầu riêng', 'cây ăn trái');
+  }
+  if (lower.includes('cam') || lower.includes('quýt') || lower.includes('bưởi') || lower.includes('có múi') || normalized.includes('co mui')) {
+    tokens.push('cam', 'quyt', 'buoi', 'cay co mui', 'cay an trai', 'quýt', 'bưởi', 'cây có múi', 'cây ăn trái');
+  }
+  if (lower.includes('lúa') || normalized.includes('lua')) {
+    tokens.push('lua', 'lua nuoc', 'lúa', 'lúa nước');
+  }
+  if (lower.includes('ngô') || normalized.includes('ngo') || lower.includes('bắp')) {
+    tokens.push('ngo', 'bap', 'ngu coc', 'ngô', 'bắp', 'ngũ cốc');
+  }
+  // Always include normalized crop name itself AND original
+  tokens.push(normalizeVietnamese(cropName));
+  tokens.push(cropName); // Keep original with diacritics
+
+  return Array.from(new Set(tokens.filter(Boolean)));
+};
+
+/**
  * Search for disease names in database (for autocomplete/suggestions)
  * Returns suggestions based on query - supports partial matching
  * @param {string} query - Search query (can be empty for common diseases)
@@ -183,84 +300,95 @@ const getChemicalTreatments = async (diseaseName, cropName) => {
       verified: true,
     };
 
-    // Search in targetDiseases array with keyword extraction (supports no diacritics)
+    // Search in targetDiseases array with expanded tokens (supports no diacritics)
     if (diseaseName) {
-      // Extract keywords (supports both with and without diacritics)
-      const keywords = extractDiseaseKeywords(diseaseName);
-      
-      console.log(`🔍 [TreatmentService] Disease keywords extracted:`, keywords);
-      
-      // Search for ANY keyword match (OR condition) - both with and without diacritics
-      if (keywords.length > 0) {
+      const tokens = buildDiseaseTokens(diseaseName);
+      console.log(`🔍 [TreatmentService] Disease tokens:`, tokens);
+
+      // Search for ANY token match (OR condition)
+      if (tokens.length > 0) {
         const searchConditions = [];
         
-        // For each keyword, search both original and normalized (no diacritics)
-        keywords.forEach(keyword => {
-          // Search with diacritics
+        tokens.forEach(tk => {
+          // Search with normalized token (no diacritics)
           searchConditions.push({
             targetDiseases: {
-              $elemMatch: {
-                $regex: keyword,
-                $options: 'i'
-              }
+              $elemMatch: { $regex: tk, $options: 'i' }
             }
           });
           
-          // Also search normalized version (no diacritics) for better matching
-          const normalizedKeyword = normalizeVietnamese(keyword);
-          if (normalizedKeyword !== keyword.toLowerCase()) {
+          // Also try to match with diacritics variations
+          // For common patterns, add both versions
+          const diacriticPatterns = {
+            'nam': '[nN][ấấậẩẫăằắặẳẵaA][mM]',
+            'vi khuan': '[vV][iI]\\s*[kK][hH][uU][ầầấậẩẫăằắặẳẵaA][nN]',
+            'dom la': '[đĐ][ốốộổỗơờớợởỡoO][mM]\\s*[lL][ááạảãâầấậẩẫăằắặẳẵaA]',
+            'than thu': '[tT][hH][ááạảãâầấậẩẫăằắặẳẵaA][nN]\\s*[tT][hH][uU]',
+            'suong mai': '[sS][ưưừứựửữươườướượưởưỡuU][ơơờớợởỡoO][nN][gG]\\s*[mM][aA][iI]',
+          };
+          
+          // If we have a pattern for this token, use it
+          if (diacriticPatterns[tk]) {
             searchConditions.push({
               targetDiseases: {
-                $elemMatch: {
-                  $regex: normalizedKeyword,
-                  $options: 'i'
-                }
+                $elemMatch: { $regex: diacriticPatterns[tk], $options: 'i' }
               }
             });
           }
         });
-        
+
         // Also search the full normalized disease name
         const normalizedDisease = normalizeVietnamese(diseaseName);
         if (normalizedDisease && normalizedDisease.length > 3) {
           searchConditions.push({
-            targetDiseases: {
-              $elemMatch: {
-                $regex: normalizedDisease,
-                $options: 'i'
-              }
-            }
+            targetDiseases: { $elemMatch: { $regex: normalizedDisease, $options: 'i' } }
           });
         }
         
+        // Also search original disease name (with diacritics)
+        searchConditions.push({
+          targetDiseases: { $elemMatch: { $regex: diseaseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        });
+
         query.$or = searchConditions;
       } else {
         // Fallback to original search if no keywords extracted
         query.targetDiseases = { 
-          $elemMatch: { $regex: diseaseName, $options: 'i' } 
+          $elemMatch: { $regex: diseaseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } 
         };
       }
     }
 
     // If crop is specified, also filter by targetCrops array
     if (cropName) {
-      const cropKeywords = cropName
-        .toLowerCase()
-        .replace(/cây|plant/gi, '')
-        .trim()
-        .split(/[\s,]+/)
-        .filter(k => k.length > 2);
+      const cropKeywords = buildCropTokens(cropName);
+      console.log(`🔍 [TreatmentService] Crop tokens:`, cropKeywords);
       
       if (cropKeywords.length > 0) {
         // Create OR conditions for crop keywords
-        const cropConditions = cropKeywords.map(keyword => ({
+        const cropConditions = [];
+        
+        cropKeywords.forEach(keyword => {
+          // Search with normalized token
+          cropConditions.push({
+            targetCrops: {
+              $elemMatch: {
+                $regex: keyword,
+                $options: 'i'
+              }
+            }
+          });
+        });
+        
+        // Also search original crop name (with diacritics)
+        cropConditions.push({
           targetCrops: {
             $elemMatch: {
-              $regex: keyword,
+              $regex: cropName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
               $options: 'i'
             }
           }
-        }));
+        });
         
         // Add to existing $or or create new one
         if (query.$or) {
@@ -274,7 +402,7 @@ const getChemicalTreatments = async (diseaseName, cropName) => {
         }
       } else {
         query.targetCrops = { 
-          $elemMatch: { $regex: cropName, $options: 'i' } 
+          $elemMatch: { $regex: cropName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } 
         };
       }
     }
@@ -296,57 +424,37 @@ const getBiologicalTreatments = async (diseaseName) => {
   try {
     const query = { verified: true };
 
-    // Search in targetDiseases array with keyword extraction (supports no diacritics)
+    // Search in targetDiseases array with expanded tokens (supports no diacritics)
     if (diseaseName) {
-      // Extract keywords (supports both with and without diacritics)
-      const keywords = extractDiseaseKeywords(diseaseName);
-      
-      console.log(`🔍 [TreatmentService] Biological method keywords:`, keywords);
-      
-      // Search for ANY keyword match (OR condition) - both with and without diacritics
-      if (keywords.length > 0) {
+      const tokens = buildDiseaseTokens(diseaseName);
+      console.log(`🔍 [TreatmentService] Biological tokens:`, tokens);
+
+      if (tokens.length > 0) {
         const searchConditions = [];
         
-        keywords.forEach(keyword => {
+        tokens.forEach(tk => {
           searchConditions.push({
-            targetDiseases: {
-              $elemMatch: {
-                $regex: keyword,
-                $options: 'i'
-              }
-            }
+            targetDiseases: { $elemMatch: { $regex: tk, $options: 'i' } }
           });
-          
-          const normalizedKeyword = normalizeVietnamese(keyword);
-          if (normalizedKeyword !== keyword.toLowerCase()) {
-            searchConditions.push({
-              targetDiseases: {
-                $elemMatch: {
-                  $regex: normalizedKeyword,
-                  $options: 'i'
-                }
-              }
-            });
-          }
         });
         
         const normalizedDisease = normalizeVietnamese(diseaseName);
         if (normalizedDisease && normalizedDisease.length > 3) {
           searchConditions.push({
-            targetDiseases: {
-              $elemMatch: {
-                $regex: normalizedDisease,
-                $options: 'i'
-              }
-            }
+            targetDiseases: { $elemMatch: { $regex: normalizedDisease, $options: 'i' } }
           });
         }
+        
+        // Also search original disease name (with diacritics)
+        searchConditions.push({
+          targetDiseases: { $elemMatch: { $regex: diseaseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        });
         
         query.$or = searchConditions;
       } else {
         // Fallback to original search
         query.targetDiseases = { 
-          $elemMatch: { $regex: diseaseName, $options: 'i' } 
+          $elemMatch: { $regex: diseaseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } 
         };
       }
     }
