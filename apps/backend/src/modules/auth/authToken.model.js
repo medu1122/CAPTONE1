@@ -41,6 +41,7 @@ const authTokenSchema = new mongoose.Schema(
 // Compound indexes for efficient queries
 authTokenSchema.index({ user: 1, isActive: 1 });
 authTokenSchema.index({ refreshTokenHash: 1 }, { unique: true, sparse: true });
+authTokenSchema.index({ expiresAt: 1, createdAt: -1 }); // For finding active tokens (online users query)
 
 // TTL index on expiresAt is handled by MongoDB automatically
 

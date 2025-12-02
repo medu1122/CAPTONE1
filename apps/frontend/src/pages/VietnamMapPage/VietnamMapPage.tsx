@@ -6,10 +6,12 @@ import { ProvinceBasicInfo } from './components/ProvinceBasicInfo';
 import { ProvinceRecommendations } from './components/ProvinceRecommendations';
 import { ProvinceArticles } from './components/ProvinceArticles';
 import { useProvinceInfo } from './hooks/useProvinceInfo';
-import { Map } from 'lucide-react';
+import { Map, AlertCircleIcon } from 'lucide-react';
+import { ComplaintModal } from '../../components/ComplaintModal';
 
 export const VietnamMapPage: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
   const { data: provinceInfo, loading, error } = useProvinceInfo(selectedProvince);
 
   const handleProvinceSelect = (code: string) => {
@@ -22,9 +24,18 @@ export const VietnamMapPage: React.FC = () => {
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <Map className="text-green-600" size={32} />
-            <h1 className="text-3xl font-bold text-gray-900">Bản đồ Nông vụ</h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <Map className="text-green-600" size={32} />
+              <h1 className="text-3xl font-bold text-gray-900">Bản đồ Nông vụ</h1>
+            </div>
+            <button
+              onClick={() => setShowComplaintModal(true)}
+              className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
+            >
+              <AlertCircleIcon size={18} />
+              <span>Khiếu nại</span>
+            </button>
           </div>
           <p className="text-gray-600">
             Chọn một tỉnh trên bản đồ hoặc từ danh sách để xem thông tin về loại đất, cây trồng theo mùa và các bài báo liên quan
@@ -75,6 +86,18 @@ export const VietnamMapPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Complaint Modal */}
+      <ComplaintModal
+        isOpen={showComplaintModal}
+        onClose={() => setShowComplaintModal(false)}
+        type="map"
+        relatedId={selectedProvince || undefined}
+        relatedType={selectedProvince ? 'map' : undefined}
+        onSuccess={() => {
+          alert('Cảm ơn bạn đã gửi khiếu nại. Chúng tôi sẽ xem xét và cải thiện tính năng bản đồ!')
+        }}
+      />
     </div>
   );
 };

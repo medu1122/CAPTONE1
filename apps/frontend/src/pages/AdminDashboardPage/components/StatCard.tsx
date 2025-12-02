@@ -1,6 +1,6 @@
 import React from 'react'
 import { TrendingUpIcon, TrendingDownIcon } from 'lucide-react'
-import { StatCardData } from '../types/admin.types'
+import type { StatCardData } from '../types/admin.types'
 interface StatCardProps {
   data: StatCardData
 }

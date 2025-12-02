@@ -35,8 +35,9 @@ export const VietnamMapSVG: React.FC<Props> = ({ selectedProvince, onProvinceCli
 
         // Make SVG responsive
         svg.setAttribute('width', '100%');
-        svg.setAttribute('height', 'auto');
+        svg.removeAttribute('height'); // Remove height attribute, use CSS instead
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        svg.style.height = 'auto';
         svg.style.maxHeight = '600px';
 
         // First, reset ALL paths to default gray color

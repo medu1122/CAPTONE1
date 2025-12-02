@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { XIcon, InfoIcon } from 'lucide-react'
+import { XIcon, InfoIcon, AlertCircleIcon } from 'lucide-react'
 import type { AnalysisResult } from '../types'
+import { ComplaintModal } from '../../../components/ComplaintModal'
 
 interface TreatmentPanelProps {
   result: AnalysisResult
@@ -12,6 +13,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
   )
   const [selectedProduct, setSelectedProduct] = useState<any>(null) // Product for modal
   const [showModal, setShowModal] = useState(false)
+  const [showComplaintModal, setShowComplaintModal] = useState(false)
 
   const selectedTreatment = selectedDisease ? result.treatments[selectedDisease] : null
   
@@ -346,6 +348,31 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
           </div>
         </div>
       )}
+
+      {/* Report Issue Button */}
+      {result.analysisId && (
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <button
+            onClick={() => setShowComplaintModal(true)}
+            className="w-full px-4 py-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <AlertCircleIcon size={18} />
+            <span>Báo cáo vấn đề với kết quả phân tích</span>
+          </button>
+        </div>
+      )}
+
+      {/* Complaint Modal */}
+      <ComplaintModal
+        isOpen={showComplaintModal}
+        onClose={() => setShowComplaintModal(false)}
+        type="analysis"
+        relatedId={result.analysisId}
+        relatedType="analysis"
+        onSuccess={() => {
+          alert('Cảm ơn bạn đã gửi khiếu nại. Chúng tôi sẽ xem xét và phản hồi sớm nhất!')
+        }}
+      />
     </div>
   )
 }

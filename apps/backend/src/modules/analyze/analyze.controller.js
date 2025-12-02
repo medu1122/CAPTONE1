@@ -22,36 +22,71 @@ export const analyzeImageController = async (req, res, next) => {
 
     const result = await analyzeImage({ imageUrl, userId });
 
-    // Save analysis to database if user is logged in
-    if (userId) {
-      try {
-        const { default: Analysis } = await import('../analyses/analysis.model.js');
-        
-        const analysisRecord = new Analysis({
-          userId,
-          imageUrl,
-          resultTop: {
-            plant: result.plant,
-            disease: result.diseases[0] || null,
-            confidence: result.diseases[0]?.confidence || result.plant.confidence,
-            isHealthy: result.isHealthy
-          },
-          allDiseases: result.diseases,
-          treatments: result.treatments,
-          care: result.care,
-          source: 'analyze-page'
-        });
+    // Save analysis to database (always, even for anonymous users)
+    try {
+      const { default: Analysis } = await import('../analyses/analysis.model.js');
+      
+      // Format inputImages
+      const inputImages = [{ url: imageUrl }];
+      
+      // Format resultTop according to model schema
+      const resultTop = result.plant?.commonName ? {
+        plant: {
+          commonName: result.plant.commonName || '',
+          scientificName: result.plant.scientificName || '',
+        },
+        confidence: result.plant.confidence || 0,
+        summary: result.isHealthy ? 'Cây khỏe mạnh' : `Phát hiện ${result.diseases?.length || 0} bệnh`,
+      } : null;
+      
+      // Format raw data with all analysis results
+      const raw = {
+        plant: result.plant,
+        diseases: result.diseases || [],
+        isHealthy: result.isHealthy,
+        treatments: result.treatments,
+        care: result.care,
+        analyzedAt: result.analyzedAt || new Date(),
+      };
 
-        await analysisRecord.save();
-        
-        console.log('💾 [analyzeImageController] Analysis saved:', analysisRecord._id);
-        
-        // Add ID to result
-        result.analysisId = analysisRecord._id;
-      } catch (error) {
-        console.error('Failed to save analysis:', error);
-        // Don't fail the request if save fails
-      }
+      const analysisData = {
+        user: userId || null, // Allow null for anonymous users
+        source: 'plantid',
+        inputImages,
+        resultTop,
+        raw,
+      };
+
+      console.log('💾 [analyzeImageController] Attempting to save analysis:', {
+        hasUser: !!userId,
+        hasPlant: !!resultTop?.plant?.commonName,
+        hasDiseases: (result.diseases?.length || 0) > 0,
+        inputImagesCount: inputImages.length,
+      });
+
+      const analysisRecord = new Analysis(analysisData);
+      await analysisRecord.save();
+      
+      console.log('✅ [analyzeImageController] Analysis saved successfully:', {
+        id: analysisRecord._id.toString(),
+        userId: userId || 'anonymous',
+        createdAt: analysisRecord.createdAt?.toISOString(),
+        hasPlant: !!resultTop?.plant?.commonName,
+        hasDiseases: (result.diseases?.length || 0) > 0,
+      });
+      
+      // Add ID to result
+      result.analysisId = analysisRecord._id.toString();
+    } catch (error) {
+      console.error('❌ [analyzeImageController] Failed to save analysis:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code,
+        errors: error.errors, // Mongoose validation errors
+      });
+      // Don't fail the request if save fails, but log it clearly
     }
 
     res.json({

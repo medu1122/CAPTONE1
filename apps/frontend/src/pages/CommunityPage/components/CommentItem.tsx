@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { EditIcon, TrashIcon, ImageIcon, XIcon, CornerDownRightIcon } from 'lucide-react'
+import { EditIcon, TrashIcon, ImageIcon, XIcon, CornerDownRightIcon, FlagIcon, MoreVerticalIcon } from 'lucide-react'
 import type { Comment, UpdateCommentData } from '../types/community.types'
 import { useAuth } from '../../../contexts/AuthContext'
 import { getAvatarUrl } from '../../../utils/avatar'
 import { ModerationModal } from './ModerationModal'
+import { ReportModal } from '../../../components/ReportModal'
 
 interface CommentItemProps {
   comment: Comment
@@ -36,6 +37,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [replyImages, setReplyImages] = useState<File[]>([])
   const [replyImagePreviews, setReplyImagePreviews] = useState<string[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [moderationError, setModerationError] = useState<{
     reason: string
     issues: any[]
@@ -323,6 +326,30 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     </button>
                   </>
                 )}
+                {!isAuthor && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                      <MoreVerticalIcon size={14} />
+                    </button>
+                    {showMenu && (
+                      <div className="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                        <button
+                          onClick={() => {
+                            setShowMenu(false)
+                            setShowReportModal(true)
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <FlagIcon size={14} />
+                          Báo cáo
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {!isReply && onReply && (
                   <button
                     onClick={() => setIsReplying(!isReplying)}
@@ -480,6 +507,20 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           type="comment"
         />
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false)
+          setShowMenu(false)
+        }}
+        type="comment"
+        targetId={comment._id}
+        onSuccess={() => {
+          // Success handled in modal
+        }}
+      />
     </>
   )
 }

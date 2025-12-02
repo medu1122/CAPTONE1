@@ -166,7 +166,7 @@ export const identifyPlant = async ({ imageData }) => {
  * @param {string} type - Type: 'plant' or 'disease'
  * @returns {Promise<string>} Vietnamese translation
  */
-const translateWithGPT = async (text, type = 'plant') => {
+export const translateWithGPT = async (text, type = 'plant') => {
   try {
     const { generateAIResponse } = await import('../../modules/aiAssistant/ai.service.js');
     

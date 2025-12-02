@@ -40,6 +40,16 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    mutedUntil: {
+      type: Date,
+      default: null,
+    },
+    muteReason: {
+      type: String,
+      maxlength: 500,
+      default: null,
+      trim: true,
+    },
     // User Profile Management Fields
     phone: {
       type: String,
@@ -91,6 +101,14 @@ const userSchema = new mongoose.Schema(
 // Indexes for profile management
 userSchema.index({ 'stats.totalPosts': -1 });
 userSchema.index({ 'stats.lastActiveAt': -1 });
+
+// Indexes for admin queries
+userSchema.index({ role: 1 });
+userSchema.index({ status: 1 });
+userSchema.index({ isVerified: 1 });
+userSchema.index({ role: 1, status: 1 }); // Compound index for admin queries
+userSchema.index({ createdAt: 1 }); // For user growth statistics
+userSchema.index({ mutedUntil: 1 }); // For finding muted users
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

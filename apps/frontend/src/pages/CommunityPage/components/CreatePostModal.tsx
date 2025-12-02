@@ -28,6 +28,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     issues: any[]
     suggestedContent: string | null
   } | null>(null)
+  const [suggestedCategory, setSuggestedCategory] = useState<CreatePostData['category'] | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const categories = [
@@ -100,6 +101,47 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       fileInputRef.current.value = ''
     }
   }
+
+  // Category suggestion based on keywords
+  const suggestCategory = (titleText: string, contentText: string): CreatePostData['category'] | null => {
+    const text = (titleText + ' ' + contentText).toLowerCase()
+    
+    // Question keywords
+    const questionKeywords = ['?', 'hỏi', 'tại sao', 'như thế nào', 'cách nào', 'làm sao', 'giúp', 'ai biết', 'xin hỏi', 'thắc mắc']
+    if (questionKeywords.some(kw => text.includes(kw))) {
+      return 'question'
+    }
+    
+    // Problem keywords
+    const problemKeywords = ['bệnh', 'sâu', 'vấn đề', 'lỗi', 'không được', 'chết', 'héo', 'vàng', 'khô', 'hư', 'tệ', 'xấu']
+    if (problemKeywords.some(kw => text.includes(kw))) {
+      return 'problem'
+    }
+    
+    // Success keywords
+    const successKeywords = ['thành công', 'tốt', 'hiệu quả', 'kết quả', 'thu hoạch', 'phát triển', 'tăng trưởng', 'tốt lên']
+    if (successKeywords.some(kw => text.includes(kw))) {
+      return 'success'
+    }
+    
+    // Tip keywords
+    const tipKeywords = ['mẹo', 'tip', 'bí quyết', 'kinh nghiệm', 'cách', 'hướng dẫn', 'nên', 'nên làm', 'gợi ý']
+    if (tipKeywords.some(kw => text.includes(kw))) {
+      return 'tip'
+    }
+    
+    return null
+  }
+
+  // Auto-suggest category when title or content changes
+  React.useEffect(() => {
+    if (title.trim() || content.trim()) {
+      const suggestion = suggestCategory(title, content)
+      setSuggestedCategory(suggestion)
+    } else {
+      setSuggestedCategory(null)
+    }
+  }, [title, content])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -213,9 +255,21 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Category Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Danh mục
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Danh mục
+              </label>
+              {suggestedCategory && suggestedCategory !== category && (
+                <button
+                  type="button"
+                  onClick={() => setCategory(suggestedCategory)}
+                  className="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+                >
+                  <span>💡 Gợi ý: {categories.find(c => c.value === suggestedCategory)?.label}</span>
+                  <span className="underline">Áp dụng</span>
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => (
                 <button
@@ -224,13 +278,20 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   onClick={() =>
                     setCategory(cat.value as CreatePostData['category'])
                   }
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors relative ${
                     category === cat.value
                       ? cat.color
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  } ${
+                    suggestedCategory === cat.value && category !== cat.value
+                      ? 'ring-2 ring-green-400 ring-offset-1'
+                      : ''
                   }`}
                 >
                   {cat.label}
+                  {suggestedCategory === cat.value && category !== cat.value && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>
+                  )}
                 </button>
               ))}
             </div>

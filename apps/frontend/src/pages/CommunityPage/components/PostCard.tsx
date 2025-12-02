@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { HeartIcon, MessageCircleIcon, EditIcon, TrashIcon, MoreVerticalIcon, ImageIcon, XIcon } from 'lucide-react'
+import { HeartIcon, MessageCircleIcon, EditIcon, TrashIcon, MoreVerticalIcon, ImageIcon, XIcon, FlagIcon } from 'lucide-react'
 import type { Post, Comment, UpdateCommentData } from '../types/community.types'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useComments } from '../hooks/useComments'
 import { getAvatarUrl, getUserAvatar } from '../../../utils/avatar'
 import { ModerationModal } from './ModerationModal'
 import { CommentItem } from './CommentItem'
+import { ReportModal } from '../../../components/ReportModal'
 
 interface PostCardProps {
   post: Post
@@ -33,6 +34,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [localComments, setLocalComments] = useState(post.comments)
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
   const commentFileInputRef = useRef<HTMLInputElement>(null)
   
   const isAuthor = user && post.author._id === user.id
@@ -261,41 +263,54 @@ export const PostCard: React.FC<PostCardProps> = ({
             </div>
           </div>
         </div>
-        {/* Edit/Delete Menu */}
-        {isAuthor && (
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <MoreVerticalIcon size={20} />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+        {/* Edit/Delete/Report Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <MoreVerticalIcon size={20} />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+              {isAuthor ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false)
+                      onEdit?.(post)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <EditIcon size={16} />
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false)
+                      setShowDeleteConfirm(true)
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <TrashIcon size={16} />
+                    Xóa bài viết
+                  </button>
+                </>
+              ) : (
                 <button
                   onClick={() => {
                     setShowMenu(false)
-                    onEdit?.(post)
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                >
-                  <EditIcon size={16} />
-                  Chỉnh sửa
-                </button>
-                <button
-                  onClick={() => {
-                    setShowMenu(false)
-                    setShowDeleteConfirm(true)
+                    setShowReportModal(true)
                   }}
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                 >
-                  <TrashIcon size={16} />
-                  Xóa bài viết
+                  <FlagIcon size={16} />
+                  Báo cáo bài viết
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
       {/* Content */}
       <div className="px-4 pb-3">
@@ -528,6 +543,17 @@ export const PostCard: React.FC<PostCardProps> = ({
           type="comment"
         />
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        type="post"
+        targetId={post.id}
+        onSuccess={() => {
+          // Refresh or show success message
+        }}
+      />
     </div>
   )
 }

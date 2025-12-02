@@ -5,27 +5,47 @@ import { UsersTab } from './components/UsersTab'
 import { AnalysisTab } from './components/AnalysisTab'
 import { CommunityTab } from './components/CommunityTab'
 import { ComplaintsTab } from './components/ComplaintsTab'
+import { authService } from '../../services/authService'
+
 type TabType = 'users' | 'analysis' | 'community' | 'complaints'
+
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('users')
+
   useEffect(() => {
-    const authStatus = localStorage.getItem('isAuthenticated')
-    if (authStatus !== 'true') {
-      navigate('/auth')
-      return
+    const checkAuth = async () => {
+      try {
+        // Check if user is authenticated
+        if (!authService.isAuthenticated()) {
+          navigate('/auth')
+          return
+        }
+
+        // Get user profile to check admin role
+        const profileResponse = await authService.getProfile()
+        const userRole = profileResponse.data?.role
+
+        if (userRole !== 'admin') {
+          alert('Bạn không có quyền truy cập trang này')
+          navigate('/')
+          return
+        }
+
+        setIsAdmin(true)
+        setIsAuthenticated(true)
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        navigate('/auth')
+      } finally {
+        setLoading(false)
+      }
     }
-    setIsAuthenticated(true)
-    // TODO: Check if user is admin
-    // For now, allow all authenticated users
+    checkAuth()
   }, [navigate])
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated')
-    localStorage.removeItem('userEmail')
-    setIsAuthenticated(false)
-    navigate('/auth')
-  }
   const tabs = [
     {
       id: 'users' as TabType,
@@ -48,12 +68,23 @@ export const AdminDashboardPage: React.FC = () => {
       icon: '📋',
     },
   ]
-  if (!isAuthenticated) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !isAdmin) {
     return null
   }
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header isLoggedIn={isAuthenticated} onLogout={handleLogout} />
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Page Header */}

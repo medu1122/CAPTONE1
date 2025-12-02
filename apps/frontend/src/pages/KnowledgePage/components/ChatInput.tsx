@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react'
-import { SendIcon } from 'lucide-react'
+import { SendIcon, AlertCircleIcon } from 'lucide-react'
+import { ComplaintModal } from '../../../components/ComplaintModal'
 
 interface ChatInputProps {
   onSend: (message: string) => void
@@ -8,6 +9,7 @@ interface ChatInputProps {
 
 export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled = false }) => {
   const [input, setInput] = useState('')
+  const [showComplaintModal, setShowComplaintModal] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleSend = () => {
@@ -37,35 +39,56 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled = false }
   }
 
   return (
-    <div className="bg-white border-t shadow-lg">
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <div className="flex items-end gap-3">
-          <div className="flex-1">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Nhập câu hỏi của bạn..."
-              disabled={disabled}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              rows={1}
-              style={{ maxHeight: '120px' }}
-            />
-            <p className="text-xs text-gray-500 mt-2">
-              Shift + Enter để xuống dòng • Enter để gửi
-            </p>
+    <>
+      <div className="bg-white border-t shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Nhập câu hỏi của bạn..."
+                disabled={disabled}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                rows={1}
+                style={{ maxHeight: '120px' }}
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-gray-500">
+                  Shift + Enter để xuống dòng • Enter để gửi
+                </p>
+                <button
+                  onClick={() => setShowComplaintModal(true)}
+                  className="text-xs text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
+                  type="button"
+                >
+                  <AlertCircleIcon size={14} />
+                  <span>Khiếu nại</span>
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || disabled}
+              className="p-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 self-start"
+            >
+              <SendIcon size={20} />
+            </button>
           </div>
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || disabled}
-            className="p-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 self-start"
-          >
-            <SendIcon size={20} />
-          </button>
         </div>
       </div>
-    </div>
+
+      <ComplaintModal
+        isOpen={showComplaintModal}
+        onClose={() => setShowComplaintModal(false)}
+        type="chatbot"
+        onSuccess={() => {
+          alert('Cảm ơn bạn đã gửi khiếu nại. Chúng tôi sẽ xem xét và cải thiện chatbot!')
+        }}
+      />
+    </>
   )
 }
 

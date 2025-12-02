@@ -16,6 +16,8 @@ import { VietnamMapPage } from './pages/VietnamMapPage/VietnamMapPage'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifiedRoute from './components/VerifiedRoute'
+import AdminRoute from './components/AdminRoute'
+import { AdminDashboardPage } from './pages/AdminDashboardPage/AdminDashboardPage'
 import './App.css'
 
 function App() {
@@ -107,6 +109,17 @@ function App() {
               </VerifiedRoute>
             } 
           />
+          
+          {/* Admin Dashboard - Requires admin role */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <AdminDashboardPage />
+              </AdminRoute>
+            } 
+          />
+          
           <Route path="*" element={<div style={{ padding: 24 }}>Not Found</div>} />
         </Routes>
       </div>

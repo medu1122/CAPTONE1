@@ -69,6 +69,14 @@ const postSchema = new mongoose.Schema(
       enum: ['draft', 'pending', 'published', 'rejected', 'archived'],
       default: 'published',
     },
+    reportCount: {
+      type: Number,
+      default: 0,
+    },
+    lastReportedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -87,6 +95,9 @@ postSchema.index({ author: 1, createdAt: -1 });
 postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ status: 1, createdAt: -1 });
 postSchema.index({ createdAt: -1 });
+postSchema.index({ createdAt: 1 }); // For daily posts count
+postSchema.index({ reportCount: -1, createdAt: -1 }); // For finding most reported posts
+postSchema.index({ lastReportedAt: -1 }); // For finding recently reported posts
 
 const Post = mongoose.model('Post', postSchema);
 

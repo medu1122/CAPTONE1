@@ -18,6 +18,9 @@ import plantBoxRoutes from './modules/plantBoxes/plantBox.routes.js';
 import treatmentRoutes from './modules/treatments/treatment.routes.js';
 import imageUploadRoutes from './modules/imageUpload/imageUpload.routes.js';
 import provinceRoutes from './modules/provinces/province.routes.js';
+import complaintRoutes from './modules/complaints/complaint.routes.js';
+import reportRoutes from './modules/reports/report.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
 
 const router = express.Router();
 
@@ -42,5 +45,8 @@ router.use('/analyses', analysisRoutes);
 router.use('/plant-boxes', plantBoxRoutes);
 router.use('/treatments', treatmentRoutes);  // NEW
 router.use('/provinces', provinceRoutes);  // NEW
+router.use('/complaints', complaintRoutes);  // NEW: Complaints system
+router.use('/reports', reportRoutes);  // NEW: Reports system
+router.use('/admin', adminRoutes);  // NEW: Admin dashboard APIs
 
 export default router;

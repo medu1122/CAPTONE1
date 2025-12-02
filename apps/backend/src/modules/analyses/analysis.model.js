@@ -23,8 +23,9 @@ const analysisResultSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false, // Allow null for anonymous users
       index: true,
+      sparse: true, // Index only for non-null values
     },
     source: {
       type: String,
@@ -53,6 +54,9 @@ const analysisResultSchema = new mongoose.Schema(
 
 // Add compound index for efficient queries
 analysisResultSchema.index({ user: 1, createdAt: -1 });
+analysisResultSchema.index({ createdAt: 1 }); // For daily analysis count queries
+analysisResultSchema.index({ source: 1, createdAt: -1 }); // For filtering by source (plantid/manual/ai)
+analysisResultSchema.index({ 'resultTop.plant.commonName': 1 }); // For top plants statistics
 
 const Analysis = mongoose.model('Analysis', analysisResultSchema);
 

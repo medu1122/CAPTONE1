@@ -1,13 +1,33 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, User, Settings, Mail, CheckCircle, Sprout } from 'lucide-react'
+import { LogOut, User, Settings, Mail, CheckCircle, Shield } from 'lucide-react'
 import { getUserAvatar } from '../utils/avatar'
+import { authService } from '../services/authService'
 
 export const UserMenu: React.FC = () => {
   const { user, logout, logoutAll } = useAuth()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false)
+        return
+      }
+
+      try {
+        const profileResponse = await authService.getProfile()
+        setIsAdmin(profileResponse.data?.role === 'admin')
+      } catch (error) {
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdmin()
+  }, [user])
 
   const handleLogout = async () => {
     await logout()
@@ -93,17 +113,6 @@ export const UserMenu: React.FC = () => {
               <button
                 onClick={() => {
                   setIsOpen(false)
-                  navigate('/my-plants')
-                }}
-                className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <Sprout className="w-4 h-4" />
-                <span>Cây trồng của tôi</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setIsOpen(false)
                   navigate('/settings')
                 }}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -111,6 +120,20 @@ export const UserMenu: React.FC = () => {
                 <Settings className="w-4 h-4" />
                 <span>Cài đặt</span>
               </button>
+              
+              {/* Admin Dashboard Link - Only for admins */}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setIsOpen(false)
+                    navigate('/admin')
+                  }}
+                  className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Admin Dashboard</span>
+                </button>
+              )}
               
               <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
               
