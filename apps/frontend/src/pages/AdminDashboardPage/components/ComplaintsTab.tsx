@@ -46,7 +46,10 @@ export const ComplaintsTab: React.FC = () => {
             message: error.message,
             response: error.response?.data,
             status: error.response?.status,
+            url: error.config?.url,
+            method: error.config?.method,
           })
+          console.error('Full error response:', JSON.stringify(error.response?.data, null, 2))
           if (error.response?.status === 401) {
             // Unauthorized - might need to refresh token
             console.warn('Unauthorized access to complaints')
@@ -72,7 +75,10 @@ export const ComplaintsTab: React.FC = () => {
             message: error.message,
             response: error.response?.data,
             status: error.response?.status,
+            url: error.config?.url,
+            method: error.config?.method,
           })
+          console.error('Full error response:', JSON.stringify(error.response?.data, null, 2))
           if (error.response?.status === 401) {
             // Unauthorized - might need to refresh token
             console.warn('Unauthorized access to reports')

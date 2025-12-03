@@ -121,12 +121,23 @@ export const validateGetComplaints = (req, res, next) => {
       .default('desc'),
   });
 
-  const { error, value } = schema.validate(req.query);
+  const { error, value } = schema.validate(req.query, {
+    convert: true, // Auto convert strings to numbers
+  });
+  
   if (error) {
     return next(httpError(400, error.details[0].message));
   }
 
-  req.query = { ...req.query, ...value };
+  // Ensure page and limit are numbers
+  if (value.page) value.page = parseInt(value.page, 10) || 1;
+  if (value.limit) value.limit = parseInt(value.limit, 10) || 20;
+
+  // Update query properties directly (req.query is read-only, so modify properties)
+  Object.keys(value).forEach(key => {
+    req.query[key] = value[key];
+  });
+  
   next();
 };
 
