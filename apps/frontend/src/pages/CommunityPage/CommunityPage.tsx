@@ -42,9 +42,9 @@ export const CommunityPage: React.FC = () => {
     await likePost(postId)
   }
 
-  const handleComment = (_postId: string) => {
-    // Refresh posts to get latest comments
-    // This is handled by PostCard component which calls fetchPosts after creating comment
+  const handleComment = async (postId: string) => {
+    // Refresh posts to get latest comments including replies
+    await fetchPosts()
   }
 
   const handleEdit = (post: Post) => {

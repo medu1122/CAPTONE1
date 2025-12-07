@@ -8,6 +8,7 @@ import { getAvatarUrl, getUserAvatar } from '../../../utils/avatar'
 import { ModerationModal } from './ModerationModal'
 import { CommentItem } from './CommentItem'
 import { ReportModal } from '../../../components/ReportModal'
+import { communityService } from '../services/communityService'
 
 interface PostCardProps {
   post: Post
@@ -36,6 +37,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const commentFileInputRef = useRef<HTMLInputElement>(null)
+  const isManuallyUpdatingComments = useRef(false)
   
   const isAuthor = user && post.author._id === user.id
 
@@ -51,9 +53,17 @@ export const PostCard: React.FC<PostCardProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMenu])
 
-  // Update local comments when post changes
+  // Update local comments when post changes (but skip if we're manually updating)
   useEffect(() => {
-    setLocalComments(post.comments)
+    if (!isManuallyUpdatingComments.current) {
+      setLocalComments(post.comments)
+    }
+    // Reset the flag after a short delay to allow manual updates to complete
+    if (isManuallyUpdatingComments.current) {
+      setTimeout(() => {
+        isManuallyUpdatingComments.current = false
+      }, 100)
+    }
   }, [post.comments])
 
   const { 
@@ -182,9 +192,32 @@ export const PostCard: React.FC<PostCardProps> = ({
 
   const handleReply = async (commentId: string, content: string, images?: File[]) => {
     try {
+      console.log('📝 [PostCard] handleReply called:', { commentId, content: content.substring(0, 30) })
       await createReply(commentId, content, images)
-      onComment(post.id) // Refresh post data
+      console.log('📝 [PostCard] createReply completed, fetching updated post...')
+      // Mark that we're manually updating comments
+      isManuallyUpdatingComments.current = true
+      // Fetch updated post data to get the new reply
+      const updatedPost = await communityService.getPostById(post.id)
+      console.log('📝 [PostCard] Updated post received:', updatedPost)
+      console.log('📝 [PostCard] Comments:', updatedPost.comments)
+      updatedPost.comments.forEach((c: Comment, i: number) => {
+        console.log(`📝 [PostCard] Comment ${i}:`, {
+          _id: c._id,
+          content: c.content.substring(0, 30),
+          hasReplies: !!c.replies,
+          repliesCount: c.replies?.length || 0,
+          replies: c.replies
+        })
+      })
+      // Update local comments immediately with the new reply
+      setLocalComments(updatedPost.comments)
+      console.log('📝 [PostCard] localComments updated')
+      // Also notify parent to refresh (but useEffect won't overwrite because of flag)
+      onComment(post.id)
     } catch (error: any) {
+      isManuallyUpdatingComments.current = false
+      console.error('❌ [PostCard] Error in handleReply:', error)
       throw error // Re-throw để CommentItem xử lý
     }
   }

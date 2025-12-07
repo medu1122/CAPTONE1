@@ -3,50 +3,142 @@ import Post from './post.model.js';
 import User from '../auth/auth.model.js';
 import cloudinaryService from '../../common/libs/cloudinary.js';
 import { moderatePost, moderateComment } from '../moderation/moderation.service.js';
+import { createNotification, extractMentions } from '../notifications/notification.service.js';
+import { broadcastNotification } from '../notifications/notification.stream.controller.js';
+import {
+  getCommentsByPost,
+  createComment as createCommentService,
+  updateComment as updateCommentService,
+  deleteComment as deleteCommentService,
+  groupComments,
+} from '../comments/comment.service.js';
+import Comment from '../comments/comment.model.js';
 
 /**
- * Helper function to group comments by parent (convert flat structure to nested)
+ * Helper function to group comments by parent (DEPRECATED - use comment.service.js)
+ * Kept for backward compatibility with embedded comments
  * @param {Array} comments - Array of comments
  * @returns {Array} Nested comments structure with replies
  */
-const groupComments = (comments) => {
+const groupCommentsLegacy = (comments) => {
   const commentsMap = new Map();
   const rootComments = [];
   
+  // First pass: create all comment objects and add root comments to map
   comments.forEach(comment => {
-    const commentObj = typeof comment.toObject === 'function' ? comment.toObject() : comment;
-    if (!commentObj.parentComment) {
-      commentObj.replies = [];
-      commentsMap.set(commentObj._id.toString(), commentObj);
+    // Convert to plain object while preserving populated fields
+    let commentObj;
+    if (typeof comment.toObject === 'function') {
+      // Use toObject with options to preserve populated fields
+      commentObj = comment.toObject({ 
+        virtuals: false,
+        transform: (doc, ret) => {
+          // Ensure author is preserved (populated or as ObjectId)
+          if (doc.author) {
+            ret.author = doc.author;
+          }
+          // Ensure parentComment is preserved (as ObjectId string for comparison)
+          if (doc.parentComment) {
+            ret.parentComment = doc.parentComment;
+          }
+          return ret;
+        }
+      });
+    } else {
+      commentObj = { ...comment };
+    }
+    
+    // Ensure _id is available as string for comparison
+    const commentId = commentObj._id ? commentObj._id.toString() : null;
+    
+    // Normalize parentComment to string
+    let parentId = null;
+    if (commentObj.parentComment) {
+      if (typeof commentObj.parentComment === 'object') {
+        parentId = commentObj.parentComment._id 
+          ? commentObj.parentComment._id.toString() 
+          : commentObj.parentComment.toString();
+      } else {
+        parentId = commentObj.parentComment.toString();
+      }
+    }
+    
+    // Initialize replies array
+    commentObj.replies = [];
+    
+    if (!parentId) {
+      // Root comment - add to map and root list
+      if (commentId) {
+        commentsMap.set(commentId, commentObj);
+      }
       rootComments.push(commentObj);
     } else {
-      const parentId = commentObj.parentComment.toString();
-      if (commentsMap.has(parentId)) {
-        if (!commentsMap.get(parentId).replies) {
-          commentsMap.get(parentId).replies = [];
+      // Reply comment - store for second pass
+      // We'll add it to parent's replies in second pass
+      if (commentId) {
+        commentsMap.set(commentId, commentObj);
+      }
+    }
+  });
+  
+  // Second pass: add replies to their parents
+  comments.forEach((comment) => {
+    let commentObj;
+    if (typeof comment.toObject === 'function') {
+      commentObj = comment.toObject({ 
+        virtuals: false,
+        transform: (doc, ret) => {
+          if (doc.author) ret.author = doc.author;
+          if (doc.parentComment) ret.parentComment = doc.parentComment;
+          return ret;
         }
-        commentsMap.get(parentId).replies.push(commentObj);
+      });
+    } else {
+      commentObj = { ...comment };
+    }
+    
+    const commentId = commentObj._id ? commentObj._id.toString() : null;
+    
+    // Normalize parentComment to string
+    let parentId = null;
+    if (commentObj.parentComment) {
+      if (typeof commentObj.parentComment === 'object') {
+        parentId = commentObj.parentComment._id 
+          ? commentObj.parentComment._id.toString() 
+          : commentObj.parentComment.toString();
       } else {
-        // If parent not found yet, add to root (shouldn't happen but handle gracefully)
-        commentObj.replies = [];
-        commentsMap.set(commentObj._id.toString(), commentObj);
-        rootComments.push(commentObj);
+        parentId = commentObj.parentComment.toString();
+      }
+    }
+    
+    if (parentId) {
+      if (commentsMap.has(parentId)) {
+        // This is a reply - add to parent's replies
+        const parentComment = commentsMap.get(parentId);
+        if (!parentComment.replies) {
+          parentComment.replies = [];
+        }
+        // Get the comment object from map (already processed)
+        const replyObj = commentsMap.get(commentId);
+        if (replyObj) {
+          parentComment.replies.push(replyObj);
+        }
       }
     }
   });
   
   // Sort replies by createdAt
   commentsMap.forEach(comment => {
-    if (comment.replies) {
+    if (comment.replies && comment.replies.length > 0) {
       comment.replies.sort((a, b) => 
-        new Date(a.createdAt) - new Date(b.createdAt)
+        new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
       );
     }
   });
   
   // Sort root comments by createdAt
   return rootComments.sort((a, b) => 
-    new Date(a.createdAt) - new Date(b.createdAt)
+    new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
   );
 };
 
@@ -58,14 +150,9 @@ const groupComments = (comments) => {
  */
 const createPost = async (req, res, next) => {
   try {
-    console.log('📝 [POST] Creating new post...');
-    console.log('   Title:', req.body.title);
-    console.log('   Has files:', req.files ? req.files.length : 0);
-    
     // Handle image uploads if any
     let images = [];
     if (req.files && req.files.length > 0) {
-      console.log(`📤 [POST] Uploading ${req.files.length} image(s) to Cloudinary...`);
       
       // Check if Cloudinary is configured
       const hasCloudinaryConfig = 
@@ -150,7 +237,6 @@ const createPost = async (req, res, next) => {
         .filter(result => result.status === 'fulfilled')
         .map(result => result.value);
       
-      console.log(`✅ [POST] ${images.length} image(s) uploaded successfully`);
     } else if (req.body.images && Array.isArray(req.body.images)) {
       // Handle base64 images from frontend (fallback)
       // Note: This is less efficient, prefer file upload
@@ -188,7 +274,6 @@ const createPost = async (req, res, next) => {
       });
       
       images = await Promise.all(base64Promises);
-      console.log(`✅ [POST] Processed ${images.length} base64 image(s)`);
     }
     
     // Parse JSON fields if they come as strings (from FormData)
@@ -211,14 +296,12 @@ const createPost = async (req, res, next) => {
     }
     
     // 🔍 Content Moderation - Check before saving
-    console.log('🔍 [POST] Running content moderation...');
     const moderationResult = await moderatePost({
       title: req.body.title,
       content: req.body.content,
     });
     
     if (!moderationResult.approved) {
-      console.log('❌ [POST] Content moderation failed:', moderationResult.reason);
       return res.status(400).json({
         success: false,
         message: 'Nội dung không phù hợp với cộng đồng',
@@ -231,8 +314,6 @@ const createPost = async (req, res, next) => {
       });
     }
     
-    console.log('✅ [POST] Content moderation passed');
-    
     const postData = {
       title: req.body.title,
       content: req.body.content,
@@ -244,23 +325,18 @@ const createPost = async (req, res, next) => {
       status: req.body.status || 'published',
     };
     
-    console.log('💾 [POST] Saving post to database...');
     const post = await Post.create(postData);
-    console.log(`✅ [POST] Post created with ID: ${post._id}`);
-    
     // Update user stats: increment totalPosts
     await User.findByIdAndUpdate(req.user.id, {
       $inc: { 'stats.totalPosts': 1 },
       $set: { 'stats.lastActiveAt': new Date() },
     });
-    console.log('✅ [POST] User stats updated');
     
     // Populate author after creation
     await post.populate('author', 'name profileImage');
     
     const { statusCode, body } = httpSuccess(201, 'Post created successfully', post);
     
-    console.log('✅ [POST] Post creation completed successfully');
     res.status(statusCode).json(body);
   } catch (error) {
     console.error('❌ [POST] Error creating post:', error);
@@ -311,7 +387,7 @@ const getAllPosts = async (req, res, next) => {
         {
           $addFields: {
             likesCount: { $size: { $ifNull: ['$likes', []] } },
-            commentsCount: { $size: { $ifNull: ['$comments', []] } },
+            commentsCount: { $ifNull: ['$commentCount', 0] },
           },
         },
         {
@@ -325,21 +401,29 @@ const getAllPosts = async (req, res, next) => {
       
       const posts = await Post.aggregate(aggregationPipeline);
       
-      // Populate author and comments for each post
+      // Populate author for each post
       const populatedPosts = await Post.populate(posts, [
         { path: 'author', select: 'name profileImage' },
-        { path: 'comments.author', select: 'name profileImage' },
       ]);
       
-      // Group comments by parent (convert flat structure to nested)
-      populatedPosts.forEach(post => {
-        post.comments = groupComments(post.comments);
-      });
+      // Fetch comments for each post and group them
+      const postsArray = await Promise.all(populatedPosts.map(async (post) => {
+        const postObj = post.toObject ? post.toObject() : post;
+        
+      // Get ALL comments (root + replies) from Comment collection for grouping
+      const commentsData = await getCommentsByPost(post._id.toString(), { limit: 100, includeReplies: true });
+      const groupedComments = groupComments(commentsData.comments);
+        
+        // Add comments to post object
+        postObj.comments = groupedComments;
+        
+        return postObj;
+      }));
       
       const count = await Post.countDocuments(query);
       
       const { statusCode, body } = httpSuccess(200, 'Posts retrieved successfully', {
-        posts: populatedPosts,
+        posts: postsArray,
         totalPages: Math.ceil(count / limit),
         currentPage: parseInt(page),
         totalItems: count,
@@ -353,20 +437,28 @@ const getAllPosts = async (req, res, next) => {
     
     const posts = await Post.find(query)
       .populate('author', 'name profileImage')
-      .populate('comments.author', 'name profileImage')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort(sortOption);
     
-    // Group comments by parent (convert flat structure to nested)
-    posts.forEach(post => {
-      post.comments = groupComments(post.comments);
-    });
+    // Fetch comments for each post and group them
+    const postsArray = await Promise.all(posts.map(async (post) => {
+      const postObj = post.toObject ? post.toObject() : post;
+      
+      // Get ALL comments (root + replies) from Comment collection for grouping
+      const commentsData = await getCommentsByPost(post._id.toString(), { limit: 10, includeReplies: true });
+      const groupedComments = groupComments(commentsData.comments);
+      
+      // Add comments to post object
+      postObj.comments = groupedComments;
+      
+      return postObj;
+    }));
     
     const count = await Post.countDocuments(query);
     
     const { statusCode, body } = httpSuccess(200, 'Posts retrieved successfully', {
-      posts,
+      posts: postsArray,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       totalItems: count,
@@ -388,8 +480,7 @@ const getPostById = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('author', 'name profileImage')
-      .populate('plants')
-      .populate('comments.author', 'name profileImage');
+      .populate('plants');
       // Note: Don't populate likes - frontend expects array of IDs
     
     if (!post) {
@@ -402,10 +493,17 @@ const getPostById = async (req, res, next) => {
       return next(httpError(404, 'Post not found'));
     }
     
-    // Group comments by parent (convert flat structure to nested)
-    post.comments = groupComments(post.comments);
+    // Convert to plain object
+    const postObj = post.toObject ? post.toObject() : post;
     
-    const { statusCode, body } = httpSuccess(200, 'Post retrieved successfully', post);
+    // Get ALL comments (root + replies) from Comment collection for grouping
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 200, includeReplies: true });
+    const groupedComments = groupComments(commentsData.comments);
+    
+    // Add comments to post object
+    postObj.comments = groupedComments;
+    
+    const { statusCode, body } = httpSuccess(200, 'Post retrieved successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {
@@ -438,12 +536,17 @@ const updatePost = async (req, res, next) => {
       { new: true, runValidators: true }
     )
       .populate('author', 'name profileImage')
-      .populate('comments.author', 'name profileImage');
+      .populate('plants');
     
-    // Group comments by parent
-    updatedPost.comments = groupComments(updatedPost.comments);
+    // Get comments from Comment collection
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 200 });
+    const groupedComments = groupComments(commentsData.comments);
     
-    const { statusCode, body } = httpSuccess(200, 'Post updated successfully', updatedPost);
+    // Convert to plain object
+    const postObj = updatedPost.toObject ? updatedPost.toObject() : updatedPost;
+    postObj.comments = groupedComments;
+    
+    const { statusCode, body } = httpSuccess(200, 'Post updated successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {
@@ -470,6 +573,10 @@ const deletePost = async (req, res, next) => {
       return next(httpError(403, 'Not authorized to delete this post'));
     }
     
+    // Delete all comments for this post
+    const commentsResult = await Comment.deleteMany({ post: req.params.id });
+    
+    // Delete the post
     await Post.findByIdAndDelete(req.params.id);
     
     const { statusCode, body } = httpSuccess(200, 'Post deleted successfully');
@@ -499,23 +606,15 @@ const addComment = async (req, res, next) => {
       return next(httpError(400, 'Cannot comment on unpublished post'));
     }
     
-    // If parentCommentId is provided, verify it exists
-    let parentCommentId = req.body.parentId || null;
-    if (parentCommentId) {
-      const parentComment = post.comments.id(parentCommentId);
-      if (!parentComment) {
-        return next(httpError(404, 'Parent comment not found'));
-      }
-    }
+    // Get parentCommentId if provided
+    const parentCommentId = req.body.parentId || null;
     
     // 🔍 Content Moderation - Check comment before saving
-    console.log('🔍 [COMMENT] Running content moderation...');
     const moderationResult = await moderateComment({
       content: req.body.content,
     });
     
     if (!moderationResult.approved) {
-      console.log('❌ [COMMENT] Content moderation failed:', moderationResult.reason);
       return res.status(400).json({
         success: false,
         message: 'Nội dung bình luận không phù hợp với cộng đồng',
@@ -528,12 +627,9 @@ const addComment = async (req, res, next) => {
       });
     }
     
-    console.log('✅ [COMMENT] Content moderation passed');
-    
     // Handle image uploads for comment if any
     let images = [];
     if (req.files && req.files.length > 0) {
-      console.log(`📤 [COMMENT] Uploading ${req.files.length} image(s) to Cloudinary...`);
       
       const hasCloudinaryConfig = 
         process.env.CLOUDINARY_CLOUD_NAME && 
@@ -573,7 +669,6 @@ const addComment = async (req, res, next) => {
         .filter(result => result.status === 'fulfilled')
         .map(result => result.value);
       
-      console.log(`✅ [COMMENT] ${images.length} image(s) uploaded successfully`);
     } else if (req.body.images && Array.isArray(req.body.images)) {
       // Handle base64 images from frontend (fallback)
       const base64Promises = req.body.images.map(async (imageData) => {
@@ -610,15 +705,14 @@ const addComment = async (req, res, next) => {
       images = await Promise.all(base64Promises);
     }
     
-    const comment = {
+    // Create comment using Comment service
+    const newComment = await createCommentService({
+      postId: req.params.id,
+      authorId: req.user.id,
       content: req.body.content,
-      author: req.user.id,
-      parentComment: parentCommentId,
+      parentCommentId: parentCommentId,
       images: images,
-    };
-    
-    post.comments.push(comment);
-    await post.save();
+    });
     
     // Update user stats: increment totalComments
     await User.findByIdAndUpdate(req.user.id, {
@@ -626,13 +720,93 @@ const addComment = async (req, res, next) => {
       $set: { 'stats.lastActiveAt': new Date() },
     });
     
-    // Populate the new comment's author
-    await post.populate('comments.author', 'name profileImage');
+    // Get updated post with all comments
+    const updatedPost = await Post.findById(req.params.id)
+      .populate('author', 'name profileImage')
+      .populate('plants');
     
-    // Group comments by parent
-    post.comments = groupComments(post.comments);
+    if (!updatedPost) {
+      return next(httpError(404, 'Post not found after comment creation'));
+    }
     
-    const { statusCode, body } = httpSuccess(201, 'Comment added successfully', post);
+    // Get ALL comments (root + replies) and group them
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 200, includeReplies: true });
+    const groupedComments = groupComments(commentsData.comments);
+    
+    // Convert to plain object
+    const postObj = updatedPost.toObject ? updatedPost.toObject() : updatedPost;
+    postObj.comments = groupedComments;
+    
+    // Create notifications for reply/mention
+    try {
+      if (parentCommentId) {
+        // This is a reply - notify the parent comment author
+        const parentComment = await Comment.findById(parentCommentId).populate('author');
+        if (parentComment && parentComment.author._id.toString() !== req.user.id.toString()) {
+          const notification = await createNotification({
+            userId: parentComment.author._id,
+            type: 'reply',
+            actorId: req.user.id,
+            postId: post._id,
+            commentId: newComment._id,
+            content: req.body.content.substring(0, 100),
+            metadata: {
+              postTitle: post.title,
+            },
+          });
+          
+          if (notification) {
+            await broadcastNotification(parentComment.author._id.toString(), notification);
+          }
+        }
+      } else {
+        // This is a new comment - notify post author
+        if (post.author.toString() !== req.user.id.toString()) {
+          const notification = await createNotification({
+            userId: post.author,
+            type: 'comment',
+            actorId: req.user.id,
+            postId: post._id,
+            commentId: newComment._id,
+            content: req.body.content.substring(0, 100),
+            metadata: {
+              postTitle: post.title,
+            },
+          });
+          
+          if (notification) {
+            await broadcastNotification(post.author.toString(), notification);
+          }
+        }
+      }
+      
+      // Extract mentions and notify mentioned users
+      const mentionedUserIds = await extractMentions(req.body.content);
+      for (const mentionedUserId of mentionedUserIds) {
+        if (mentionedUserId.toString() !== req.user.id.toString()) {
+          const notification = await createNotification({
+            userId: mentionedUserId,
+            type: 'mention',
+            actorId: req.user.id,
+            postId: post._id,
+            commentId: newComment._id,
+            content: req.body.content.substring(0, 100),
+            metadata: {
+              postTitle: post.title,
+            },
+          });
+          
+          if (notification) {
+            await broadcastNotification(mentionedUserId.toString(), notification);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ [COMMENT] Error creating notifications:', error);
+      // Don't fail the request if notification creation fails
+    }
+    
+    const { statusCode, body } = httpSuccess(201, 'Comment added successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {
@@ -655,25 +829,13 @@ const updateComment = async (req, res, next) => {
     }
     
     const commentId = req.params.commentId;
-    const comment = post.comments.id(commentId);
-    
-    if (!comment) {
-      return next(httpError(404, 'Comment not found'));
-    }
-    
-    // Check if user is authorized to update
-    if (comment.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return next(httpError(403, 'Not authorized to update this comment'));
-    }
     
     // 🔍 Content Moderation - Check updated comment before saving
-    console.log('🔍 [UPDATE COMMENT] Running content moderation...');
     const moderationResult = await moderateComment({
       content: req.body.content,
     });
     
     if (!moderationResult.approved) {
-      console.log('❌ [UPDATE COMMENT] Content moderation failed:', moderationResult.reason);
       return res.status(400).json({
         success: false,
         message: 'Nội dung bình luận không phù hợp với cộng đồng',
@@ -686,12 +848,9 @@ const updateComment = async (req, res, next) => {
       });
     }
     
-    console.log('✅ [UPDATE COMMENT] Content moderation passed');
-    
     // Handle image uploads for comment if any
-    let images = comment.images || [];
+    let images = comment.images ? [...comment.images] : [];
     if (req.files && req.files.length > 0) {
-      console.log(`📤 [UPDATE COMMENT] Uploading ${req.files.length} image(s) to Cloudinary...`);
       
       const hasCloudinaryConfig = 
         process.env.CLOUDINARY_CLOUD_NAME && 
@@ -738,7 +897,6 @@ const updateComment = async (req, res, next) => {
         images = [...images, ...newImages];
       }
       
-      console.log(`✅ [UPDATE COMMENT] ${newImages.length} image(s) uploaded successfully`);
     } else if (req.body.images && Array.isArray(req.body.images)) {
       // Handle base64 images from frontend (fallback)
       const base64Promises = req.body.images.map(async (imageData) => {
@@ -780,20 +938,26 @@ const updateComment = async (req, res, next) => {
       }
     }
     
-    // Update comment
-    comment.content = req.body.content;
-    comment.images = images;
-    comment.updatedAt = new Date();
+    // Update comment using Comment service
+    const updatedComment = await updateCommentService(commentId, req.user.id, {
+      content: req.body.content,
+      images: images,
+    });
     
-    await post.save();
+    // Get updated post with all comments
+    const updatedPost = await Post.findById(req.params.id)
+      .populate('author', 'name profileImage')
+      .populate('plants');
     
-    // Populate comment author
-    await post.populate('comments.author', 'name profileImage');
+    // Get ALL comments (root + replies) and group them
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 200, includeReplies: true });
+    const groupedComments = groupComments(commentsData.comments);
     
-    // Group comments by parent
-    post.comments = groupComments(post.comments);
+    // Convert to plain object
+    const postObj = updatedPost.toObject ? updatedPost.toObject() : updatedPost;
+    postObj.comments = groupedComments;
     
-    const { statusCode, body } = httpSuccess(200, 'Comment updated successfully', post);
+    const { statusCode, body } = httpSuccess(200, 'Comment updated successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {
@@ -816,36 +980,44 @@ const deleteComment = async (req, res, next) => {
     }
     
     const commentId = req.params.commentId;
-    const comment = post.comments.id(commentId);
     
+    // Get comment before deletion to update user stats
+    const comment = await Comment.findById(commentId);
     if (!comment) {
       return next(httpError(404, 'Comment not found'));
     }
     
-    // Check if user is authorized to delete
-    if (comment.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return next(httpError(403, 'Not authorized to delete this comment'));
-    }
-    
-    // Delete comment (this will also delete nested replies due to parentComment reference)
-    post.comments.pull(commentId);
-    await post.save();
+    // Delete comment using Comment service (includes recursive deletion of replies)
+    const result = await deleteCommentService(commentId, req.user.id, req.user.role === 'admin');
     
     // Update user stats: decrement totalComments
     await User.findByIdAndUpdate(comment.author, {
-      $inc: { 'stats.totalComments': -1 },
+      $inc: { 'stats.totalComments': -result.deletedCount },
     });
     
-    // Populate comments for response
-    await post.populate('comments.author', 'name profileImage');
+    // Get updated post with all comments
+    const updatedPost = await Post.findById(req.params.id)
+      .populate('author', 'name profileImage')
+      .populate('plants');
     
-    // Group comments by parent
-    post.comments = groupComments(post.comments);
+    // Get ALL comments (root + replies) and group them
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 200, includeReplies: true });
+    const groupedComments = groupComments(commentsData.comments);
     
-    const { statusCode, body } = httpSuccess(200, 'Comment deleted successfully', post);
+    // Convert to plain object
+    const postObj = updatedPost.toObject ? updatedPost.toObject() : updatedPost;
+    postObj.comments = groupedComments;
+    
+    const { statusCode, body } = httpSuccess(200, 'Comment deleted successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {
+    if (error.message === 'Comment not found') {
+      return next(httpError(404, error.message));
+    }
+    if (error.message === 'Not authorized to delete this comment') {
+      return next(httpError(403, error.message));
+    }
     next(error);
   }
 };
@@ -885,6 +1057,29 @@ const toggleLike = async (req, res, next) => {
       await User.findByIdAndUpdate(postAuthorId, {
         $inc: { 'stats.totalLikes': 1 },
       });
+      
+      // Create notification for like (only when liking, not unliking)
+      try {
+        if (postAuthorId !== req.user.id.toString()) {
+          const notification = await createNotification({
+            userId: postAuthorId,
+            type: 'like',
+            actorId: req.user.id,
+            postId: post._id,
+            content: post.title,
+            metadata: {
+              postTitle: post.title,
+            },
+          });
+          
+          if (notification) {
+            await broadcastNotification(postAuthorId, notification);
+          }
+        }
+      } catch (error) {
+        console.error('❌ [POST] Error creating like notification:', error);
+        // Don't fail the request if notification creation fails
+      }
     } else {
       // Unlike post
       post.likes = post.likes.filter(
@@ -899,14 +1094,18 @@ const toggleLike = async (req, res, next) => {
     
     await post.save();
     
-    // Populate author and comments for response
+    // Populate author for response
     await post.populate('author', 'name profileImage');
-    await post.populate('comments.author', 'name profileImage');
     
-    // Group comments by parent
-    post.comments = groupComments(post.comments);
+    // Get ALL comments (root + replies) from Comment collection for grouping
+    const commentsData = await getCommentsByPost(req.params.id, { limit: 100, includeReplies: true });
+    const groupedComments = groupComments(commentsData.comments);
     
-    const { statusCode, body } = httpSuccess(200, 'Post like toggled successfully', post);
+    // Convert to plain object
+    const postObj = post.toObject ? post.toObject() : post;
+    postObj.comments = groupedComments;
+    
+    const { statusCode, body } = httpSuccess(200, 'Post like toggled successfully', postObj);
     
     res.status(statusCode).json(body);
   } catch (error) {

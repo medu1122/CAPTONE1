@@ -55,6 +55,9 @@ src/
     ├── productRecommendations/ # Product recommendations
     ├── aiAssistant/      # AI Assistant & GPT integration
     ├── chatAnalyze/      # Chat Analyze AI Layer
+    ├── posts/            # Community posts
+    ├── comments/         # Comments & nested replies
+    ├── notifications/    # Real-time notifications
     ├── treatments/        # Treatment recommendations (NEW)
     │   ├── product.model.js          # Chemical products
     │   ├── biologicalMethod.model.js # Biological methods
@@ -376,7 +379,117 @@ GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
 }
 ```
 
-### 14. Health Check (`/health`)
+### 14. Posts (`/posts`) - Community Platform
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/posts` | Lấy danh sách bài đăng | ❌ |
+| POST | `/posts` | Tạo bài đăng mới | ✅ |
+| GET | `/posts/:id` | Lấy chi tiết bài đăng | ❌ |
+| PUT | `/posts/:id` | Cập nhật bài đăng | ✅ |
+| DELETE | `/posts/:id` | Xóa bài đăng | ✅ |
+| POST | `/posts/:id/like` | Like/Unlike bài viết | ✅ |
+| POST | `/posts/:id/comments` | Thêm bình luận | ✅ |
+| PUT | `/posts/:id/comments/:commentId` | Cập nhật bình luận | ✅ |
+| DELETE | `/posts/:id/comments/:commentId` | Xóa bình luận | ✅ |
+
+**Request Format (Create Post):**
+```bash
+POST /api/v1/posts
+Content-Type: multipart/form-data
+
+title: "Tiêu đề bài viết"
+content: "Nội dung bài viết"
+category: "question" | "discussion" | "tip" | "problem" | "success" | "other"
+tags: ["tag1", "tag2"]
+images: <file1>, <file2>, ... (optional, max 5 per post)
+plants: ["plantId1", "plantId2"] (optional)
+```
+
+**Request Format (Add Comment):**
+```bash
+POST /api/v1/posts/:id/comments
+Content-Type: multipart/form-data
+
+content: "Nội dung bình luận"
+parentId: "commentId" (optional - để reply comment)
+images: <file1>, <file2> (optional, max 3 per comment)
+```
+
+**Response Format (Post with Comments):**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "...",
+    "title": "...",
+    "content": "...",
+    "author": {
+      "_id": "...",
+      "name": "...",
+      "profileImage": "..."
+    },
+    "likes": ["userId1", "userId2"],
+    "likeCount": 2,
+    "comments": [
+      {
+        "_id": "...",
+        "content": "...",
+        "author": {...},
+        "replies": [
+          {
+            "_id": "...",
+            "content": "...",
+            "author": {...},
+            "parentComment": "parentCommentId"
+          }
+        ]
+      }
+    ],
+    "commentCount": 5,
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}
+```
+
+### 15. Notifications (`/notifications`) - Real-time Notifications
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/notifications` | Lấy danh sách thông báo | ✅ |
+| GET | `/notifications/unread-count` | Lấy số lượng chưa đọc | ✅ |
+| PUT | `/notifications/:id/read` | Đánh dấu đã đọc | ✅ |
+| PUT | `/notifications/read-all` | Đánh dấu tất cả đã đọc | ✅ |
+| GET | `/notifications/stream` | Real-time notifications (SSE) | ✅ |
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "data": {
+    "notifications": [
+      {
+        "_id": "...",
+        "type": "like" | "comment" | "reply" | "mention",
+        "read": false,
+        "actor": {
+          "_id": "...",
+          "name": "...",
+          "profileImage": "..."
+        },
+        "relatedEntity": {
+          "type": "post" | "comment",
+          "id": "..."
+        },
+        "content": "User đã like bài viết của bạn",
+        "createdAt": "..."
+      }
+    ],
+    "unreadCount": 5
+  }
+}
+```
+
+### 16. Health Check (`/health`)
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | GET | `/health` | Kiểm tra trạng thái API | ❌ |
@@ -578,7 +691,61 @@ GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
 }
 ```
 
-### 10. Product Recommendations Collection
+### 10. Posts Collection
+```javascript
+{
+  _id: ObjectId,
+  title: String (required, max: 200),
+  content: String (required, max: 10000),
+  author: ObjectId (ref: 'User', required, indexed),
+  category: String (enum: ['question', 'discussion', 'tip', 'problem', 'success', 'other']),
+  tags: [String (lowercase)],
+  images: [String (URL)],
+  plants: [ObjectId (ref: 'Plant')],
+  likes: [ObjectId (ref: 'User')],
+  likeCount: Number (default: 0),
+  commentCount: Number (default: 0),
+  status: String (enum: ['draft', 'published', 'archived'], default: 'published'),
+  createdAt: Date (indexed),
+  updatedAt: Date
+}
+```
+
+### 11. Comments Collection
+```javascript
+{
+  _id: ObjectId,
+  post: ObjectId (ref: 'Post', required, indexed),
+  author: ObjectId (ref: 'User', required, indexed),
+  parentComment: ObjectId (ref: 'Comment', optional - for replies, indexed),
+  content: String (required, max: 2000),
+  images: [String (URL)],
+  likes: [ObjectId (ref: 'User')],
+  replyCount: Number (default: 0),
+  createdAt: Date (indexed),
+  updatedAt: Date
+}
+```
+
+### 12. Notifications Collection
+```javascript
+{
+  _id: ObjectId,
+  user: ObjectId (ref: 'User', required, indexed),
+  type: String (required, enum: ['like', 'comment', 'reply', 'mention'], indexed),
+  read: Boolean (default: false, indexed),
+  actor: ObjectId (ref: 'User', required),
+  relatedEntity: {
+    type: String (enum: ['post', 'comment']),
+    id: ObjectId
+  },
+  content: String (required),
+  metadata: Mixed (optional),
+  createdAt: Date (indexed)
+}
+```
+
+### 13. Product Recommendations Collection
 ```javascript
 {
   _id: ObjectId,
@@ -611,7 +778,7 @@ GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
 }
 ```
 
-### 11. Products Collection (NEW - Chemical Treatments)
+### 14. Products Collection (NEW - Chemical Treatments)
 ```javascript
 {
   _id: ObjectId,
@@ -634,7 +801,7 @@ GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
 }
 ```
 
-### 12. Biological Methods Collection (NEW)
+### 15. Biological Methods Collection (NEW)
 ```javascript
 {
   _id: ObjectId,
@@ -651,7 +818,7 @@ GET /api/v1/treatments/recommendations?diseaseName=Nấm&cropName=Lúa
 }
 ```
 
-### 13. Cultural Practices Collection (NEW)
+### 16. Cultural Practices Collection (NEW)
 ```javascript
 {
   _id: ObjectId,
@@ -1150,6 +1317,11 @@ GET /api/v1/health
 - ✅ **AI Treatment Advisor** - GPT-powered detailed treatment advice
 - ✅ **Plant Analysis Separation** - Dedicated `/analyze/image` endpoint
 - ✅ **Treatment Collections** - products, biological_methods, cultural_practices
+- ✅ **Community Platform** - Posts với like, comment, và nested replies
+- ✅ **Comments System** - Separate comments collection với nested replies và @mention
+- ✅ **Real-time Notifications** - SSE-based notifications cho likes, comments, replies, mentions
+- ✅ **User Profile & Settings** - Profile management, avatar upload, password change
+- ✅ **Email Verification & Password Reset** - Complete authentication flow
 - ✅ File upload handling
 - ✅ Rate limiting
 - ✅ Error handling
@@ -1157,23 +1329,17 @@ GET /api/v1/health
 - ✅ Database optimization (indexes, TTL)
 
 ### Planned Features 🚧
-- 🔄 Frontend chat history loading (backend ready)
-- 🔄 Cloudinary image storage
-- 🔄 WebSocket for real-time chat (SSE đã implement)
-- 🔄 Advanced AI streaming với GPT API
-- 🔄 Email notifications (nodemailer integration)
-- 🔄 Push notifications
-- 🔄 Analytics dashboard
+- 🔄 Advanced analytics dashboard
 - 🔄 API documentation (Swagger)
 - 🔄 Unit tests
 - 🔄 Integration tests
 - 🔄 Performance monitoring
-- 🔄 Migration scripts for existing data
 - 🔄 Advanced AI features (image analysis, disease detection)
 - 🔄 Machine learning model training
 - 🔄 Multi-language support
 - 🔄 Advanced weather forecasting
 - 🔄 IoT sensor integration
+- 🔄 Push notifications (mobile)
 
 ## 🤝 Contributing
 

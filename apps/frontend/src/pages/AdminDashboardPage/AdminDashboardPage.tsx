@@ -5,9 +5,10 @@ import { UsersTab } from './components/UsersTab'
 import { AnalysisTab } from './components/AnalysisTab'
 import { CommunityTab } from './components/CommunityTab'
 import { ComplaintsTab } from './components/ComplaintsTab'
+import { DataManagementTab } from './components/DataManagementTab'
 import { authService } from '../../services/authService'
 
-type TabType = 'users' | 'analysis' | 'community' | 'complaints'
+type TabType = 'users' | 'analysis' | 'community' | 'complaints' | 'data'
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate()
@@ -67,6 +68,11 @@ export const AdminDashboardPage: React.FC = () => {
       label: 'Khiếu nại & Báo cáo',
       icon: '📋',
     },
+    {
+      id: 'data' as TabType,
+      label: 'Quản lý Dữ liệu',
+      icon: '💾',
+    },
   ]
   if (loading) {
     return (
@@ -117,6 +123,7 @@ export const AdminDashboardPage: React.FC = () => {
           {activeTab === 'analysis' && <AnalysisTab />}
           {activeTab === 'community' && <CommunityTab />}
           {activeTab === 'complaints' && <ComplaintsTab />}
+          {activeTab === 'data' && <DataManagementTab />}
         </div>
       </main>
     </div>

@@ -85,21 +85,30 @@ const transformPost = (backendPost: any): Post => {
     likes: (backendPost.likes || []).map((like: any) => 
       typeof like === 'string' ? like : (like._id || like.id || like)
     ),
-    comments: (backendPost.comments || []).map((comment: any) => ({
-      _id: comment._id || comment.id,
-      content: comment.content,
-      images: (comment.images || []).map((img: any) => ({
-        url: typeof img === 'string' ? img : (img.url || ''),
-        caption: typeof img === 'object' ? (img.caption || '') : '',
-      })).filter((img: any) => img.url),
-      author: {
-        _id: comment.author?._id || comment.author?.id,
-        name: comment.author?.name || 'Unknown',
-        profileImage: comment.author?.profileImage || '',
-      },
-      createdAt: comment.createdAt,
-      updatedAt: comment.updatedAt,
-    })),
+    comments: (backendPost.comments || []).map((comment: any) => {
+      // Helper function to transform a single comment (recursive for replies)
+      const transformComment = (c: any): Comment => ({
+        _id: c._id || c.id,
+        content: c.content,
+        images: (c.images || []).map((img: any) => ({
+          url: typeof img === 'string' ? img : (img.url || ''),
+          caption: typeof img === 'object' ? (img.caption || '') : '',
+        })).filter((img: any) => img.url),
+        author: {
+          _id: c.author?._id || c.author?.id,
+          name: c.author?.name || 'Unknown',
+          profileImage: c.author?.profileImage || '',
+        },
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        // Recursively transform replies if they exist (always return array, never undefined)
+        replies: Array.isArray(c.replies) && c.replies.length > 0
+          ? c.replies.map((reply: any) => transformComment(reply))
+          : [], // Always return array, even if empty
+      })
+      
+      return transformComment(comment)
+    }),
     plants: backendPost.plants || [],
     category: backendPost.category || 'discussion',
     createdAt: backendPost.createdAt,
@@ -140,7 +149,30 @@ export const communityService = {
         API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', id)
       )
       const backendData = response.data.data || response.data
-      return transformPost(backendData)
+      console.log('🔍 [communityService] getPostById - Raw backend data:', backendData)
+      console.log('🔍 [communityService] getPostById - Comments:', backendData.comments)
+      if (backendData.comments && Array.isArray(backendData.comments)) {
+        backendData.comments.forEach((comment: any, index: number) => {
+          console.log(`🔍 [communityService] Comment ${index}:`, {
+            _id: comment._id,
+            content: comment.content?.substring(0, 30),
+            hasReplies: !!comment.replies,
+            repliesCount: comment.replies?.length || 0,
+            replies: comment.replies
+          })
+        })
+      }
+      const transformedPost = transformPost(backendData)
+      console.log('🔍 [communityService] getPostById - Transformed post:', transformedPost)
+      console.log('🔍 [communityService] getPostById - Transformed comments:', transformedPost.comments)
+      transformedPost.comments.forEach((comment: Comment, index: number) => {
+        console.log(`🔍 [communityService] Transformed Comment ${index}:`, {
+          _id: comment._id,
+          hasReplies: !!comment.replies,
+          repliesCount: comment.replies?.length || 0
+        })
+      })
+      return transformedPost
     } catch (error: any) {
       console.error('Error fetching post:', error)
       throw new Error(error.response?.data?.message || 'Failed to fetch post')
@@ -209,7 +241,40 @@ export const communityService = {
   ): Promise<Comment> => {
     try {
       // Check if data is FormData (file upload)
-      const isFormData = data instanceof FormData
+      let isFormData = data instanceof FormData
+      let requestData = data
+      
+      // If data is CreateCommentData with images (File[]), convert to FormData
+      if (!isFormData && data && typeof data === 'object' && 'images' in data) {
+        const commentData = data as CreateCommentData
+        if (commentData.images && commentData.images.length > 0 && commentData.images[0] instanceof File) {
+          const formData = new FormData()
+          formData.append('content', commentData.content)
+          if (commentData.parentId) {
+            formData.append('parentId', commentData.parentId)
+          }
+          commentData.images.forEach((img) => {
+            if (img instanceof File) {
+              formData.append('images', img)
+            }
+          })
+          requestData = formData
+          isFormData = true
+        } else if (commentData.parentId) {
+          // Even without images, if parentId exists, we need to ensure it's sent
+          // For JSON requests, parentId should already be in the data object
+          console.log('📝 [communityService] Creating comment with parentId (no images):', commentData.parentId)
+        }
+      }
+      
+      // Log the request data to debug
+      if (!isFormData && data && typeof data === 'object' && 'parentId' in data) {
+        console.log('📝 [communityService] Request data (JSON):', {
+          content: (data as any).content?.substring(0, 30),
+          parentId: (data as any).parentId,
+          hasImages: !!(data as any).images
+        })
+      }
       
       const config = isFormData ? {
         timeout: 60000, // 60 seconds for file upload
@@ -217,41 +282,47 @@ export const communityService = {
       
       const response = await api.post(
         `${API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', postId)}/comments`,
-        data,
+        requestData,
         config
       )
       const backendData = response.data.data || response.data
       
-      // Backend returns updated post with comments, extract the new comment
-      if (backendData.comments && backendData.comments.length > 0) {
-        const lastComment = backendData.comments[backendData.comments.length - 1]
-        return {
-          _id: lastComment._id || lastComment.id,
-          content: lastComment.content,
-          images: (lastComment.images || []).map((img: any) => ({
-            url: typeof img === 'string' ? img : (img.url || ''),
-            caption: typeof img === 'object' ? (img.caption || '') : '',
-          })).filter((img: any) => img.url),
-          author: {
-            _id: lastComment.author?._id || lastComment.author?.id,
-            name: lastComment.author?.name || 'Unknown',
-            profileImage: lastComment.author?.profileImage || '',
-          },
-          createdAt: lastComment.createdAt,
-          updatedAt: lastComment.updatedAt,
+      // Transform the post to get properly structured comments with replies
+      const post = transformPost(backendData)
+      
+      // Helper function to find the most recent comment (including replies)
+      const findLatestComment = (comments: Comment[]): Comment | null => {
+        let latest: Comment | null = null
+        let latestTime = 0
+        
+        const checkComment = (c: Comment) => {
+          const time = new Date(c.createdAt).getTime()
+          if (time > latestTime) {
+            latestTime = time
+            latest = c
+          }
+          // Also check replies recursively
+          if (c.replies && c.replies.length > 0) {
+            c.replies.forEach(reply => checkComment(reply))
+          }
         }
+        
+        comments.forEach(comment => checkComment(comment))
+        return latest
       }
       
-      // Fallback: return from transformed post
-      const post = transformPost(backendData)
-      if (post.comments.length > 0) {
-        const newComment = post.comments[post.comments.length - 1]
+      // Find the most recent comment (could be a reply)
+      const latestComment = findLatestComment(post.comments)
+      
+      if (latestComment) {
         return {
-          _id: newComment._id,
-          content: newComment.content,
-          author: newComment.author,
-          createdAt: newComment.createdAt,
-          updatedAt: newComment.updatedAt,
+          _id: latestComment._id,
+          content: latestComment.content,
+          images: latestComment.images || [],
+          author: latestComment.author,
+          createdAt: latestComment.createdAt,
+          updatedAt: latestComment.updatedAt,
+          replies: latestComment.replies,
         }
       }
       

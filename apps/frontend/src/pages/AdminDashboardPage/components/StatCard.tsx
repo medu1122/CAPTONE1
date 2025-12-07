@@ -15,6 +15,10 @@ const iconMap: Record<string, string> = {
   heart: '❤️',
   message: '💬',
   flag: '🚩',
+  pill: '💊',
+  leaf: '🌱',
+  sprout: '🌾',
+  database: '💾',
 }
 const colorClasses = {
   blue: {
@@ -37,9 +41,14 @@ const colorClasses = {
     text: 'text-red-600',
     border: 'border-red-200',
   },
+  purple: {
+    bg: 'bg-purple-50',
+    text: 'text-purple-600',
+    border: 'border-purple-200',
+  },
 }
 export const StatCard: React.FC<StatCardProps> = ({ data }) => {
-  const colors = colorClasses[data.color]
+  const colors = colorClasses[data.color] || colorClasses.blue
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-4">

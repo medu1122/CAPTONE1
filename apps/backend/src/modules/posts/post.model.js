@@ -54,6 +54,11 @@ const postSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     }],
+    commentCount: {
+      type: Number,
+      default: 0,
+    },
+    // Legacy: comments array kept for backward compatibility (can be removed later)
     comments: [commentSchema],
     plants: [{
       type: mongoose.Schema.Types.ObjectId,

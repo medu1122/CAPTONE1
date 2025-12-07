@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { LogOut, User, Settings, Mail, CheckCircle, Shield } from 'lucide-react'
 import { getUserAvatar } from '../utils/avatar'
 import { authService } from '../services/authService'
+import { NotificationIcon } from './NotificationIcon'
 
 export const UserMenu: React.FC = () => {
   const { user, logout, logoutAll } = useAuth()
@@ -42,7 +43,11 @@ export const UserMenu: React.FC = () => {
   if (!user) return null
 
   return (
-    <div className="relative">
+    <div className="relative flex items-center gap-2">
+      {/* Notification Icon */}
+      <NotificationIcon />
+      
+      {/* User Menu */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

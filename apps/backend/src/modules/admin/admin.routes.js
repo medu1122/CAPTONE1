@@ -31,6 +31,26 @@ import {
   updateReportStatus,
 } from '../reports/report.service.js';
 import { httpSuccess } from '../../common/utils/http.js';
+import {
+  getProductsController,
+  createProductController,
+  updateProductController,
+  deleteProductController,
+  getBiologicalMethodsController,
+  createBiologicalMethodController,
+  updateBiologicalMethodController,
+  deleteBiologicalMethodController,
+  getCulturalPracticesController,
+  createCulturalPracticeController,
+  updateCulturalPracticeController,
+  deleteCulturalPracticeController,
+  getDataStatsController,
+} from './dataManagement.controller.js';
+import {
+  validateProduct,
+  validateBiologicalMethod,
+  validateCulturalPractice,
+} from './dataManagement.validation.js';
 
 const router = express.Router();
 
@@ -79,6 +99,27 @@ router.put('/reports/:id/status', validateUpdateReportStatus, async (req, res, n
     next(error);
   }
 });
+
+// Data Management - Products (Thuốc hóa học)
+router.get('/data/products', getProductsController);
+router.post('/data/products', validateProduct, createProductController);
+router.put('/data/products/:id', validateProduct, updateProductController);
+router.delete('/data/products/:id', deleteProductController);
+
+// Data Management - Biological Methods (Phương pháp sinh học)
+router.get('/data/biological-methods', getBiologicalMethodsController);
+router.post('/data/biological-methods', validateBiologicalMethod, createBiologicalMethodController);
+router.put('/data/biological-methods/:id', validateBiologicalMethod, updateBiologicalMethodController);
+router.delete('/data/biological-methods/:id', deleteBiologicalMethodController);
+
+// Data Management - Cultural Practices (Canh tác)
+router.get('/data/cultural-practices', getCulturalPracticesController);
+router.post('/data/cultural-practices', validateCulturalPractice, createCulturalPracticeController);
+router.put('/data/cultural-practices/:id', validateCulturalPractice, updateCulturalPracticeController);
+router.delete('/data/cultural-practices/:id', deleteCulturalPracticeController);
+
+// Data Management - Statistics
+router.get('/data/stats', getDataStatsController);
 
 export default router;
 

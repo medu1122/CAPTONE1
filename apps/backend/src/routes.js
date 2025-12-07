@@ -21,6 +21,7 @@ import provinceRoutes from './modules/provinces/province.routes.js';
 import complaintRoutes from './modules/complaints/complaint.routes.js';
 import reportRoutes from './modules/reports/report.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
+import notificationRoutes from './modules/notifications/notification.routes.js';
 
 const router = express.Router();
 
@@ -48,5 +49,6 @@ router.use('/provinces', provinceRoutes);  // NEW
 router.use('/complaints', complaintRoutes);  // NEW: Complaints system
 router.use('/reports', reportRoutes);  // NEW: Reports system
 router.use('/admin', adminRoutes);  // NEW: Admin dashboard APIs
+router.use('/notifications', notificationRoutes);  // NEW: Notifications system
 
 export default router;

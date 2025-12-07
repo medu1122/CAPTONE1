@@ -411,8 +411,6 @@ Indexes:
 ---
 
 ### 12. posts
-**Note:** Code exists but collection may not be created in MongoDB yet.
-
 Stores community posts and discussions.
 
 | Field | Type | Description |
@@ -426,15 +424,7 @@ Stores community posts and discussions.
 | author | ObjectId | Author (ref: users, required) |
 | tags | Array<String> | Tags (default: []) |
 | likes | Array<ObjectId> | User likes (ref: users, default: []) |
-| comments | Array | Comments (embedded) |
-| ├─ content | String | Comment content (required) |
-| ├─ author | ObjectId | Author (ref: users, required) |
-| ├─ parentComment | ObjectId / null | Parent comment for replies (ref: Comment) |
-| ├─ images | Array | Comment images (default: []) |
-| │  ├─ url | String | Image URL |
-| │  └─ caption | String | Image caption |
-| ├─ createdAt | Date | Creation time |
-| └─ updatedAt | Date | Last update |
+| commentCount | Number | Number of comments (default: 0, cached) |
 | plants | Array<ObjectId> | Related plants (ref: plants, default: []) |
 | category | String | Post category (enum: "question", "discussion", "tip", "problem", "success", "other", default: "discussion") |
 | status | String | Post status (enum: "draft", "pending", "published", "rejected", "archived", default: "published") |
@@ -442,6 +432,8 @@ Stores community posts and discussions.
 | lastReportedAt | Date / null | Last report timestamp |
 | createdAt | Date | Creation time |
 | updatedAt | Date | Last update |
+
+**Note:** Comments are now stored in a separate `comments` collection (see collection 20).
 
 Indexes:
 - `{ title: "text", content: "text", tags: "text" }` - Text search
@@ -674,9 +666,8 @@ Indexes:
    - Always check `collection` option in schema for actual collection name
 
 2. **Collections Status:**
-   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices, province_agriculture
-   - ⚠️ **Code exists, may need migration:** posts, alerts
-   - ❌ **MISSING - Need to create:** complaints, reports
+   - ✅ **Created in MongoDB:** users, auth_tokens, email_verifications, password_resets, chat_sessions, chats, analyses, plants, product_recommendations, weather_cache, plant_boxes, products, biological_methods, cultural_practices, province_agriculture, posts, alerts, complaints, reports, notifications, comments
+   - 🗑️ **Deleted (unused):** post_views, post_shares
 
 3. **TTL Indexes (Auto-delete expired documents):**
    - `auth_tokens.expiresAt` - Auto delete expired tokens
@@ -688,4 +679,71 @@ Indexes:
    - `GreenGrow` or `greengrow`
    - Connection: `mongodb://127.0.0.1:27017/GreenGrow`
 
-**Last Updated:** 2025-01-21 (Added complaints and reports collections for admin dashboard, added mute functionality to users, added report tracking to posts, and enhanced indexes for statistics queries)
+---
+
+### 20. comments
+**Note:** New collection created by migrating embedded comments from posts collection.
+
+Stores comments and replies for community posts.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| post | ObjectId | Post reference (ref: posts, required, indexed) |
+| author | ObjectId | Author (ref: users, required, indexed) |
+| parentComment | ObjectId / null | Parent comment for replies (ref: comments, default: null, indexed) |
+| content | String | Comment content (required) |
+| images | Array | Comment images (default: []) |
+| ├─ url | String | Image URL |
+| └─ caption | String | Image caption |
+| likes | Array<ObjectId> | User likes (ref: users, default: []) |
+| replyCount | Number | Number of replies (default: 0, cached) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ post: 1, createdAt: -1 }` - Comments for a post sorted by date
+- `{ author: 1, createdAt: -1 }` - User's comments sorted by date
+- `{ parentComment: 1, createdAt: -1 }` - Replies to a comment sorted by date
+- `{ post: 1, parentComment: 1 }` - Compound index for querying replies
+- `{ post: 1, parentComment: null, createdAt: -1 }` - Root comments only for a post
+
+**Migration Notes:**
+- Comments were migrated from embedded `posts.comments` array to separate collection
+- All existing comments have been migrated with parent references preserved
+- Post documents still contain `comments` array for backward compatibility (can be removed later)
+
+---
+
+### 21. notifications
+Stores user notifications for replies, likes, mentions, and comments.
+
+| Field | Type | Description |
+|--------|------|-------------|
+| _id | ObjectId | Primary key |
+| user | ObjectId | User to notify (ref: users, required, indexed) |
+| type | String | Notification type (enum: "reply", "like", "mention", "comment", required) |
+| read | Boolean | Read status (default: false, indexed) |
+| actor | ObjectId | User who performed the action (ref: users, required) |
+| post | ObjectId / null | Related post (ref: posts, default: null) |
+| comment | ObjectId / null | Related comment (default: null) |
+| content | String / null | Content preview (max: 200 chars, default: null) |
+| metadata | Object | Additional metadata (default: {}) |
+| createdAt | Date | Creation time |
+| updatedAt | Date | Last update |
+
+Indexes:
+- `{ user: 1, read: 1, createdAt: -1 }` - User's unread notifications sorted by date
+- `{ user: 1, createdAt: -1 }` - User's all notifications sorted by date
+- `{ read: 1, createdAt: -1 }` - Unread notifications across all users
+- `{ user: 1 }` - User notifications lookup
+- `{ read: 1 }` - Unread status lookup
+
+**Features:**
+- Real-time notifications via SSE (Server-Sent Events)
+- Automatic notification creation on reply, like, mention, and comment actions
+- Unread count tracking for badge display
+
+---
+
+**Last Updated:** 2025-01-21 (Migrated comments to separate collection, added notifications collection, deleted unused collections post_views and post_shares)

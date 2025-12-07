@@ -166,6 +166,73 @@ export interface Pagination {
   totalPages: number
 }
 
+// Data Management Types
+export interface Product {
+  _id: string
+  name: string
+  activeIngredient: string
+  manufacturer: string
+  targetDiseases: string[]
+  targetCrops: string[]
+  dosage: string
+  usage: string
+  price?: string
+  imageUrl?: string
+  source: string
+  verified: boolean
+  frequency?: string
+  isolationPeriod?: string
+  precautions?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BiologicalMethod {
+  _id: string
+  name: string
+  targetDiseases: string[]
+  materials: string
+  steps: string
+  timeframe: string
+  effectiveness: string
+  source: string
+  verified: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CulturalPractice {
+  _id: string
+  category: 'soil' | 'water' | 'fertilizer' | 'light' | 'spacing'
+  action: string
+  description: string
+  priority: 'High' | 'Medium' | 'Low'
+  applicableTo: string[]
+  source: string
+  verified: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DataStats {
+  products: {
+    total: number
+    verified: number
+    unverified: number
+  }
+  biologicalMethods: {
+    total: number
+    verified: number
+    unverified: number
+  }
+  culturalPractices: {
+    total: number
+    verified: number
+    unverified: number
+  }
+  total: number
+}
+
 // Admin Service
 export const adminService = {
   // User Management
@@ -309,6 +376,94 @@ export const adminService = {
     description?: string
   }): Promise<Report> {
     const response = await api.post('/reports', data)
+    return response.data.data
+  },
+
+  // Data Management - Products
+  async getProducts(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    verified?: string
+  }): Promise<{ products: Product[]; pagination: Pagination }> {
+    const response = await api.get('/admin/data/products', { params })
+    return response.data.data
+  },
+
+  async createProduct(data: Partial<Product>): Promise<Product> {
+    const response = await api.post('/admin/data/products', data)
+    return response.data.data
+  },
+
+  async updateProduct(productId: string, data: Partial<Product>): Promise<Product> {
+    const response = await api.put(`/admin/data/products/${productId}`, data)
+    return response.data.data
+  },
+
+  async deleteProduct(productId: string): Promise<void> {
+    await api.delete(`/admin/data/products/${productId}`)
+  },
+
+  // Data Management - Biological Methods
+  async getBiologicalMethods(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    verified?: string
+  }): Promise<{ methods: BiologicalMethod[]; pagination: Pagination }> {
+    const response = await api.get('/admin/data/biological-methods', { params })
+    return response.data.data
+  },
+
+  async createBiologicalMethod(data: Partial<BiologicalMethod>): Promise<BiologicalMethod> {
+    const response = await api.post('/admin/data/biological-methods', data)
+    return response.data.data
+  },
+
+  async updateBiologicalMethod(
+    methodId: string,
+    data: Partial<BiologicalMethod>
+  ): Promise<BiologicalMethod> {
+    const response = await api.put(`/admin/data/biological-methods/${methodId}`, data)
+    return response.data.data
+  },
+
+  async deleteBiologicalMethod(methodId: string): Promise<void> {
+    await api.delete(`/admin/data/biological-methods/${methodId}`)
+  },
+
+  // Data Management - Cultural Practices
+  async getCulturalPractices(params?: {
+    page?: number
+    limit?: number
+    search?: string
+    category?: string
+    verified?: string
+  }): Promise<{ practices: CulturalPractice[]; pagination: Pagination }> {
+    const response = await api.get('/admin/data/cultural-practices', { params })
+    return response.data.data
+  },
+
+  async createCulturalPractice(data: Partial<CulturalPractice>): Promise<CulturalPractice> {
+    const response = await api.post('/admin/data/cultural-practices', data)
+    return response.data.data
+  },
+
+  async updateCulturalPractice(
+    practiceId: string,
+    data: Partial<CulturalPractice>
+  ): Promise<CulturalPractice> {
+    const response = await api.put(`/admin/data/cultural-practices/${practiceId}`, data)
+    return response.data.data
+  },
+
+  async deleteCulturalPractice(practiceId: string): Promise<void> {
+    await api.delete(`/admin/data/cultural-practices/${practiceId}`)
+  },
+
+  // Data Management - Statistics
+  async getDataStats(): Promise<DataStats> {
+    const response = await api.get('/admin/data/stats')
     return response.data.data
   },
 }

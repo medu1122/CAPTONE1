@@ -441,7 +441,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           )}
 
           {/* Replies */}
-          {comment.replies && comment.replies.length > 0 && (
+          {Array.isArray(comment.replies) && comment.replies.length > 0 && (
             <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200">
               {comment.replies.map((reply: Comment) => (
                 <CommentItem

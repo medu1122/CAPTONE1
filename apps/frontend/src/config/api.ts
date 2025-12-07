@@ -126,6 +126,13 @@ export const API_CONFIG = {
       UPDATE: '/posts/:id',
       DELETE: '/posts/:id'
     },
+    NOTIFICATIONS: {
+      LIST: '/notifications',
+      UNREAD_COUNT: '/notifications/unread-count',
+      MARK_READ: '/notifications/:id/read',
+      MARK_ALL_READ: '/notifications/read-all',
+      STREAM: '/notifications/stream'
+    },
     ALERTS: {
       LIST: '/alerts',
       CREATE: '/alerts',

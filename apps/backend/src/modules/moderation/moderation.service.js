@@ -76,12 +76,15 @@ MỤC TIÊU DUY NHẤT: Kiểm tra xem bài đăng có phù hợp với cộng �
 - ✅ Chia sẻ kinh nghiệm, mẹo hay
 - ✅ Thảo luận về kỹ thuật trồng trọt
 - ✅ Hỏi đáp về thuốc, phân bón
-- ✅ Nội dung liên quan đến nông nghiệp (dù cách diễn đạt đơn giản)
+- ✅ Khoe cây, chia sẻ hình ảnh cây trồng, thành quả trồng trọt
+- ✅ Bài đăng khoe cây với title và nội dung đơn giản (ví dụ: "cây hoa hướng dương", "khoe cây lúa", "cây của tôi")
+- ✅ Nội dung liên quan đến nông nghiệp (dù cách diễn đạt đơn giản, ngắn gọn)
 
 ⚠️ QUY TẮC ĐẶC BIỆT:
-- KHÔNG từ chối vì nội dung ngắn nếu đó là câu hỏi hợp lệ về nông nghiệp
+- KHÔNG từ chối vì nội dung ngắn nếu đó là câu hỏi hợp lệ về nông nghiệp HOẶC chia sẻ/khoe cây
 - KHÔNG từ chối vì ngôn ngữ thân thiện, không trang trọng (như "ae", "anh em")
-- KHÔNG từ chối vì thiếu thông tin chi tiết - câu hỏi đơn giản cũng được chấp nhận
+- KHÔNG từ chối vì thiếu thông tin chi tiết - câu hỏi đơn giản, bài khoe cây ngắn gọn cũng được chấp nhận
+- CHẤP NHẬN các bài đăng chỉ có title và nội dung ngắn về cây trồng (ví dụ: "cây hoa hướng dương" + "hoa hướng dương hướng về phía mặt trời")
 - CHỈ từ chối nếu có từ ngữ XÚC PHẠM, QUẢNG CÁO RÕ RÀNG, hoặc HOÀN TOÀN không liên quan đến nông nghiệp
 - Spam nhẹ (nhưng không quảng cáo) → CÓ THỂ CHẤP NHẬN nếu liên quan đến nông nghiệp`;
     }
@@ -152,7 +155,16 @@ Input: "Mua phân bón giá rẻ tại đây: https://example.com"
 Output: {"approved": false, "reason": "Nội dung có dấu hiệu quảng cáo rõ ràng", "issues": [{"type": "spam", "severity": "high", "location": "toàn bộ nội dung", "suggestion": "Vui lòng chia sẻ kinh nghiệm thay vì quảng cáo sản phẩm"}], "suggestedContent": null}
 
 Input: "Cây lúa bị bệnh đốm lá, ai biết cách chữa không?"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}`;
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}
+
+Input: Title: "cây hoa hướng dương", Content: "hoa hướng dương hướng về phía mặt trời"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ về cây trồng", "issues": [], "suggestedContent": null}
+
+Input: Title: "khoe cây lúa", Content: "cây lúa của tôi"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ thành quả trồng trọt", "issues": [], "suggestedContent": null}
+
+Input: Title: "cây của tôi", Content: "cây này đẹp quá"
+Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ về cây trồng", "issues": [], "suggestedContent": null}`;
     }
     
     systemPrompt = systemPrompt + commonRules;

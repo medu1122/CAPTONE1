@@ -158,6 +158,12 @@ export const validateAddComment = (req, res, next) => {
         'string.max': 'Comment cannot exceed 1000 characters',
         'any.required': 'Comment content is required',
       }),
+    parentId: Joi.string()
+      .allow(null, '')
+      .optional()
+      .messages({
+        'string.base': 'Parent ID must be a string',
+      }),
   });
 
   const { error } = schema.validate(req.body);
