@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { httpError } from '../utils/http.js';
+import { getFrontendUrl } from '../utils/serverIp.js';
 
 /**
  * Email Service với Gmail SMTP
@@ -60,8 +61,11 @@ class EmailService {
    */
   async sendVerificationEmail(to, name, token, userId) {
     try {
-      const appUrl = process.env.APP_URL || 'http://172.16.2.71:5173';
+      // Tự động lấy IP server hiện tại để tạo URL
+      const appUrl = getFrontendUrl(5173);
       const verificationUrl = `${appUrl}/verify-email?token=${token}&uid=${userId}`;
+      
+      console.log(`📧 Verification URL: ${verificationUrl}`);
 
       const mailOptions = {
         from: process.env.FROM_EMAIL || 'GreenGrow <noreply@greengrow.com>',
@@ -95,8 +99,11 @@ class EmailService {
    */
   async sendPasswordResetEmail(to, name, token, userId) {
     try {
-      const appUrl = process.env.APP_URL || 'http://172.16.2.71:5173';
+      // Tự động lấy IP server hiện tại để tạo URL
+      const appUrl = getFrontendUrl(5173);
       const resetUrl = `${appUrl}/reset-password?token=${token}&uid=${userId}`;
+      
+      console.log(`📧 Password reset URL: ${resetUrl}`);
 
       const mailOptions = {
         from: process.env.FROM_EMAIL || 'GreenGrow <noreply@greengrow.com>',
