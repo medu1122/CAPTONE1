@@ -1,797 +1,1331 @@
 # 📋 Code Standards - GreenGrow
 
-Tài liệu này mô tả các chuẩn code và best practices được sử dụng trong dự án GreenGrow.
-
 ## 📑 Mục Lục
 
-- [Tổng Quan](#tổng-quan)
-- [Backend Standards](#backend-standards)
-- [Frontend Standards](#frontend-standards)
-- [Naming Conventions](#naming-conventions)
-- [Code Organization](#code-organization)
-- [Error Handling](#error-handling)
-- [API Design](#api-design)
-- [Database Standards](#database-standards)
-- [Security Standards](#security-standards)
-- [Testing Standards](#testing-standards)
-- [Git Workflow](#git-workflow)
+1. [Introduction](#1-introduction)
+   1.1 [Purpose](#11-purpose)
+   1.2 [Scope](#12-scope)
+2. [Code Style Guidelines](#2-code-style-guidelines)
+   2.1 [Variables](#21-variables)
+   2.2 [Spaces Around Operators](#22-spaces-around-operators)
+   2.3 [Statement Rules](#23-statement-rules)
+   2.4 [Object Rules](#24-object-rules)
+   2.5 [Line Length](#25-line-length)
+   2.6 [Spaces](#26-spaces)
+   2.8 [Comparative Math](#28-comparative-math)
+   2.9 [Dot Location](#29-dot-location)
+   2.10 [Array](#210-array)
+   2.11 [Modules](#211-modules)
+   2.12 [Functions](#212-functions)
+   2.13 [String](#213-string)
+   2.14 [Error Catching](#214-error-catching)
+   2.15 [Files](#215-files)
+   2.16 [Others](#216-others)
 
 ---
 
-## 🎯 Tổng Quan
+## 1. Introduction
 
-GreenGrow sử dụng kiến trúc monorepo với:
-- **Backend**: Node.js + Express.js + MongoDB
+### 1.1 Purpose
+
+Tài liệu này mô tả các chuẩn code và coding style guidelines được sử dụng trong dự án GreenGrow. Mục đích của tài liệu là:
+
+- **Đảm bảo tính nhất quán**: Tất cả code trong dự án phải tuân theo cùng một bộ quy tắc
+- **Cải thiện khả năng đọc**: Code phải dễ đọc và dễ hiểu cho tất cả developers
+- **Tăng khả năng bảo trì**: Code được viết theo chuẩn sẽ dễ bảo trì và mở rộng hơn
+- **Giảm bugs**: Tuân theo best practices giúp giảm thiểu lỗi và vấn đề tiềm ẩn
+- **Tăng tốc độ phát triển**: Developers mới có thể nhanh chóng hiểu và đóng góp vào dự án
+
+### 1.2 Scope
+
+Tài liệu này áp dụng cho:
+
+- **Backend**: Node.js + Express.js + MongoDB (JavaScript ES6+)
 - **Frontend**: React + TypeScript + Vite
+- **Tất cả các file source code** trong dự án GreenGrow
+- **Configuration files** và **scripts**
 
-### Nguyên Tắc Chung
-
-1. **Consistency**: Giữ tính nhất quán trong toàn bộ codebase
-2. **Readability**: Code phải dễ đọc và dễ hiểu
-3. **Maintainability**: Code phải dễ bảo trì và mở rộng
-4. **Security**: Luôn ưu tiên bảo mật
-5. **Performance**: Tối ưu hiệu suất khi có thể
+**Tech Stack:**
+- Backend: Node.js 18+, Express.js 5.x, MongoDB, Mongoose
+- Frontend: React 19+, TypeScript 5.8+, Vite
+- Code Style: ES6 Modules, Functional Programming patterns
 
 ---
 
-## 🔧 Backend Standards
+## 2. Code Style Guidelines
 
-### Ngôn Ngữ & Runtime
+### 2.1 Variables
 
-- **Node.js**: Version 18+
-- **ES Modules**: Sử dụng `import/export` thay vì `require/module.exports`
-- **Strict Mode**: Luôn sử dụng strict mode
+#### Naming Conventions
 
-### Cấu Trúc Module
-
-Mỗi module trong backend phải tuân theo cấu trúc sau:
-
-```
-modules/
-  └── featureName/
-      ├── featureName.controller.js    # Request handlers
-      ├── featureName.service.js        # Business logic
-      ├── featureName.model.js         # Mongoose models
-      ├── featureName.routes.js         # Express routes
-      ├── featureName.validator.js      # Joi validation (optional)
-      └── README.md                     # Module documentation
-```
-
-### Controller Pattern
-
+**✅ ĐÚNG:**
 ```javascript
-/**
- * Description of what the function does
- * @param {object} req - Express request object
- * @param {object} res - Express response object
- * @param {function} next - Express next middleware function
- */
-export const functionName = async (req, res, next) => {
-  try {
-    // Business logic through service
-    const result = await serviceName.methodName(req.body);
-    
-    // Standardized response
-    const { statusCode, body } = httpSuccess(200, 'Success message', result);
-    res.status(statusCode).json(body);
-  } catch (error) {
-    next(error); // Pass to error middleware
-  }
+// camelCase cho variables và functions
+const userName = 'John Doe';
+const isActive = true;
+const userCount = 10;
+const MAX_RETRIES = 3; // UPPER_SNAKE_CASE cho constants
+
+// TypeScript với type annotations
+let userId: string = '123';
+let count: number = 0;
+let isLoggedIn: boolean = false;
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng hungarian notation
+const strUserName = 'John'; // ❌
+const bIsActive = true; // ❌
+
+// Không sử dụng single letter (trừ loop counters)
+const u = getUser(); // ❌
+const d = new Date(); // ❌
+
+// Không sử dụng abbreviations không rõ ràng
+const usr = getUser(); // ❌
+const cnt = 0; // ❌
+```
+
+#### Variable Declaration
+
+**✅ ĐÚNG:**
+```javascript
+// Sử dụng const cho values không thay đổi
+const API_BASE_URL = 'https://api.example.com';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+// Sử dụng let cho values có thể thay đổi
+let currentUser = null;
+let retryCount = 0;
+
+// Destructuring
+const { name, email } = user;
+const [first, second] = items;
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng var
+var userName = 'John'; // ❌
+
+// Không khai báo lại const
+const userName = 'John';
+const userName = 'Jane'; // ❌ Error
+
+// Không sử dụng let khi có thể dùng const
+let API_URL = 'https://api.example.com'; // ❌ Should be const
+```
+
+#### TypeScript Variable Types
+
+**✅ ĐÚNG:**
+```typescript
+// Explicit types khi cần thiết
+const userId: string = '123';
+const count: number = 0;
+
+// Type inference khi rõ ràng
+const userName = 'John'; // TypeScript infers string
+const isActive = true; // TypeScript infers boolean
+
+// Union types
+let status: 'active' | 'inactive' | 'pending';
+let value: string | number;
+
+// Optional và nullable
+let email: string | null = null;
+let phone?: string; // Optional property
+```
+
+**❌ SAI:**
+```typescript
+// Không sử dụng any
+let data: any = {}; // ❌
+
+// Sử dụng unknown thay vì any khi không biết type
+let data: unknown = {};
+
+// Không bỏ qua type annotations khi không rõ ràng
+function process(data) { // ❌ Missing type
+  return data.value;
+}
+```
+
+---
+
+### 2.2 Spaces Around Operators
+
+**✅ ĐÚNG:**
+```javascript
+// Spaces xung quanh operators
+const sum = a + b;
+const product = x * y;
+const result = value > 0 ? 'positive' : 'negative';
+
+// Không có space sau unary operators
+const negative = -value;
+const positive = +value;
+const not = !isActive;
+
+// Spaces trong comparisons
+if (count > 0 && count < 10) {
+  // ...
+}
+
+// Spaces trong assignments
+const userName = 'John';
+let count = 0;
+```
+
+**❌ SAI:**
+```javascript
+// Thiếu spaces
+const sum=a+b; // ❌
+if(count>0&&count<10){} // ❌
+
+// Thừa spaces sau unary operators
+const negative = - value; // ❌
+const not = ! isActive; // ❌
+
+// Không có spaces trong ternary
+const result=value>0?'positive':'negative'; // ❌
+```
+
+#### Arrow Functions
+
+**✅ ĐÚNG:**
+```javascript
+// Spaces xung quanh arrow
+const add = (a, b) => a + b;
+const multiply = (x, y) => {
+  return x * y;
 };
+
+// No spaces trong single parameter
+const square = x => x * x;
 ```
 
-**Quy Tắc:**
-- ✅ Luôn sử dụng `async/await`
-- ✅ Luôn wrap trong `try/catch`
-- ✅ Luôn pass errors đến `next(error)`
-- ✅ Sử dụng `httpSuccess()` và `httpError()` từ `common/utils/http.js`
-- ✅ Thêm JSDoc comments cho mọi function
-
-### Service Pattern
-
+**❌ SAI:**
 ```javascript
-/**
- * Description of service method
- * @param {object} data - Input data
- * @returns {Promise<object>} Result object
- */
-export const methodName = async (data) => {
-  // Business logic here
-  const result = await Model.findOne({ ... });
-  
-  if (!result) {
-    throw httpError(404, 'Resource not found');
+const add=(a,b)=>a+b; // ❌
+const square = x=>x*x; // ❌
+```
+
+---
+
+### 2.3 Statement Rules
+
+#### Semicolons
+
+**✅ ĐÚNG:**
+```javascript
+// Luôn sử dụng semicolons
+const userName = 'John';
+const count = 0;
+
+function getData() {
+  return data;
+}
+
+// Semicolons sau statements
+if (condition) {
+  doSomething();
+}
+
+for (let i = 0; i < 10; i++) {
+  console.log(i);
+}
+```
+
+**❌ SAI:**
+```javascript
+// Thiếu semicolons
+const userName = 'John' // ❌
+const count = 0 // ❌
+```
+
+#### If Statements
+
+**✅ ĐÚNG:**
+```javascript
+// Luôn sử dụng braces, kể cả single statement
+if (condition) {
+  doSomething();
+}
+
+if (condition) {
+  doSomething();
+} else {
+  doOtherThing();
+}
+
+// Ternary operator cho simple assignments
+const result = condition ? valueA : valueB;
+```
+
+**❌ SAI:**
+```javascript
+// Không bỏ braces
+if (condition) doSomething(); // ❌
+
+// Không sử dụng ==
+if (value == 0) {} // ❌ Use ===
+```
+
+#### Switch Statements
+
+**✅ ĐÚNG:**
+```javascript
+switch (value) {
+  case 'option1':
+    doSomething();
+    break;
+  case 'option2':
+    doOtherThing();
+    break;
+  default:
+    handleDefault();
+}
+```
+
+**❌ SAI:**
+```javascript
+switch(value) { // ❌ Missing space
+case 'option1': // ❌ Missing indentation
+doSomething();
+// Missing break
+```
+
+#### Loops
+
+**✅ ĐÚNG:**
+```javascript
+// For loop
+for (let i = 0; i < items.length; i++) {
+  processItem(items[i]);
+}
+
+// For...of loop
+for (const item of items) {
+  processItem(item);
+}
+
+// For...in loop (chỉ cho objects)
+for (const key in object) {
+  if (object.hasOwnProperty(key)) {
+    processKey(key, object[key]);
   }
-  
-  return result;
-};
+}
+
+// While loop
+while (condition) {
+  doSomething();
+}
 ```
 
-**Quy Tắc:**
-- ✅ Service chứa business logic, không chứa HTTP logic
-- ✅ Throw errors sử dụng `httpError()`
-- ✅ Return data objects, không return HTTP responses
-
-### Model Pattern
-
+**❌ SAI:**
 ```javascript
-import mongoose from 'mongoose';
+// Không sử dụng var trong loops
+for (var i = 0; i < 10; i++) {} // ❌
 
-const schemaName = new mongoose.Schema(
-  {
-    fieldName: {
-      type: String,
-      required: [true, 'Error message'],
-      trim: true,
-      // ... other validations
-    },
+// Không bỏ braces
+for (let i = 0; i < 10; i++) doSomething(); // ❌
+```
+
+---
+
+### 2.4 Object Rules
+
+#### Object Literals
+
+**✅ ĐÚNG:**
+```javascript
+// Short syntax khi property name = variable name
+const userName = 'John';
+const user = {
+  userName, // Shorthand
+  email: 'john@example.com',
+  age: 30,
+};
+
+// Nested objects
+const config = {
+  api: {
+    baseURL: 'https://api.example.com',
+    timeout: 5000,
   },
-  {
-    timestamps: true, // Always include timestamps
+  auth: {
+    token: 'secret',
+  },
+};
+
+// Method shorthand
+const user = {
+  name: 'John',
+  getName() {
+    return this.name;
+  },
+};
+```
+
+**❌ SAI:**
+```javascript
+// Không trailing comma trong single line
+const user = { name: 'John', }; // ❌ (OK in multi-line)
+
+// Không sử dụng reserved words làm keys
+const obj = { class: 'test' }; // ❌ Use 'className'
+```
+
+#### Object Destructuring
+
+**✅ ĐÚNG:**
+```javascript
+// Basic destructuring
+const { name, email } = user;
+
+// With default values
+const { name = 'Anonymous', email } = user;
+
+// Renaming
+const { name: userName, email: userEmail } = user;
+
+// Nested destructuring
+const { address: { city, zipCode } } = user;
+
+// In function parameters
+function processUser({ name, email }) {
+  // ...
+}
+```
+
+**❌ SAI:**
+```javascript
+// Không destructure undefined
+const { name } = undefined; // ❌ Will throw error
+
+// Phải check trước
+if (user) {
+  const { name } = user;
+}
+```
+
+#### Object Methods
+
+**✅ ĐÚNG:**
+```javascript
+// Method shorthand
+const user = {
+  name: 'John',
+  getName() {
+    return this.name;
+  },
+  // Arrow function không nên dùng cho methods
+  // getName: () => this.name, // ❌ 'this' sẽ không work
+};
+
+// Class methods
+class User {
+  getName() {
+    return this.name;
   }
+}
+```
+
+---
+
+### 2.5 Line Length
+
+**✅ ĐÚNG:**
+```javascript
+// Giữ line length dưới 100 characters
+const result = await service.methodName(param1, param2, param3);
+
+// Nếu quá dài, break thành multiple lines
+const result = await service.methodName(
+  param1,
+  param2,
+  param3,
+  param4
 );
 
-// Indexes
-schemaName.index({ fieldName: 1 });
+// Function calls
+const user = await authService.getUserProfile(
+  userId,
+  { includeStats: true }
+);
 
-// Methods
-schemaName.methods.methodName = function() {
-  // Instance method
-};
-
-// Static methods
-schemaName.statics.staticMethodName = function() {
-  // Static method
-};
-
-export default mongoose.model('ModelName', schemaName);
-```
-
-**Quy Tắc:**
-- ✅ Luôn sử dụng `timestamps: true`
-- ✅ Thêm indexes cho các fields thường query
-- ✅ Validation messages phải rõ ràng
-- ✅ Sử dụng `select: false` cho sensitive fields (password, tokens)
-
-### Route Pattern
-
-```javascript
-import express from 'express';
-import * as controller from './featureName.controller.js';
-import { authenticate } from '../../common/middleware/auth.js';
-import { validate } from '../../common/middleware/validate.js';
-
-const router = express.Router();
-
-// Public routes
-router.post('/public-endpoint', controller.publicHandler);
-
-// Protected routes
-router.get('/protected', authenticate, controller.protectedHandler);
-
-// Validated routes
-router.post('/validated', authenticate, validate(schema), controller.validatedHandler);
-
-export default router;
-```
-
-**Quy Tắc:**
-- ✅ Group routes theo authentication requirement
-- ✅ Sử dụng middleware phù hợp
-- ✅ Export default router
-
-### Error Handling
-
-```javascript
-// In service/controller
-throw httpError(400, 'User-friendly error message');
-
-// Error middleware handles automatically
-// Returns: { message: 'User-friendly error message', stack: ... }
-```
-
-**Quy Tắc:**
-- ✅ Luôn throw errors với status code phù hợp
-- ✅ Error messages phải user-friendly
-- ✅ Không expose sensitive information trong errors
-- ✅ Stack traces chỉ hiển thị trong development
-
-### HTTP Response Format
-
-**Success Response:**
-```javascript
-{
-  success: true,
-  message: "Operation successful",
-  data: { ... }
+// Long conditions
+if (
+  user.isActive &&
+  user.isVerified &&
+  user.role === 'admin'
+) {
+  // ...
 }
 ```
 
-**Error Response:**
+**❌ SAI:**
 ```javascript
-{
-  message: "Error message",
-  stack: "..." // Only in development
-}
+// Quá dài, khó đọc
+const result = await service.methodName(param1, param2, param3, param4, param5, param6); // ❌
+
+// Không break properly
+const result = await service.methodName(param1, param2, param3,
+  param4, param5); // ❌ Inconsistent indentation
 ```
+
+**Quy Tắc:**
+- Maximum line length: **100 characters**
+- Break lines tại logical points (operators, commas)
+- Align parameters vertically khi có thể
 
 ---
 
-## ⚛️ Frontend Standards
+### 2.6 Spaces
 
-### Ngôn Ngữ & Framework
+#### General Spacing Rules
 
-- **TypeScript**: Luôn sử dụng TypeScript
-- **React**: Version 19+ với functional components
-- **Hooks**: Sử dụng hooks thay vì class components
+**✅ ĐÚNG:**
+```javascript
+// Spaces sau keywords
+if (condition) {}
+for (let i = 0; i < 10; i++) {}
+while (condition) {}
+switch (value) {}
 
-### Component Pattern
-
-```typescript
-import { useState, useEffect } from 'react'
-import { SomeType } from '../types'
-
-interface ComponentProps {
-  propName: string
-  optionalProp?: number
+// Spaces trong function declarations
+function myFunction(param1, param2) {
+  // ...
 }
 
-export const ComponentName = ({ propName, optionalProp }: ComponentProps) => {
-  const [state, setState] = useState<string>('')
-  
-  useEffect(() => {
-    // Side effects
-  }, [dependencies])
-  
-  const handleAction = () => {
-    // Handler logic
+// Spaces trong function calls
+myFunction(arg1, arg2);
+
+// Spaces trong arrays
+const items = [1, 2, 3, 4];
+
+// Spaces trong objects
+const user = { name: 'John', email: 'john@example.com' };
+
+// No spaces trong empty constructs
+function emptyFunction() {}
+const emptyArray = [];
+const emptyObject = {};
+```
+
+**❌ SAI:**
+```javascript
+// Thiếu spaces sau keywords
+if(condition){} // ❌
+for(let i=0;i<10;i++){} // ❌
+
+// Thừa spaces
+function myFunction ( param1 , param2 ) {} // ❌
+```
+
+#### Indentation
+
+**✅ ĐÚNG:**
+```javascript
+// 2 spaces cho indentation
+function myFunction() {
+  if (condition) {
+    doSomething();
   }
-  
-  return (
-    <div className="tailwind-classes">
-      {/* JSX content */}
-    </div>
-  )
 }
-```
 
-**Quy Tắc:**
-- ✅ Sử dụng functional components
-- ✅ TypeScript interfaces cho props
-- ✅ PascalCase cho component names
-- ✅ camelCase cho variables và functions
-- ✅ Sử dụng Tailwind CSS classes
-- ✅ Export named exports, không export default
-
-### File Organization
-
-```
-pages/
-  └── PageName/
-      ├── index.tsx              # Main page component
-      ├── components/            # Page-specific components
-      │   └── ComponentName.tsx
-      └── types.ts               # TypeScript types
-
-components/
-  └── ComponentName/
-      ├── ComponentName.tsx      # Component
-      ├── ComponentName.test.tsx # Tests (if any)
-      └── types.ts               # Component types
-```
-
-### Service Pattern
-
-```typescript
-import axios from 'axios'
-import { API_CONFIG } from '../config/api'
-
-const api = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
+// Nested objects
+const config = {
+  api: {
+    baseURL: 'https://api.example.com',
+    timeout: 5000,
   },
-})
+};
 
-// Request interceptor
-api.interceptors.request.use((config) => {
-  const token = getAccessToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Response interceptor
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // Error handling logic
-  }
-)
-
-export const serviceName = {
-  methodName: async (params: ParamType): Promise<ResponseType> => {
-    const response = await api.get('/endpoint', { params })
-    return response.data
-  },
-}
+// Arrays
+const items = [
+  { id: 1, name: 'Item 1' },
+  { id: 2, name: 'Item 2' },
+];
 ```
 
-**Quy Tắc:**
-- ✅ Mỗi service file tương ứng với một backend module
-- ✅ Sử dụng axios instance với interceptors
-- ✅ TypeScript types cho parameters và return values
-- ✅ Handle errors trong interceptors
+**❌ SAI:**
+```javascript
+// Không sử dụng tabs
+function myFunction() {
+	if (condition) { // ❌ Tab instead of spaces
+		doSomething();
+	}
+}
 
-### Hooks Pattern
-
-```typescript
-import { useState, useEffect } from 'react'
-
-export const useCustomHook = (dependency: string) => {
-  const [data, setData] = useState<DataType | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const result = await service.method(dependency)
-        setData(result)
-      } catch (err) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+// Không sử dụng 4 spaces
+function myFunction() {
+    if (condition) { // ❌ Should be 2 spaces
+        doSomething();
     }
-    
-    fetchData()
-  }, [dependency])
-  
-  return { data, loading, error }
 }
 ```
 
 **Quy Tắc:**
-- ✅ Custom hooks bắt đầu với `use`
-- ✅ Return object với clear property names
-- ✅ Handle loading và error states
-
-### TypeScript Standards
-
-```typescript
-// Interfaces for objects
-interface User {
-  id: string
-  name: string
-  email: string
-}
-
-// Types for unions, primitives
-type Status = 'active' | 'inactive' | 'pending'
-type UserId = string
-
-// Enums for constants
-enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-}
-
-// Function types
-type Handler = (event: Event) => void
-```
-
-**Quy Tắc:**
-- ✅ Sử dụng `interface` cho objects
-- ✅ Sử dụng `type` cho unions và aliases
-- ✅ Sử dụng `enum` cho constants
-- ✅ Avoid `any`, sử dụng `unknown` nếu cần
-- ✅ Export types/interfaces từ `types.ts` files
+- **2 spaces** cho indentation (không phải tabs)
+- Consistent indentation trong toàn bộ file
+- Align code blocks properly
 
 ---
 
-## 📝 Naming Conventions
+### 2.8 Comparative Math
 
-### Backend
-
-| Type | Convention | Example |
-|------|-----------|---------|
-| Files | kebab-case | `auth.controller.js` |
-| Variables | camelCase | `userName`, `isActive` |
-| Functions | camelCase | `getUserProfile()` |
-| Constants | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
-| Classes | PascalCase | `UserService` |
-| Models | PascalCase | `User`, `Post` |
-
-### Frontend
-
-| Type | Convention | Example |
-|------|-----------|---------|
-| Files | PascalCase | `UserProfile.tsx` |
-| Components | PascalCase | `UserProfile` |
-| Variables | camelCase | `userName`, `isLoading` |
-| Functions | camelCase | `handleSubmit()` |
-| Hooks | camelCase (use prefix) | `useAuth()` |
-| Types/Interfaces | PascalCase | `UserProfile`, `ApiResponse` |
-| Constants | UPPER_SNAKE_CASE | `API_BASE_URL` |
-
-### Database
-
-| Type | Convention | Example |
-|------|-----------|---------|
-| Collections | camelCase | `users`, `plantBoxes` |
-| Fields | camelCase | `userName`, `createdAt` |
-| Indexes | Descriptive | `user_email_index` |
-
----
-
-## 📁 Code Organization
-
-### Backend Structure
-
-```
-src/
-├── app.js                    # Express app setup
-├── server.js                 # Server entry point
-├── routes.js                 # Route registration
-├── config/                   # Configuration files
-│   └── db.js                # Database config
-├── common/                   # Shared utilities
-│   ├── constants.js         # App constants
-│   ├── middleware/          # Shared middleware
-│   ├── services/            # Shared services
-│   └── utils/               # Utility functions
-└── modules/                  # Feature modules
-    └── featureName/
-        ├── featureName.controller.js
-        ├── featureName.service.js
-        ├── featureName.model.js
-        ├── featureName.routes.js
-        └── README.md
-```
-
-### Frontend Structure
-
-```
-src/
-├── main.tsx                  # App entry point
-├── App.tsx                   # Root component
-├── config/                   # Configuration
-│   └── api.ts               # API config
-├── components/               # Reusable components
-│   ├── common/              # Common components
-│   └── ui/                  # UI primitives
-├── pages/                    # Page components
-│   └── PageName/
-│       ├── index.tsx
-│       └── components/
-├── services/                 # API services
-├── contexts/                 # React contexts
-├── hooks/                    # Custom hooks
-├── utils/                    # Utility functions
-└── types/                    # TypeScript types
-```
-
----
-
-## ⚠️ Error Handling
-
-### Backend Error Handling
-
+**✅ ĐÚNG:**
 ```javascript
-// In controller
-try {
-  const result = await service.method()
-  const { statusCode, body } = httpSuccess(200, 'Success', result)
-  res.status(statusCode).json(body)
-} catch (error) {
-  next(error) // Pass to error middleware
+// Luôn sử dụng === và !==
+if (value === 0) {}
+if (name !== '') {}
+if (user === null) {}
+
+// Type checking
+if (typeof value === 'string') {}
+if (Array.isArray(items)) {}
+if (value instanceof Date) {}
+
+// Comparisons với numbers
+if (count > 0 && count < 10) {}
+if (price >= 100 && price <= 1000) {}
+
+// Null/undefined checks
+if (user != null) {} // Checks both null and undefined
+if (user !== null && user !== undefined) {} // Explicit
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng == và !=
+if (value == 0) {} // ❌
+if (name != '') {} // ❌
+
+// Type coercion issues
+if (0 == '0') {} // ❌ true (unexpected)
+if ('' == false) {} // ❌ true (unexpected)
+
+// Loose comparisons
+if (value == null) {} // ❌ Use === null or != null
+```
+
+**Quy Tắc:**
+- ✅ Luôn sử dụng **strict equality** (`===`, `!==`)
+- ✅ Sử dụng `== null` hoặc `!= null` để check cả null và undefined
+- ✅ Explicit type checking khi cần thiết
+
+---
+
+### 2.9 Dot Location
+
+**✅ ĐÚNG:**
+```javascript
+// Dot ở cuối line khi break
+const user = await userService
+  .getUserById(userId)
+  .then(user => userService.processUser(user))
+  .catch(error => handleError(error));
+
+// Chaining methods
+const result = array
+  .filter(item => item.active)
+  .map(item => item.name)
+  .sort();
+
+// Object property access
+const city = user
+  .address
+  .city;
+```
+
+**❌ SAI:**
+```javascript
+// Dot ở đầu line (không nhất quán với project style)
+const user = await userService.
+  getUserById(userId).
+  then(user => userService.processUser(user)); // ❌
+
+// Không break properly
+const user = await userService.getUserById(userId).then(user => userService.processUser(user)).catch(error => handleError(error)); // ❌ Too long
+```
+
+**Quy Tắc:**
+- ✅ Dot ở **cuối line** khi break
+- ✅ Mỗi method call trên một line khi chaining
+- ✅ Consistent với project style
+
+---
+
+### 2.10 Array
+
+#### Array Literals
+
+**✅ ĐÚNG:**
+```javascript
+// Simple arrays
+const numbers = [1, 2, 3, 4, 5];
+const names = ['John', 'Jane', 'Bob'];
+
+// Multi-line arrays
+const users = [
+  { id: 1, name: 'John' },
+  { id: 2, name: 'Jane' },
+  { id: 3, name: 'Bob' },
+];
+
+// Empty array
+const items = [];
+
+// Array với trailing comma
+const items = [
+  'item1',
+  'item2',
+  'item3', // Trailing comma OK
+];
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng Array constructor
+const items = new Array(10); // ❌ Use []
+
+// Không trailing comma trong single line
+const items = [1, 2, 3,]; // ❌ (OK in multi-line)
+```
+
+#### Array Methods
+
+**✅ ĐÚNG:**
+```javascript
+// map, filter, reduce
+const doubled = numbers.map(n => n * 2);
+const evens = numbers.filter(n => n % 2 === 0);
+const sum = numbers.reduce((acc, n) => acc + n, 0);
+
+// Chaining
+const result = users
+  .filter(user => user.isActive)
+  .map(user => user.name)
+  .sort();
+
+// Destructuring
+const [first, second, ...rest] = items;
+```
+
+**❌ SAI:**
+```javascript
+// Không mutate original array
+const doubled = numbers.map(n => {
+  numbers.push(n * 2); // ❌ Mutating original
+  return n * 2;
+});
+
+// Sử dụng forEach khi cần return value
+items.forEach(item => {
+  return process(item); // ❌ forEach doesn't return
+});
+// Use map instead
+```
+
+#### Array Spread
+
+**✅ ĐÚNG:**
+```javascript
+// Spreading arrays
+const combined = [...array1, ...array2];
+const copied = [...original];
+
+// In function calls
+const max = Math.max(...numbers);
+
+// Adding items
+const newArray = [...oldArray, newItem];
+```
+
+---
+
+### 2.11 Modules
+
+#### ES6 Import/Export
+
+**✅ ĐÚNG:**
+```javascript
+// Named imports
+import { httpSuccess, httpError } from '../common/utils/http.js';
+import { authenticate, authorize } from '../common/middleware/auth.js';
+
+// Default import
+import express from 'express';
+import User from './user.model.js';
+
+// Mixed imports
+import express, { Router } from 'express';
+import User, { UserSchema } from './user.model.js';
+
+// Namespace import
+import * as authService from './auth.service.js';
+
+// Type imports (TypeScript)
+import type { UserType } from './types';
+import { type UserType } from './types';
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng require
+const express = require('express'); // ❌
+
+// Không bỏ file extension trong ES modules
+import { httpSuccess } from '../common/utils/http'; // ❌ Missing .js
+
+// Không sử dụng default export khi có nhiều exports
+export default { // ❌ Prefer named exports
+  method1,
+  method2,
+};
+```
+
+#### Export Patterns
+
+**✅ ĐÚNG:**
+```javascript
+// Named exports (preferred)
+export const functionName = () => {};
+export const constantName = 'value';
+
+// Default export cho main entity
+export default User;
+
+// Export list
+export {
+  function1,
+  function2,
+  constant1,
+};
+
+// Re-export
+export { functionName } from './other-module.js';
+```
+
+**❌ SAI:**
+```javascript
+// Không export default khi có nhiều exports
+export default { // ❌
+  method1,
+  method2,
+};
+
+// Không mix default và named exports confusingly
+export default User;
+export { User }; // ❌ Confusing
+```
+
+#### Module Organization
+
+**✅ ĐÚNG:**
+```javascript
+// Order: External → Internal → Types
+import express from 'express';
+import mongoose from 'mongoose';
+
+import { httpSuccess } from '../common/utils/http.js';
+import User from './user.model.js';
+
+import type { UserType } from './types';
+```
+
+---
+
+### 2.12 Functions
+
+#### Function Declarations
+
+**✅ ĐÚNG:**
+```javascript
+// Named function
+function calculateTotal(items) {
+  return items.reduce((sum, item) => sum + item.price, 0);
 }
 
-// In service
-if (!resource) {
-  throw httpError(404, 'Resource not found')
+// Arrow function
+const calculateTotal = (items) => {
+  return items.reduce((sum, item) => sum + item.price, 0);
+};
+
+// Arrow function với implicit return
+const double = (n) => n * 2;
+
+// Async function
+async function fetchUser(userId) {
+  const user = await userService.getUser(userId);
+  return user;
+}
+
+// TypeScript với types
+function processUser(user: UserType): Promise<ProcessedUser> {
+  // ...
 }
 ```
 
-**Status Codes:**
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `401` - Unauthorized
-- `403` - Forbidden
-- `404` - Not Found
-- `500` - Internal Server Error
+**❌ SAI:**
+```javascript
+// Không sử dụng function expressions khi có thể dùng declarations
+const myFunction = function() {}; // ❌ Use function declaration
 
-### Frontend Error Handling
+// Không bỏ parentheses cho single parameter khi có type
+const process = (user: UserType) => {}; // ✅
+const process = user: UserType => {}; // ❌
 
-```typescript
+// Không sử dụng arguments object
+function sum() {
+  return Array.from(arguments).reduce((a, b) => a + b); // ❌
+}
+// Use rest parameters instead
+function sum(...numbers) {
+  return numbers.reduce((a, b) => a + b);
+}
+```
+
+#### Function Parameters
+
+**✅ ĐÚNG:**
+```javascript
+// Default parameters
+function greet(name = 'Guest') {
+  return `Hello, ${name}`;
+}
+
+// Rest parameters
+function sum(...numbers) {
+  return numbers.reduce((a, b) => a + b, 0);
+}
+
+// Destructuring parameters
+function processUser({ name, email, age = 0 }) {
+  // ...
+}
+
+// TypeScript parameters
+function createUser(
+  name: string,
+  email: string,
+  age?: number
+): Promise<User> {
+  // ...
+}
+```
+
+**❌ SAI:**
+```javascript
+// Không mutate parameters
+function processUser(user) {
+  user.name = user.name.toUpperCase(); // ❌ Mutating parameter
+  return user;
+}
+// Create new object instead
+function processUser(user) {
+  return {
+    ...user,
+    name: user.name.toUpperCase(),
+  };
+}
+```
+
+#### Async/Await
+
+**✅ ĐÚNG:**
+```javascript
+// Async/await (preferred)
+async function fetchData() {
+  try {
+    const result = await api.getData();
+    return result;
+  } catch (error) {
+    throw httpError(500, 'Failed to fetch data');
+  }
+}
+
+// Multiple awaits
+async function processUser(userId) {
+  const user = await userService.getUser(userId);
+  const profile = await profileService.getProfile(userId);
+  return { user, profile };
+}
+
+// Parallel awaits
+async function fetchAllData() {
+  const [users, posts, comments] = await Promise.all([
+    userService.getUsers(),
+    postService.getPosts(),
+    commentService.getComments(),
+  ]);
+  return { users, posts, comments };
+}
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng .then() khi có thể dùng async/await
+function fetchData() {
+  return api.getData()
+    .then(result => processResult(result))
+    .catch(error => handleError(error)); // ❌ Use async/await
+}
+
+// Không await trong loops (sequential)
+for (const id of ids) {
+  await processItem(id); // ❌ Sequential, slow
+}
+// Use Promise.all for parallel
+await Promise.all(ids.map(id => processItem(id)));
+```
+
+---
+
+### 2.13 String
+
+#### String Literals
+
+**✅ ĐÚNG:**
+```javascript
+// Template literals (preferred)
+const message = `Hello, ${userName}`;
+const multiline = `
+  Line 1
+  Line 2
+  Line 3
+`;
+
+// Single quotes cho simple strings
+const name = 'John';
+
+// Double quotes khi có single quote inside
+const text = "It's a beautiful day";
+
+// Template literals cho complex strings
+const url = `/api/users/${userId}/posts/${postId}`;
+```
+
+**❌ SAI:**
+```javascript
+// Không sử dụng string concatenation
+const message = 'Hello, ' + userName; // ❌ Use template literals
+
+// Không escape khi có thể dùng template literals
+const message = 'Hello, ' + userName + '!'; // ❌
+```
+
+#### String Methods
+
+**✅ ĐÚNG:**
+```javascript
+// String methods
+const upper = name.toUpperCase();
+const lower = name.toLowerCase();
+const trimmed = text.trim();
+const replaced = text.replace(/old/g, 'new');
+
+// Template literal với expressions
+const message = `User ${user.name} has ${user.posts.length} posts`;
+```
+
+---
+
+### 2.14 Error Catching
+
+#### Try-Catch Blocks
+
+**✅ ĐÚNG:**
+```javascript
+// Try-catch với specific error handling
 try {
-  const result = await service.method()
-  // Handle success
+  const result = await service.method();
+  return result;
 } catch (error) {
-  if (error.response?.status === 401) {
-    // Handle unauthorized
+  if (error.statusCode === 404) {
+    throw httpError(404, 'Resource not found');
+  }
+  throw httpError(500, 'Internal server error');
+}
+
+// Error handling trong async functions
+async function processData() {
+  try {
+    const data = await fetchData();
+    return processData(data);
+  } catch (error) {
+    logger.error('Failed to process data', error);
+    throw error;
+  }
+}
+
+// Multiple error types
+try {
+  await riskyOperation();
+} catch (error) {
+  if (error instanceof ValidationError) {
+    handleValidationError(error);
+  } else if (error instanceof NetworkError) {
+    handleNetworkError(error);
   } else {
-    // Handle other errors
-    console.error('Error:', error.message)
+    handleUnknownError(error);
   }
 }
 ```
 
----
+**❌ SAI:**
+```javascript
+// Không bỏ qua errors
+try {
+  await riskyOperation();
+} catch (error) {
+  // ❌ Silent failure
+}
 
-## 🌐 API Design
+// Không catch và rethrow mà không xử lý
+try {
+  await operation();
+} catch (error) {
+  throw error; // ❌ No handling, just remove try-catch
+}
 
-### RESTful Conventions
-
-```
-GET    /api/v1/resource          # List resources
-GET    /api/v1/resource/:id      # Get single resource
-POST   /api/v1/resource          # Create resource
-PUT    /api/v1/resource/:id      # Update resource
-DELETE /api/v1/resource/:id      # Delete resource
-```
-
-### Request/Response Format
-
-**Request Headers:**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-**Response Format:**
-```json
-{
-  "success": true,
-  "message": "Operation successful",
-  "data": { ... }
+// Không sử dụng generic Error
+catch (error) {
+  throw new Error('Something went wrong'); // ❌ Loses original error info
 }
 ```
 
-### Query Parameters
+#### Error Objects
 
-- Pagination: `?page=1&limit=10`
-- Sorting: `?sort=createdAt&order=desc`
-- Filtering: `?status=active&role=user`
-
----
-
-## 🗄️ Database Standards
-
-### Mongoose Schema
-
+**✅ ĐÚNG:**
 ```javascript
-const schema = new mongoose.Schema({
-  // Required fields
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-  },
-  
-  // Optional fields
-  description: {
-    type: String,
-    default: null,
-    trim: true,
-  },
-  
-  // Enums
-  status: {
-    type: String,
-    enum: ['active', 'inactive'],
-    default: 'active',
-  },
-  
-  // References
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  
-  // Nested objects
-  location: {
-    address: String,
-    coordinates: {
-      lat: Number,
-      lng: Number,
-    },
-  },
-}, {
-  timestamps: true, // Always include
-})
-```
+// Custom error với httpError utility
+throw httpError(400, 'Invalid input data');
 
-### Indexes
+// Error với context
+const error = httpError(404, 'User not found');
+error.userId = userId; // Add context
+throw error;
 
-```javascript
-// Single field index
-schema.index({ email: 1 })
-
-// Compound index
-schema.index({ userId: 1, status: 1 })
-
-// Text search index
-schema.index({ title: 'text', description: 'text' })
+// TypeScript error types
+class ValidationError extends Error {
+  constructor(message: string, public field: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
 ```
 
 **Quy Tắc:**
-- ✅ Index các fields thường query
-- ✅ Index foreign keys
-- ✅ Compound indexes cho queries phức tạp
-- ✅ Text indexes cho search
+- ✅ Luôn handle errors properly
+- ✅ Provide meaningful error messages
+- ✅ Include context khi có thể
+- ✅ Log errors trước khi rethrow
+- ✅ Sử dụng httpError utility cho HTTP errors
 
 ---
 
-## 🔒 Security Standards
+### 2.15 Files
 
-### Authentication
+#### File Naming
 
-- ✅ JWT tokens với expiration
-- ✅ Refresh tokens stored securely
-- ✅ Password hashing với bcrypt (salt rounds: 10)
-- ✅ Token rotation on refresh
-
-### Authorization
-
-- ✅ Role-based access control (RBAC)
-- ✅ Middleware checks: `authenticate`, `authorize`
-- ✅ Resource ownership validation
-
-### Input Validation
-
-- ✅ Joi validation schemas
-- ✅ Sanitize user inputs
-- ✅ Validate file uploads
-- ✅ Rate limiting on sensitive endpoints
-
-### Security Headers
-
-- ✅ Helmet.js for security headers
-- ✅ CORS configuration
-- ✅ HTTPS in production
-- ✅ Environment variables for secrets
-
----
-
-## 🧪 Testing Standards
-
-### Test Structure
-
-```
-tests/
-├── unit/                      # Unit tests
-├── integration/               # Integration tests
-└── e2e/                       # End-to-end tests
-```
-
-### Test Naming
-
+**✅ ĐÚNG:**
 ```javascript
-describe('FeatureName', () => {
-  describe('methodName', () => {
-    it('should do something when condition', async () => {
-      // Test implementation
-    })
-  })
-})
+// Backend: kebab-case với .js extension
+// auth.controller.js
+// user.service.js
+// post.model.js
+// email-verification.routes.js
+
+// Frontend: PascalCase với .tsx/.ts extension
+// UserProfile.tsx
+// AuthService.ts
+// types.ts
 ```
 
----
-
-## 🔀 Git Workflow
-
-### Branch Naming
-
-- `feature/feature-name` - New features
-- `bugfix/bug-name` - Bug fixes
-- `hotfix/issue-name` - Urgent fixes
-- `refactor/refactor-name` - Code refactoring
-
-### Commit Messages
-
-Format: `type(scope): description`
-
-Types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Tests
-- `chore`: Maintenance tasks
-
-Examples:
-```
-feat(auth): add email verification
-fix(posts): resolve comment count issue
-docs(readme): update installation guide
-```
-
-### Code Review Checklist
-
-- [ ] Code follows style guide
-- [ ] No console.logs or debug code
-- [ ] Error handling implemented
-- [ ] Security considerations addressed
-- [ ] Performance optimized
-- [ ] Documentation updated
-- [ ] Tests added/updated
-
----
-
-## 📚 Documentation Standards
-
-### Code Comments
-
+**❌ SAI:**
 ```javascript
+// Không sử dụng camelCase cho backend files
+// authController.js ❌
+// userService.js ❌
+
+// Không sử dụng kebab-case cho frontend components
+// user-profile.tsx ❌
+```
+
+#### File Structure
+
+**✅ ĐÚNG:**
+```javascript
+// Backend module structure
+// modules/featureName/
+//   ├── featureName.controller.js
+//   ├── featureName.service.js
+//   ├── featureName.model.js
+//   ├── featureName.routes.js
+//   └── README.md
+
+// Frontend component structure
+// components/ComponentName/
+//   ├── ComponentName.tsx
+//   ├── ComponentName.test.tsx
+//   └── types.ts
+```
+
+#### File Organization
+
+**✅ ĐÚNG:**
+```javascript
+// Import order trong file
+// 1. External dependencies
+import express from 'express';
+import mongoose from 'mongoose';
+
+// 2. Internal modules
+import { httpSuccess } from '../common/utils/http.js';
+import User from './user.model.js';
+
+// 3. Types (TypeScript)
+import type { UserType } from './types';
+
+// 4. Code
+export const functionName = () => {};
+```
+
+---
+
+### 2.16 Others
+
+#### Comments
+
+**✅ ĐÚNG:**
+```javascript
+// Single line comment
+const userName = 'John'; // User's display name
+
 /**
- * Description of what the function does
- * @param {string} paramName - Description of parameter
- * @returns {Promise<object>} Description of return value
- * @throws {Error} Description of when error is thrown
+ * Multi-line comment với JSDoc
+ * @param {string} userId - User ID
+ * @returns {Promise<object>} User object
  */
-export const functionName = async (paramName) => {
+async function getUser(userId) {
   // Implementation
 }
+
+// TODO comments
+// TODO: Implement caching for this function
+// FIXME: This needs optimization
+// NOTE: This is a workaround for issue #123
 ```
 
-### README Files
+**❌ SAI:**
+```javascript
+// Không comment code đã xóa
+// const oldCode = 'removed'; // ❌ Remove completely
 
-Mỗi module nên có README.md với:
-- Mô tả module
-- API endpoints
-- Usage examples
-- Dependencies
+// Không comment rõ ràng
+// do something // ❌ What does "something" mean?
+```
+
+#### Constants
+
+**✅ ĐÚNG:**
+```javascript
+// UPPER_SNAKE_CASE cho constants
+const MAX_RETRY_COUNT = 3;
+const API_BASE_URL = 'https://api.example.com';
+const DEFAULT_TIMEOUT = 5000;
+
+// Constants object
+const CONFIG = {
+  MAX_RETRIES: 3,
+  TIMEOUT: 5000,
+  API_URL: 'https://api.example.com',
+};
+```
+
+#### TypeScript Specific
+
+**✅ ĐÚNG:**
+```typescript
+// Type assertions
+const element = document.getElementById('app') as HTMLElement;
+
+// Type guards
+function isUser(obj: unknown): obj is User {
+  return typeof obj === 'object' &&
+         obj !== null &&
+         'id' in obj &&
+         'name' in obj;
+}
+
+// Generics
+function identity<T>(arg: T): T {
+  return arg;
+}
+```
+
+#### React Specific
+
+**✅ ĐÚNG:**
+```typescript
+// Functional components
+export const UserProfile = ({ userId }: { userId: string }) => {
+  const [user, setUser] = useState<User | null>(null);
+  
+  useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, [userId]);
+  
+  return <div>{user?.name}</div>;
+};
+
+// Custom hooks
+export const useUser = (userId: string) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    fetchUser(userId)
+      .then(setUser)
+      .finally(() => setLoading(false));
+  }, [userId]);
+  
+  return { user, loading };
+};
+```
+
+#### Code Formatting
+
+**✅ ĐÚNG:**
+```javascript
+// Consistent formatting
+const user = {
+  id: 1,
+  name: 'John',
+  email: 'john@example.com',
+};
+
+// Trailing commas trong multi-line
+const items = [
+  'item1',
+  'item2',
+  'item3', // Trailing comma
+];
+```
 
 ---
 
-## ✅ Checklist Trước Khi Commit
+## 📚 Tài Liệu Tham Khảo
 
-### Backend
-
-- [ ] Code follows controller → service → model pattern
-- [ ] Error handling implemented
-- [ ] JSDoc comments added
-- [ ] Validation schemas defined
-- [ ] Database indexes added if needed
-- [ ] Environment variables documented
-
-### Frontend
-
-- [ ] TypeScript types defined
-- [ ] Components are reusable
-- [ ] Error handling implemented
-- [ ] Loading states handled
-- [ ] Responsive design considered
-- [ ] Accessibility considered
-
-### General
-
-- [ ] No console.logs or debug code
-- [ ] No hardcoded values
-- [ ] Environment variables used
-- [ ] Security considerations addressed
-- [ ] Performance optimized
-- [ ] Code formatted consistently
-
----
-
-## 📖 Tài Liệu Tham Khảo
-
-- [Express.js Best Practices](https://expressjs.com/en/advanced/best-practice-performance.html)
+- [JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
+- [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)
+- [TypeScript Style Guide](https://www.typescriptlang.org/docs/handbook/declaration-files/do-s-and-don-ts.html)
 - [React Best Practices](https://react.dev/learn)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [MongoDB Best Practices](https://www.mongodb.com/docs/manual/administration/production-notes/)
-- [REST API Design](https://restfulapi.net/)
 
 ---
 
 **Lưu ý**: Tài liệu này sẽ được cập nhật thường xuyên. Vui lòng tham khảo version mới nhất trước khi bắt đầu coding.
-
