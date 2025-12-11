@@ -294,7 +294,7 @@ export const getTreatmentRecommendations = async (diseaseName, cropName = null) 
  * Get chemical products for disease
  * Enhanced with keyword-based search for better matching
  */
-const getChemicalTreatments = async (diseaseName, cropName) => {
+export const getChemicalTreatments = async (diseaseName, cropName) => {
   try {
     const query = {
       verified: true,
@@ -420,7 +420,7 @@ const getChemicalTreatments = async (diseaseName, cropName) => {
  * Get biological methods for disease
  * Enhanced with keyword-based search for better matching
  */
-const getBiologicalTreatments = async (diseaseName) => {
+export const getBiologicalTreatments = async (diseaseName) => {
   try {
     const query = { verified: true };
 
@@ -473,7 +473,7 @@ const getBiologicalTreatments = async (diseaseName) => {
  * Get cultural practices (not disease-specific, general practices)
  * Enhanced with keyword-based search for better crop matching
  */
-const getCulturalPractices = async (cropName) => {
+export const getCulturalPractices = async (cropName) => {
   try {
     const query = { verified: true };
 

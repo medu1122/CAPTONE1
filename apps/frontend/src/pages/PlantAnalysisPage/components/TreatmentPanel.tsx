@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { XIcon, InfoIcon, AlertCircleIcon } from 'lucide-react'
 import type { AnalysisResult } from '../types'
 import { ComplaintModal } from '../../../components/ComplaintModal'
+import { DiseaseTooltip } from './DiseaseTooltip'
 
 interface TreatmentPanelProps {
   result: AnalysisResult
@@ -62,28 +63,40 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
           }
           
           return (
-            <button
+            <DiseaseTooltip
               key={disease.name}
-              onClick={() => setSelectedDisease(disease.name)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
-                selectedDisease === disease.name
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              diseaseName={disease.name}
+              plantName={result.plant?.commonName}
+              enabled={true} // Always enabled in TreatmentPanel since analysis is complete
             >
-              <span>{getIcon(disease.name)}</span>
-              <span>
-                <span className="font-semibold">Bệnh: </span>
-                {disease.name}
-              </span>
-              <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                selectedDisease === disease.name 
-                  ? 'bg-white text-green-700' 
-                  : 'bg-gray-200 text-gray-700'
-              }`}>
-                {Math.round(disease.confidence * 100)}%
-              </span>
-            </button>
+              <button
+                onClick={() => setSelectedDisease(disease.name)}
+                className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 group ${
+                  selectedDisease === disease.name
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>{getIcon(disease.name)}</span>
+                <span>
+                  <span className="font-semibold">Bệnh: </span>
+                  {disease.name}
+                </span>
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                  selectedDisease === disease.name 
+                    ? 'bg-white text-green-700' 
+                    : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {Math.round(disease.confidence * 100)}%
+                </span>
+                <InfoIcon 
+                  className={`ml-1 opacity-0 group-hover:opacity-60 transition-opacity ${
+                    selectedDisease === disease.name ? 'text-white' : 'text-gray-500'
+                  }`} 
+                  size={14} 
+                />
+              </button>
+            </DiseaseTooltip>
           )
         })}
         </div>

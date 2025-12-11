@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { API_CONFIG } from '../../../config/api'
 import type { AnalysisResult } from '../types'
+import { validateImage, type ValidationResult } from '../utils/imageValidation'
 
 const API_BASE_URL = API_CONFIG.BASE_URL
 
@@ -43,4 +44,6 @@ export const getAnalysisById = async (id: string): Promise<any> => {
 
   return response.data.data
 }
+
+export { validateImage, type ValidationResult }
 

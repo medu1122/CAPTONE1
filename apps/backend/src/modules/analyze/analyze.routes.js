@@ -5,8 +5,32 @@ import {
   getHistoryController,
   getAnalysisByIdController 
 } from './analyze.controller.js';
+import { validateImageController } from './analyze.validation.controller.js';
+import { streamImageAnalysisController } from './analyze.stream.controller.js';
+import { getDiseaseExplanationController } from './analyze.explanation.controller.js';
 
 const router = express.Router();
+
+/**
+ * @route   POST /api/v1/analyze/validate-image
+ * @desc    Quick validation to check if image contains a plant
+ * @access  Public
+ */
+router.post('/validate-image', validateImageController);
+
+/**
+ * @route   GET /api/v1/analyze/disease-explanation
+ * @desc    Get GPT explanation for a disease (short, for tooltips)
+ * @access  Public
+ */
+router.get('/disease-explanation', getDiseaseExplanationController);
+
+/**
+ * @route   POST /api/v1/analyze/image-stream
+ * @desc    Analyze plant image with streaming (SSE) - Real-time progress updates
+ * @access  Public (but saves if authenticated)
+ */
+router.post('/image-stream', streamImageAnalysisController);
 
 /**
  * @route   POST /api/v1/analyze/image

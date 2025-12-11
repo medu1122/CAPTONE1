@@ -4,7 +4,10 @@ import { Header } from '../ChatAnalyzePage/components/layout/Header'
 import { UploadSection } from './components/UploadSection'
 import { PlantInfoCard } from './components/PlantInfoCard'
 import { TreatmentPanel } from './components/TreatmentPanel'
-import { EmptyState } from './components/EmptyState'
+import { WelcomeSection } from './components/WelcomeSection'
+import { PlantInfoSection } from './components/sections/PlantInfoSection'
+import { DiseaseListSection } from './components/sections/DiseaseListSection'
+import { TreatmentSection } from './components/sections/TreatmentSection'
 import { useImageAnalysis } from './hooks/useImageAnalysis'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -21,6 +24,7 @@ export const PlantAnalysisPage: React.FC = () => {
     analyze,
     resetImage,
     needsAnalysis,
+    streamingState,
   } = useImageAnalysis()
 
   const handleFileSelect = async (files: File[]) => {
@@ -88,11 +92,33 @@ export const PlantAnalysisPage: React.FC = () => {
 
           {/* Right Column - Analysis Results */}
           <div className="lg:col-span-2 space-y-6">
-            {selectedImage ? (
-              <>
-                {/* Analysis Control Buttons */}
-                <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                  {needsAnalysis || !selectedImage.result ? (
+            {/* Show WelcomeSection if no image OR image uploaded but not analyzing yet */}
+            {!selectedImage || (!selectedImage.analyzing && !selectedImage.result) ? (
+              <div className="space-y-6">
+                {!selectedImage ? (
+                  <WelcomeSection />
+                ) : (
+                  <>
+                    {/* Compact welcome when image uploaded */}
+                    <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl shadow-sm p-6 border border-green-200">
+                      <div className="text-center mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
+                          <span className="text-3xl">🌿</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">
+                          Ảnh đã sẵn sàng!
+                        </h2>
+                        <p className="text-gray-700">
+                          Click nút bên dưới để bắt đầu phân tích cây và phát hiện bệnh
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {/* Show analyze button if image is uploaded */}
+                {selectedImage && (
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                     <button
                       onClick={handleAnalyze}
                       disabled={selectedImage.analyzing}
@@ -112,30 +138,92 @@ export const PlantAnalysisPage: React.FC = () => {
                         </>
                       )}
                     </button>
-                  ) : (
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Analysis Interface - Show when analyzing or has result */}
+                {/* Small Progress Indicator - Only show progress bar, not full component */}
+                {selectedImage.analyzing && streamingState.status !== 'idle' && streamingState.status !== 'complete' && (
+                  <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">{streamingState.currentStep}</span>
+                      <span className="text-sm text-gray-500">{streamingState.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${streamingState.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Sections - Load in order with animations */}
+                <PlantInfoSection
+                  plant={streamingState.plant}
+                  isHealthy={streamingState.diseases.length === 0}
+                  diseases={streamingState.diseases}
+                  isLoading={selectedImage.analyzing && !streamingState.plant && streamingState.status !== 'error'}
+                  imageUrl={selectedImage.previewUrl}
+                />
+
+                <DiseaseListSection
+                  diseases={streamingState.diseases}
+                  plantName={streamingState.plant?.commonName}
+                  isLoading={selectedImage.analyzing && streamingState.plant && streamingState.diseases.length === 0 && streamingState.status !== 'error'}
+                  enabled={!selectedImage.analyzing && (selectedImage.result !== null || streamingState.status === 'complete')}
+                />
+
+                <TreatmentSection
+                  plant={streamingState.plant}
+                  diseases={streamingState.diseases}
+                  treatments={streamingState.treatments}
+                  care={streamingState.care}
+                  isLoading={selectedImage.analyzing && streamingState.diseases.length > 0 && Object.keys(streamingState.treatments).length === 0 && streamingState.status !== 'error'}
+                  imageUrl={selectedImage.previewUrl}
+                />
+
+                {/* Final Results - Show when complete (fallback for non-streaming) */}
+                {selectedImage.result && !selectedImage.analyzing && !streamingState.plant && (
+                  <>
+                    <PlantInfoSection
+                      plant={selectedImage.result.plant}
+                      isHealthy={selectedImage.result.isHealthy}
+                      diseases={selectedImage.result.diseases}
+                      isLoading={false}
+                      imageUrl={selectedImage.previewUrl}
+                    />
+                    <DiseaseListSection
+                      diseases={selectedImage.result.diseases}
+                      plantName={selectedImage.result.plant.commonName}
+                      isLoading={false}
+                      enabled={true}
+                    />
+                    <TreatmentSection
+                      plant={selectedImage.result.plant}
+                      diseases={selectedImage.result.diseases}
+                      treatments={selectedImage.result.treatments}
+                      care={selectedImage.result.care}
+                      isLoading={false}
+                      imageUrl={selectedImage.previewUrl}
+                    />
+                  </>
+                )}
+
+                {/* Reset button when analysis complete */}
+                {selectedImage.result && !selectedImage.analyzing && (
+                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                     <button
                       onClick={handleReset}
                       className="w-full px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
                     >
                       🔄 Phân Tích Lại
                     </button>
-                  )}
-                </div>
-
-                {/* Analysis Results */}
-                {selectedImage.result ? (
-                  <>
-                    <PlantInfoCard result={selectedImage.result} />
-                    <TreatmentPanel result={selectedImage.result} />
-                  </>
-                ) : !selectedImage.analyzing && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                    <p className="text-blue-800">📸 Ảnh đã sẵn sàng. Click "Phân Tích Ảnh" để bắt đầu.</p>
                   </div>
                 )}
               </>
-            ) : (
-              <EmptyState />
             )}
           </div>
         </div>

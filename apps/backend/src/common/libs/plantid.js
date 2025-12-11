@@ -3,6 +3,13 @@ import axios from 'axios';
 const PLANTID_API_KEY = process.env.PLANTID_API_KEY;
 const PLANTID_BASE_URL = 'https://plant.id/api/v3';
 
+// Log API key status (first 10 chars only for security)
+if (PLANTID_API_KEY) {
+  console.log('🔑 [Plant.id] API Key loaded:', PLANTID_API_KEY.substring(0, 10) + '...' + PLANTID_API_KEY.substring(PLANTID_API_KEY.length - 4));
+} else {
+  console.error('❌ [Plant.id] API Key NOT FOUND in environment variables!');
+}
+
 /**
  * Convert image URL to base64 data
  * @param {string} imageUrl - Image URL (HTTP/HTTPS or data URL)
@@ -153,7 +160,13 @@ export const identifyPlant = async ({ imageData }) => {
       throw new Error('Invalid Plant.id API key');
     }
     if (error.response?.status === 429) {
-      throw new Error('Plant.id API rate limit exceeded');
+      throw new Error('Plant.id API rate limit exceeded - Vui lòng thử lại sau');
+    }
+    
+    // Check for insufficient credits error message
+    if (error.response?.data?.error?.includes('sufficient number of available credits') || 
+        error.message?.includes('sufficient number of available credits')) {
+      throw new Error('Plant.id API đã hết credits. Vui lòng liên hệ admin để nạp thêm credits.');
     }
     
     throw new Error(`Plant.id API failed: ${error.message}`);

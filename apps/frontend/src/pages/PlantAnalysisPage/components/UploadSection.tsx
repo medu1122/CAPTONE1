@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { CameraIcon, XIcon, Loader2Icon } from 'lucide-react'
+import { CameraIcon, XIcon, Loader2Icon, CheckCircleIcon, AlertCircleIcon, AlertTriangleIcon } from 'lucide-react'
 import type { UploadedImage } from '../types'
 
 interface UploadSectionProps {
@@ -22,7 +22,17 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
-      onFileSelect(files)
+      // Chỉ lấy file đầu tiên nếu user chọn nhiều
+      if (files.length > 1) {
+        alert('⚠️ Hệ thống chỉ hỗ trợ phân tích 1 ảnh mỗi lần. Chỉ ảnh đầu tiên sẽ được sử dụng.')
+      }
+      // Nếu đã có hình, thay thế hình cũ
+      if (images.length > 0) {
+        // Remove old image first
+        images.forEach(img => onImageRemove(img.id))
+      }
+      // Chỉ upload file đầu tiên
+      onFileSelect([files[0]])
     }
     // Reset input
     if (fileInputRef.current) {
@@ -44,20 +54,19 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
-          multiple
+          accept="image/png,image/jpeg,image/jpg,image/webp"
           onChange={handleFileChange}
           className="hidden"
         />
       </div>
 
-      {/* Image List */}
+      {/* Image Preview */}
       {images.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700 mb-2">
-            Ảnh đã upload ({images.length})
+            Ảnh đã chọn
           </p>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+          <div className="space-y-2">
             {images.map((image) => (
               <div
                 key={image.id}
@@ -108,6 +117,56 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               </div>
             ))}
           </div>
+
+          {/* Validation Message */}
+          {images.length > 0 && images[0].validation && (
+            <div className={`mt-3 p-3 rounded-lg border ${
+              images[0].validation.validating
+                ? 'bg-blue-50 border-blue-200'
+                : images[0].validation.isValid
+                ? images[0].validation.warning
+                  ? 'bg-yellow-50 border-yellow-200'
+                  : 'bg-green-50 border-green-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-start gap-2">
+                {images[0].validation.validating ? (
+                  <>
+                    <Loader2Icon className="animate-spin text-blue-600 mt-0.5" size={18} />
+                    <p className="text-sm text-blue-800">{images[0].validation.message}</p>
+                  </>
+                ) : images[0].validation.isValid ? (
+                  <>
+                    {images[0].validation.warning ? (
+                      <AlertTriangleIcon className="text-yellow-600 mt-0.5" size={18} />
+                    ) : (
+                      <CheckCircleIcon className="text-green-600 mt-0.5" size={18} />
+                    )}
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${
+                        images[0].validation.warning ? 'text-yellow-800' : 'text-green-800'
+                      }`}>
+                        {images[0].validation.message}
+                      </p>
+                      {images[0].validation.plantName && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Có thể là: {images[0].validation.plantName} ({Math.round(images[0].validation.confidence * 100)}%)
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircleIcon className="text-red-600 mt-0.5" size={18} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-800">{images[0].validation.message}</p>
+                      <p className="text-xs text-red-600 mt-1">Vui lòng chọn ảnh khác để tiếp tục.</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

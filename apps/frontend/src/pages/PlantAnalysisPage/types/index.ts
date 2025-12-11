@@ -54,6 +54,16 @@ export interface AnalysisResult {
   analysisId?: string
 }
 
+export interface ValidationState {
+  isValid: boolean
+  isPlant: boolean | null
+  confidence: number
+  plantName?: string
+  message: string
+  warning?: boolean
+  validating?: boolean
+}
+
 export interface UploadedImage {
   id: string
   file: File
@@ -61,5 +71,6 @@ export interface UploadedImage {
   analyzing: boolean
   result: AnalysisResult | null
   error?: string
+  validation?: ValidationState
 }
 

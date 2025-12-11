@@ -1,15 +1,91 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { UploadedImage, AnalysisResult } from '../types'
-import { uploadImage, analyzeImage } from '../services/analysisService'
+import { uploadImage } from '../services/analysisService'
+// import { validateImage } from '../services/analysisService' // Disabled to save Plant.id credits
+import { useStreamingAnalysis } from './useStreamingAnalysis'
+
+const STORAGE_KEY = 'plant_analysis_results'
+
+// Helper functions for localStorage
+const saveAnalysisToStorage = (result: AnalysisResult, imageUrl: string, imageId: string) => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    const results = saved ? JSON.parse(saved) : {}
+    
+    results[imageId] = {
+      result,
+      imageUrl,
+      timestamp: Date.now(),
+    }
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(results))
+    console.log('💾 [useImageAnalysis] Saved analysis result to localStorage:', imageId)
+  } catch (error) {
+    console.error('❌ [useImageAnalysis] Failed to save to localStorage:', error)
+  }
+}
+
+const loadAnalysisFromStorage = (): Record<string, { result: AnalysisResult; imageUrl: string; timestamp: number }> => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return {}
+    
+    const results = JSON.parse(saved)
+    console.log('📂 [useImageAnalysis] Loaded analysis results from localStorage:', Object.keys(results).length)
+    return results
+  } catch (error) {
+    console.error('❌ [useImageAnalysis] Failed to load from localStorage:', error)
+    return {}
+  }
+}
 
 export const useImageAnalysis = () => {
   const [images, setImages] = useState<UploadedImage[]>([])
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
   const [pendingAnalysis, setPendingAnalysis] = useState<Set<string>>(new Set())
+  const streamingAnalysis = useStreamingAnalysis()
+
+  // Load saved analysis results on mount
+  useEffect(() => {
+    const savedResults = loadAnalysisFromStorage()
+    if (Object.keys(savedResults).length > 0) {
+      const savedEntries = Object.entries(savedResults)
+      // Sort by timestamp, get latest
+      const sortedEntries = savedEntries.sort((a, b) => b[1].timestamp - a[1].timestamp)
+      const [imageId, data] = sortedEntries[0]
+      
+      // Create a placeholder image with saved result
+      // Note: We can't restore the File object, but we can restore the result
+      const savedImage: UploadedImage = {
+        id: imageId,
+        file: new File([], 'saved-image.jpg', { type: 'image/jpeg' }), // Placeholder file
+        previewUrl: data.imageUrl || data.result.imageUrl, // Use saved imageUrl or from result
+        analyzing: false,
+        result: data.result,
+        validation: {
+          isValid: true,
+          isPlant: true,
+          confidence: 1,
+          message: 'Kết quả đã lưu từ phiên trước',
+          validating: false,
+        },
+      }
+      
+      setImages([savedImage])
+      setSelectedImageId(imageId)
+      console.log('✅ [useImageAnalysis] Restored analysis result from localStorage:', imageId)
+    }
+  }, [])
 
   const addImage = useCallback((file: File): { id: string; image: UploadedImage } => {
     if (file.size > 10 * 1024 * 1024) {
       throw new Error(`File ${file.name} quá lớn! Vui lòng chọn file nhỏ hơn 10MB`)
+    }
+
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      throw new Error(`File ${file.name} không đúng định dạng! Chỉ chấp nhận PNG, JPG, WEBP`)
     }
 
     const id = `img_${Date.now()}_${Math.random()}`
@@ -21,20 +97,100 @@ export const useImageAnalysis = () => {
       previewUrl: url,
       analyzing: false,
       result: null,
+      validation: {
+        isValid: true,
+        isPlant: null,
+        confidence: 0,
+        message: 'Đang kiểm tra hình ảnh...',
+        validating: true,
+      },
     }
 
-    // Single state update to avoid race conditions
+    // Single state update - chỉ cho phép 1 hình, thay thế hình cũ nếu có
     setImages((prev) => {
-      const updated = [...prev, newImage]
-      // Auto-select first image
-      if (updated.length === 1) {
-        setSelectedImageId(id)
-      }
-      return updated
+      // Cleanup old images
+      prev.forEach((img) => {
+        URL.revokeObjectURL(img.previewUrl)
+      })
+      // Set new image
+      setSelectedImageId(id)
+      return [newImage]
     })
 
     // Mark as pending analysis
-    setPendingAnalysis((prev) => new Set(prev).add(id))
+    setPendingAnalysis((prev) => new Set([id]))
+
+    // ⚠️ VALIDATION DISABLED - Skip image validation to save Plant.id credits
+    // Set validation as valid by default
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === id
+          ? {
+              ...img,
+              validation: {
+                isValid: true,
+                isPlant: true,
+                confidence: 1,
+                message: 'Hình ảnh đã sẵn sàng để phân tích',
+                validating: false,
+              },
+            }
+          : img,
+      ),
+    )
+
+    // OLD VALIDATION CODE - COMMENTED OUT TO SAVE CREDITS
+    // ;(async () => {
+    //   try {
+    //     // Upload image first
+    //     const imageUrl = await uploadImage(file)
+    //     
+    //     // Then validate
+    //     const validationResult = await validateImage(imageUrl)
+    //     
+    //     setImages((prev) =>
+    //       prev.map((img) =>
+    //         img.id === id
+    //           ? {
+    //               ...img,
+    //               validation: {
+    //                 ...validationResult,
+    //                 validating: false,
+    //               },
+    //             }
+    //           : img,
+    //       ),
+    //     )
+
+    //     // If invalid, remove from pending analysis
+    //     if (!validationResult.isValid) {
+    //       setPendingAnalysis((prev) => {
+    //         const newSet = new Set(prev)
+    //         newSet.delete(id)
+    //         return newSet
+    //       })
+    //     }
+    //   } catch (error: any) {
+    //     console.error('Validation error:', error)
+    //     setImages((prev) =>
+    //       prev.map((img) =>
+    //         img.id === id
+    //           ? {
+    //               ...img,
+    //               validation: {
+    //                 isValid: true, // Allow to proceed
+    //                 isPlant: null,
+    //                 confidence: 0,
+    //                 message: 'Không thể kiểm tra hình ảnh. Bạn vẫn có thể thử phân tích.',
+    //                 warning: true,
+    //                 validating: false,
+    //               },
+    //             }
+    //           : img,
+    //       ),
+    //     )
+    //   }
+    // })()
 
     // Return both id and the actual image object
     return { id, image: newImage }
@@ -45,6 +201,19 @@ export const useImageAnalysis = () => {
       const image = images.find((img) => img.id === imageId)
       if (image) {
         URL.revokeObjectURL(image.previewUrl)
+      }
+
+      // Remove from localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+          const results = JSON.parse(saved)
+          delete results[imageId]
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(results))
+          console.log('🗑️ [useImageAnalysis] Removed analysis result from localStorage:', imageId)
+        }
+      } catch (error) {
+        console.error('❌ [useImageAnalysis] Failed to remove from localStorage:', error)
       }
 
       setImages((prev) => prev.filter((img) => img.id !== imageId))
@@ -63,6 +232,17 @@ export const useImageAnalysis = () => {
 
   const analyze = useCallback(async (imageId: string, imageFile?: File) => {
     console.log('📊 [analyze] Called with:', { imageId, hasFile: !!imageFile })
+    
+    // Check validation first
+    let imageToCheck: UploadedImage | null = null
+    setImages((prev) => {
+      imageToCheck = prev.find((img) => img.id === imageId) || null
+      return prev
+    })
+
+    if (imageToCheck?.validation && !imageToCheck.validation.isValid && !imageToCheck.validation.warning) {
+      throw new Error(imageToCheck.validation.message || 'Hình ảnh không hợp lệ')
+    }
     
     // Determine which file to upload BEFORE any async operations
     let fileToUpload: File | null = null
@@ -104,14 +284,26 @@ export const useImageAnalysis = () => {
         throw new Error('Image not found')
       }
 
-      // Upload image
+      // Upload image first
       const imageUrl = await uploadImage(fileToUpload)
 
-      // Analyze image
-      const result = await analyzeImage(imageUrl)
+      // Use streaming analysis
+      console.log('📡 [analyze] Starting streaming analysis...')
+      const result = await streamingAnalysis.analyze(imageUrl)
 
-      setImages((prev) =>
-        prev.map((img) =>
+      // Update image with result
+      setImages((prev) => {
+        const updatedImage = prev.find((img) => img.id === imageId)
+        
+        // Save to localStorage for persistence across page refreshes
+        if (updatedImage) {
+          // Use imageUrl from result (Cloudinary URL) instead of previewUrl (blob URL)
+          // Blob URLs don't persist across page refreshes
+          const imageUrlToSave = result.imageUrl || updatedImage.previewUrl
+          saveAnalysisToStorage(result, imageUrlToSave, imageId)
+        }
+        
+        return prev.map((img) =>
           img.id === imageId
             ? {
                 ...img,
@@ -119,8 +311,8 @@ export const useImageAnalysis = () => {
                 result,
               }
             : img,
-        ),
-      )
+        )
+      })
 
       // Remove from pending analysis
       setPendingAnalysis((prev) => {
@@ -148,6 +340,19 @@ export const useImageAnalysis = () => {
   }, [])
 
   const resetImage = useCallback((imageId: string) => {
+    // Remove from localStorage
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const results = JSON.parse(saved)
+        delete results[imageId]
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(results))
+        console.log('🗑️ [useImageAnalysis] Removed analysis result from localStorage:', imageId)
+      }
+    } catch (error) {
+      console.error('❌ [useImageAnalysis] Failed to remove from localStorage:', error)
+    }
+
     setImages((prev) =>
       prev.map((img) =>
         img.id === imageId
@@ -180,6 +385,7 @@ export const useImageAnalysis = () => {
     analyze,
     resetImage,
     needsAnalysis,
+    streamingState: streamingAnalysis.state,
   }
 }
 
