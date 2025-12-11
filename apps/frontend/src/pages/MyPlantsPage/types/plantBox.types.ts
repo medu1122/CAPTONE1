@@ -48,12 +48,49 @@ export interface PlantBox {
     type: 'care' | 'observation' | 'issue' | 'milestone'
     content: string
     date: string
+    imageUrl?: string
   }
   
   export interface DiseaseFeedback {
     date: string
     status: 'worse' | 'same' | 'better' | 'resolved'
     notes?: string
+  }
+
+  export interface SelectedTreatment {
+    chemical?: ChemicalTreatment[]
+    biological?: BiologicalTreatment[]
+    cultural?: CulturalTreatment[]
+  }
+
+  export interface ChemicalTreatment {
+    name: string
+    activeIngredient: string
+    manufacturer?: string
+    targetDiseases?: string[]
+    targetCrops?: string[]
+    dosage: string
+    usage: string
+    frequency?: string
+    isolationPeriod?: string
+    precautions?: string[]
+    imageUrl?: string
+    price?: string
+  }
+
+  export interface BiologicalTreatment {
+    name: string
+    materials: string
+    steps: string
+    timeframe?: string
+    effectiveness?: string
+  }
+
+  export interface CulturalTreatment {
+    name: string
+    action: string
+    description: string
+    priority?: string
   }
 
   export interface PlantDisease {
@@ -65,6 +102,7 @@ export interface PlantBox {
     treatmentPlan?: string
     status?: 'active' | 'treating' | 'resolved'
     feedback?: DiseaseFeedback[]
+    selectedTreatments?: SelectedTreatment
   }
   
   export interface CareAction {

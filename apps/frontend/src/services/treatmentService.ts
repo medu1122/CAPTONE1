@@ -36,3 +36,34 @@ export const searchDiseaseNames = async (query: string): Promise<string[]> => {
   }
 }
 
+/**
+ * Get treatment recommendations for a disease and plant
+ * @param disease - Disease name
+ * @param plant - Plant name (optional)
+ * @returns Treatment recommendations object
+ */
+export const getTreatmentRecommendations = async (
+  disease: string,
+  plant?: string
+): Promise<{
+  type: 'chemical' | 'biological' | 'cultural'
+  title: string
+  items: any[]
+}[]> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/treatments/recommendations`, {
+      params: { disease, plant },
+      timeout: 10000,
+    })
+
+    if (response.data.success && response.data.data) {
+      return response.data.data
+    }
+
+    return []
+  } catch (error: any) {
+    console.error('Error getting treatment recommendations:', error?.response?.status || error?.message)
+    return []
+  }
+}
+

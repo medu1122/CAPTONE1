@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { adminService } from '../../../services/adminService'
 import type { Complaint, Report } from '../../../services/adminService'
 import { XIcon } from 'lucide-react'
+import { AnalysisReportDetailModal } from './AnalysisReportDetailModal'
 
 type ComplaintOrReport = Complaint | Report
 
@@ -196,13 +197,29 @@ export const ComplaintsTab: React.FC = () => {
   const isComplaint = (item: ComplaintOrReport): item is Complaint => {
     // Check if it's a complaint by looking for complaint-specific fields
     if ('itemType' in item && item.itemType === 'complaint') return true
-    // Check by type field - complaints have type: 'analysis' | 'chatbot' | 'my-plants' | 'map' | 'general'
+    
+    // Reports have targetType and targetId fields, complaints don't
+    // This is the most reliable way to distinguish them
+    if ('targetType' in item && 'targetId' in item) {
+      return false // This is definitely a report
+    }
+    
+    // Complaints have title field, reports don't
+    if ('title' in item) {
+      return true // This is definitely a complaint
+    }
+    
+    // Check by type field - but be careful: both complaints and reports can have type: 'analysis'
+    // So we need to check other fields first (which we did above)
     if ('type' in item) {
       const complaintTypes = ['analysis', 'chatbot', 'my-plants', 'map', 'general']
-      return complaintTypes.includes(item.type as string)
+      const itemType = (item as any).type as string
+      // Only return true if it's a complaint type AND doesn't have report fields
+      return complaintTypes.includes(itemType) && !('targetType' in item)
     }
-    // Check by presence of title field (complaints have title, reports don't)
-    return 'title' in item && !('targetId' in item)
+    
+    // Default: if no clear indicators, assume it's a complaint (safer fallback)
+    return 'title' in item
   }
 
   const handleStatusUpdate = async () => {
@@ -345,8 +362,52 @@ export const ComplaintsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedItem && (
+      {/* Detail Modal - Show AnalysisReportDetailModal for analysis reports */}
+      {showDetailModal && selectedItem && (() => {
+        // Check if this is an analysis report
+        const item = selectedItem
+        const hasTargetType = 'targetType' in item
+        const hasTargetId = 'targetId' in item
+        const isReport = hasTargetType && hasTargetId && !isComplaint(item)
+        const isAnalysisReport = isReport && 
+          (item as Report).type === 'analysis' && 
+          (item as Report).targetType === 'analysis'
+        
+        if (isAnalysisReport) {
+          return (
+            <AnalysisReportDetailModal
+              report={item as Report}
+              isOpen={showDetailModal}
+              onClose={() => {
+                setShowDetailModal(false)
+                setSelectedItem(null)
+                setAdminNotes('')
+                setStatusUpdate('')
+              }}
+              onStatusUpdate={async (reportId: string, status: string, notes?: string) => {
+                await adminService.updateReportStatus(reportId, {
+                  status: status as any,
+                  adminNotes: notes,
+                })
+                // Refresh data
+                const [complaintsRes, reportsRes] = await Promise.all([
+                  adminService.getComplaints({
+                    page: 1,
+                    limit: 100,
+                  }),
+                  adminService.getReports({
+                    page: 1,
+                    limit: 100,
+                  }),
+                ])
+                setComplaints(complaintsRes?.complaints || [])
+                setReports(reportsRes?.reports || [])
+              }}
+            />
+          )
+        }
+        
+        return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
@@ -484,7 +545,8 @@ export const ComplaintsTab: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

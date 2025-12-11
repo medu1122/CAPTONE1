@@ -2,6 +2,8 @@ import { generateAIResponse } from '../aiAssistant/ai.service.js';
 import { httpError } from '../../common/utils/http.js';
 import { getTreatmentRecommendations } from '../treatments/treatment.service.js';
 import { getFruitingSeasonInfo } from './plantFruitingSeason.service.js';
+import { analyzeForecast } from './weatherAnalysis.service.js';
+import { getRecommendations } from '../productRecommendations/productRecommendation.service.js';
 
 /**
  * Generate care strategy for plant box based on weather and plant info
@@ -12,6 +14,9 @@ import { getFruitingSeasonInfo } from './plantFruitingSeason.service.js';
  */
 export const generateCareStrategy = async ({ plantBox, weather }) => {
   try {
+    // Analyze weather forecast (backend quyết định cao/thấp)
+    const analyzedWeather = analyzeForecast(weather.forecast);
+    
     // Get fruiting season information
     const fruitingInfo = getFruitingSeasonInfo({
       plantName: plantBox.plantName,
@@ -20,21 +25,96 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
       locationCoords: plantBox.location.coordinates,
     });
     
-    // Get treatment recommendations if plant has diseases
+    // Filter out diseases that are resolved (no treatment needed)
+    const activeDiseases = (plantBox.currentDiseases || []).filter(disease => {
+      const latestFeedback = disease.feedback && disease.feedback.length > 0
+        ? disease.feedback[disease.feedback.length - 1]
+        : null;
+      // Don't treat if status is 'resolved' or latest feedback is 'resolved'
+      return disease.status !== 'resolved' && 
+             (!latestFeedback || latestFeedback.status !== 'resolved');
+    });
+    
+    // Get treatment recommendations if plant has ACTIVE diseases
     let treatmentInfo = '';
-    if (plantBox.currentDiseases && plantBox.currentDiseases.length > 0) {
+    let productRecommendations = '';
+    if (activeDiseases.length > 0) {
       try {
+        // Check if diseases have user-selected treatments
         const treatments = await Promise.all(
-          plantBox.currentDiseases.map(disease => 
-            getTreatmentRecommendations(disease.name, plantBox.plantName)
-          )
+          activeDiseases.map(async (disease) => {
+            // Priority 1: Use user-selected chemical treatments if available
+            // Biological and cultural are always auto-suggested from database
+            if (disease.selectedTreatments && 
+                disease.selectedTreatments.chemical?.length > 0) {
+              console.log(`✅ [CareStrategy] Using user-selected chemical treatments for disease: ${disease.name}`);
+              
+              // Get biological and cultural from database (auto-suggested)
+              const dbTreatments = await getTreatmentRecommendations(disease.name, plantBox.plantName);
+              
+              // Format selected chemical treatments
+              const formattedTreatments = [{
+                type: 'chemical',
+                title: 'Thuốc Hóa học',
+                items: disease.selectedTreatments.chemical.map(p => ({
+                  name: p.name,
+                  activeIngredient: p.activeIngredient,
+                  manufacturer: p.manufacturer,
+                  dosage: p.dosage,
+                  usage: p.usage,
+                  frequency: p.frequency,
+                  isolationPeriod: p.isolationPeriod,
+                  precautions: p.precautions || [],
+                })),
+              }];
+              
+              // Add biological and cultural from database (auto-suggested)
+              dbTreatments.forEach(t => {
+                if (t.type === 'biological' || t.type === 'cultural') {
+                  formattedTreatments.push(t);
+                }
+              });
+              
+              return formattedTreatments;
+            } else {
+              // Priority 2: Fetch all from database if no user selection
+              console.log(`📋 [CareStrategy] Fetching all treatments from database for disease: ${disease.name}`);
+              return await getTreatmentRecommendations(disease.name, plantBox.plantName);
+            }
+          })
         );
+        
+        // Get product recommendations
+        try {
+          const productResult = await getRecommendations({
+            plant: plantBox.plantName,
+            disease: activeDiseases.map(d => d.name).join(', '),
+            limit: 5,
+          });
+          
+          if (productResult.recommendations && productResult.recommendations.length > 0) {
+            productRecommendations = `\n🛒 SẢN PHẨM ĐỀ XUẤT:\n`;
+            productResult.recommendations.slice(0, 3).forEach((product, idx) => {
+              productRecommendations += `\n[Sản phẩm ${idx + 1}] ${product.name}\n`;
+              if (product.description) productRecommendations += `  → Mô tả: ${product.description}\n`;
+              if (product.price) productRecommendations += `  → Giá: ${product.price}\n`;
+              if (product.links && product.links.length > 0) {
+                productRecommendations += `  → Link mua: ${product.links.map(l => l.url).join(', ')}\n`;
+              }
+            });
+            productRecommendations += `\n`;
+          }
+        } catch (error) {
+          console.error('❌ [CareStrategy] Error fetching product recommendations:', error);
+        }
         
         // Format treatment info for prompt - MORE SPECIFIC AND ACTIONABLE
         treatmentInfo = treatments
           .filter(t => t && t.length > 0)
           .map((t, idx) => {
-            const disease = plantBox.currentDiseases[idx];
+            const disease = activeDiseases[idx];
+            const hasUserSelectedChemical = disease.selectedTreatments && 
+              disease.selectedTreatments.chemical?.length > 0;
             // Get latest feedback if available
             const latestFeedback = disease.feedback && disease.feedback.length > 0 
               ? disease.feedback[disease.feedback.length - 1] 
@@ -42,6 +122,9 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
             
             let info = `\n═══════════════════════════════════════════════════════════\n`;
             info += `📋 THÔNG TIN ĐIỀU TRỊ CHO BỆNH: "${disease.name}"\n`;
+            if (hasUserSelectedChemical) {
+              info += `✅ (NGƯỜI DÙNG ĐÃ CHỌN THUỐC - PHẢI SỬ DỤNG CHÍNH XÁC)\n`;
+            }
             info += `═══════════════════════════════════════════════════════════\n`;
             if (latestFeedback) {
               const feedbackText = {
@@ -58,30 +141,38 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
               
               // Add specific instructions based on feedback
               if (latestFeedback.status === 'worse') {
-                info += `\n⚠️⚠️⚠️ HÀNH ĐỘNG CẦN THIẾT (Bệnh tệ hơn):\n`;
-                info += `   - TĂNG cường độ điều trị (tăng tần suất phun thuốc)\n`;
-                info += `   - Có thể cần kết hợp nhiều phương pháp (thuốc + sinh học)\n`;
-                info += `   - Kiểm tra thường xuyên hơn (mỗi ngày)\n`;
+                info += `\n⚠️⚠️⚠️ HÀNH ĐỘNG CẦN THIẾT (Bệnh TỆ HƠN - ƯU TIÊN CAO):\n`;
+                info += `   - PHẢI có 3-4 hành động điều trị trong 4 ngày đầu (ngày 1, 2, 3, 4)\n`;
+                info += `   - TĂNG cường độ điều trị: phun thuốc 2 lần/ngày (sáng + chiều) nếu cần\n`;
+                info += `   - KẾT HỢP nhiều phương pháp: thuốc hóa học + phương pháp sinh học + biện pháp canh tác\n`;
+                info += `   - Sử dụng CẢ THUỐC HÓA HỌC VÀ PHƯƠNG PHÁP SINH HỌC trong cùng ngày hoặc xen kẽ\n`;
+                info += `   - Thêm biện pháp canh tác như cắt tỉa lá bệnh, tăng thông thoáng\n`;
+                info += `   - Kiểm tra hàng ngày và điều chỉnh kịp thời\n`;
                 info += `   - Có thể cần đổi thuốc nếu thuốc hiện tại không hiệu quả\n`;
-                info += `   - Ưu tiên điều trị trong 3-4 ngày đầu\n`;
               } else if (latestFeedback.status === 'same') {
-                info += `\n⚠️ HÀNH ĐỘNG CẦN THIẾT (Bệnh không đổi):\n`;
-                info += `   - Tiếp tục điều trị nhưng CẦN XEM XÉT đổi phương pháp\n`;
-                info += `   - Có thể thử phương pháp sinh học hoặc biện pháp canh tác\n`;
-                info += `   - Kiểm tra xem có cần tăng liều lượng không\n`;
-                info += `   - Duy trì điều trị đều đặn\n`;
+                info += `\n⚠️ HÀNH ĐỘNG CẦN THIẾT (Bệnh KHÔNG ĐỔI - CẦN ĐỔI PHƯƠNG PHÁP):\n`;
+                info += `   - PHẢI có 2-3 hành động điều trị trong 3 ngày đầu (ngày 1, 2, 3)\n`;
+                info += `   - CẦN XEM XÉT đổi phương pháp: thử phương pháp sinh học hoặc biện pháp canh tác\n`;
+                info += `   - KẾT HỢP: thuốc hóa học + phương pháp sinh học (ví dụ: ngày 1 dùng thuốc, ngày 2 dùng sinh học)\n`;
+                info += `   - Thêm biện pháp canh tác như cải thiện môi trường, tăng dinh dưỡng\n`;
+                info += `   - Có thể tăng liều lượng hoặc tần suất\n`;
+                info += `   - Duy trì điều trị đều đặn và theo dõi sát sao\n`;
               } else if (latestFeedback.status === 'better') {
-                info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Bệnh đỡ hơn):\n`;
-                info += `   - Tiếp tục điều trị nhưng có thể GIẢM tần suất\n`;
-                info += `   - Tập trung vào biện pháp phòng ngừa tái phát\n`;
-                info += `   - Có thể chuyển sang phương pháp nhẹ hơn (sinh học thay vì hóa học)\n`;
-                info += `   - Vẫn cần theo dõi và điều trị duy trì\n`;
+                info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Bệnh ĐỠ HƠN - GIẢM TẦN SUẤT):\n`;
+                info += `   - Có 1-2 hành động điều trị trong 2 ngày đầu (ngày 1, 2)\n`;
+                info += `   - GIẢM tần suất: từ 2 lần/ngày xuống 1 lần/ngày hoặc cách ngày\n`;
+                info += `   - CHUYỂN SANG phương pháp nhẹ hơn: ưu tiên phương pháp sinh học và biện pháp canh tác\n`;
+                info += `   - Tập trung vào biện pháp PHÒNG NGỪA tái phát (canh tác: vệ sinh, dinh dưỡng)\n`;
+                info += `   - Có thể giảm liều lượng thuốc hóa học, tăng cường sinh học\n`;
+                info += `   - Vẫn cần theo dõi và điều trị duy trì nhẹ nhàng\n`;
               } else if (latestFeedback.status === 'resolved') {
-                info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Bệnh đã khỏi):\n`;
-                info += `   - DỪNG điều trị tích cực\n`;
-                info += `   - Chuyển sang biện pháp PHÒNG NGỪA tái phát\n`;
-                info += `   - Tập trung vào chăm sóc thường xuyên (tưới nước, bón phân)\n`;
-                info += `   - Vẫn cần kiểm tra định kỳ để phát hiện sớm nếu tái phát\n`;
+                info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Bệnh ĐÃ KHỎI - CHỈ PHÒNG NGỪA):\n`;
+                info += `   - KHÔNG cần hành động điều trị tích cực (KHÔNG phun thuốc)\n`;
+                info += `   - CHỈ có 1-2 hành động PHÒNG NGỪA trong tuần (có thể là biện pháp canh tác)\n`;
+                info += `   - Tập trung vào biện pháp canh tác: vệ sinh vườn, cải thiện dinh dưỡng, tăng sức đề kháng\n`;
+                info += `   - Có thể sử dụng phương pháp sinh học nhẹ nhàng để tăng cường sức khỏe cây\n`;
+                info += `   - Tập trung vào chăm sóc thường xuyên (tưới nước đúng cách, bón phân cân đối)\n`;
+                info += `   - Vẫn cần kiểm tra định kỳ (1-2 lần/tuần) để phát hiện sớm nếu tái phát\n`;
               }
               info += `\n`;
             }
@@ -107,7 +198,12 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
               
               if (treatment.type === 'biological' && treatment.items && treatment.items.length > 0) {
                 hasTreatment = true;
-                info += `\n🌿 PHƯƠNG PHÁP SINH HỌC (CÓ THỂ KẾT HỢP VỚI THUỐC):\n`;
+                info += `\n🌿 PHƯƠNG PHÁP SINH HỌC (BẮT BUỘC SỬ DỤNG TRONG CHIẾN LƯỢC):\n`;
+                info += `⚠️ QUAN TRỌNG: Phương pháp sinh học PHẢI được đưa vào plan, đặc biệt khi:\n`;
+                info += `   - Bệnh "tệ hơn": KẾT HỢP với thuốc hóa học (cùng ngày hoặc xen kẽ)\n`;
+                info += `   - Bệnh "không đổi": THỬ phương pháp sinh học thay thế hoặc bổ sung\n`;
+                info += `   - Bệnh "đỡ hơn": CHUYỂN SANG ưu tiên phương pháp sinh học\n`;
+                info += `   - Bệnh "đã khỏi": Sử dụng sinh học nhẹ nhàng để tăng cường sức khỏe\n`;
                 treatment.items.slice(0, 2).forEach((method, mIdx) => {
                   info += `\n[PHƯƠNG PHÁP ${mIdx + 1}] ${method.name}\n`;
                   info += `  → Vật liệu cần: ${method.materials}\n`;
@@ -116,17 +212,22 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
                   if (method.effectiveness) {
                     info += `  → Hiệu quả: ${method.effectiveness}\n`;
                   }
-                  info += `  → SỬ DỤNG: Có thể thêm hành động áp dụng "${method.name}" với các bước: ${method.steps}\n`;
+                  info += `  → SỬ DỤNG: PHẢI đưa "${method.name}" vào hành động điều trị với các bước: "${method.steps}"\n`;
                 });
               }
               
               if (treatment.type === 'cultural' && treatment.items && treatment.items.length > 0) {
                 hasTreatment = true;
-                info += `\n🌾 BIỆN PHÁP CANH TÁC (BỔ SUNG CHO ĐIỀU TRỊ):\n`;
+                info += `\n🌾 BIỆN PHÁP CANH TÁC (BẮT BUỘC SỬ DỤNG TRONG CHIẾN LƯỢC):\n`;
+                info += `⚠️ QUAN TRỌNG: Biện pháp canh tác PHẢI được đưa vào plan:\n`;
+                info += `   - Bệnh "tệ hơn": Thêm biện pháp canh tác như cắt tỉa, vệ sinh, tăng thông thoáng\n`;
+                info += `   - Bệnh "không đổi": Cải thiện môi trường, dinh dưỡng, điều kiện trồng\n`;
+                info += `   - Bệnh "đỡ hơn": Tập trung vào phòng ngừa tái phát bằng canh tác\n`;
+                info += `   - Bệnh "đã khỏi": CHỈ sử dụng biện pháp canh tác để phòng ngừa\n`;
                 treatment.items.slice(0, 3).forEach((practice, cIdx) => {
-                  info += `\n[BIỆN PHÁP ${cIdx + 1}] ${practice.action} (Ưu tiên: ${practice.priority})\n`;
+                  info += `\n[BIỆN PHÁP ${cIdx + 1}] ${practice.action} (Ưu tiên: ${practice.priority || 'medium'})\n`;
                   info += `  → Mô tả: ${practice.description}\n`;
-                  info += `  → SỬ DỤNG: Có thể thêm hành động thực hiện "${practice.action}"\n`;
+                  info += `  → SỬ DỤNG: PHẢI đưa "${practice.action}" vào hành động chăm sóc với mô tả: "${practice.description}"\n`;
                 });
               }
             });
@@ -137,9 +238,17 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
             }
             
             info += `\n═══════════════════════════════════════════════════════════\n`;
-            info += `⚠️ LƯU Ý: PHẢI sử dụng thông tin trên để tạo hành động điều trị CỤ THỂ trong chiến lược.\n`;
-            info += `   KHÔNG được chỉ nói chung chung như "phun thuốc trị bệnh".\n`;
-            info += `   PHẢI ghi rõ tên thuốc/phương pháp và liều lượng từ thông tin trên.\n`;
+            if (hasUserSelectedChemical) {
+              info += `⚠️⚠️⚠️ QUAN TRỌNG: Đây là các THUỐC HÓA HỌC NGƯỜI DÙNG ĐÃ CHỌN.\n`;
+              info += `   PHẢI sử dụng CHÍNH XÁC các thuốc này trong chiến lược.\n`;
+              info += `   KHÔNG được thay đổi hoặc đề xuất thuốc khác.\n`;
+              info += `   PHẢI ghi rõ tên thuốc và liều lượng từ thông tin trên.\n`;
+              info += `   Phương pháp sinh học và canh tác là gợi ý tự động, có thể sử dụng để bổ sung.\n`;
+            } else {
+              info += `⚠️ LƯU Ý: PHẢI sử dụng thông tin trên để tạo hành động điều trị CỤ THỂ trong chiến lược.\n`;
+              info += `   KHÔNG được chỉ nói chung chung như "phun thuốc trị bệnh".\n`;
+              info += `   PHẢI ghi rõ tên thuốc/phương pháp và liều lượng từ thông tin trên.\n`;
+            }
             info += `═══════════════════════════════════════════════════════════\n`;
             
             return info;
@@ -169,9 +278,9 @@ ${plantBox.growthStage ? `- Giai đoạn: ${plantBox.growthStage}` : ''}
 ${plantBox.currentHealth ? `- Sức khỏe: ${plantBox.currentHealth}` : ''}
 ${plantBox.careLevel ? `- Mức độ chăm sóc: ${plantBox.careLevel}` : ''}
 ${plantBox.wateringMethod ? `- Phương pháp tưới: ${plantBox.wateringMethod}` : ''}
-${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
-🦠 BỆNH / VẤN ĐỀ SỨC KHỎE:
-${plantBox.currentDiseases.map((disease, i) => `
+${activeDiseases.length > 0 ? `
+🦠 BỆNH / VẤN ĐỀ SỨC KHỎE (CẦN ĐIỀU TRỊ):
+${activeDiseases.map((disease, i) => `
 Bệnh ${i + 1}:
 - Tên/Triệu chứng: ${disease.name}
 ${disease.symptoms ? `- Mô tả: ${disease.symptoms}` : ''}
@@ -180,23 +289,39 @@ ${disease.symptoms ? `- Mô tả: ${disease.symptoms}` : ''}
 `).join('\n')}
 ⚠️ QUAN TRỌNG: Chiến lược chăm sóc PHẢI ưu tiên điều trị bệnh này. Bao gồm các hành động cụ thể để xử lý bệnh.
 ${treatmentInfo ? `\n${treatmentInfo}\n` : ''}
+${productRecommendations ? `${productRecommendations}\n` : ''}
+` : ''}
+${plantBox.currentDiseases && plantBox.currentDiseases.length > activeDiseases.length ? `
+✅ BỆNH ĐÃ KHỎI (KHÔNG CẦN ĐIỀU TRỊ):
+${plantBox.currentDiseases.filter(d => {
+  const latestFeedback = d.feedback && d.feedback.length > 0 ? d.feedback[d.feedback.length - 1] : null;
+  return d.status === 'resolved' || (latestFeedback && latestFeedback.status === 'resolved');
+}).map(d => `- ${d.name} (đã khỏi)`).join('\n')}
+⚠️ LƯU Ý: Các bệnh này đã khỏi, KHÔNG cần đưa ra hành động điều trị tích cực. Chỉ cần biện pháp phòng ngừa tái phát.
 ` : ''}
 ${plantBox.healthNotes ? `- Ghi chú sức khỏe: ${plantBox.healthNotes}` : ''}
 ${fruitingInfo.message ? `\n🌱 THÔNG TIN MÙA RA TRÁI:\n${fruitingInfo.message}\n` : ''}
 
-🌤️ THỜI TIẾT 7 NGÀY TỚI:
-${weather.forecast.map((day, i) => `
+🌤️ THỜI TIẾT 7 NGÀY TỚI (ĐÃ PHÂN TÍCH - PHẢI SỬ DỤNG NHÃN NÀY):
+${analyzedWeather.map((day, i) => `
 Ngày ${i + 1} (${new Date(day.date).toLocaleDateString('vi-VN')}):
-- Nhiệt độ: ${day.temperature.min}°C - ${day.temperature.max}°C
-- Độ ẩm: ${day.humidity}%
-- Mưa: ${day.rain}mm
-- Mô tả: ${day.description}
+- Nhiệt độ: ${day.temp.min}°C - ${day.temp.max}°C → ${day.temp.label}
+- Độ ẩm: ${day.humidity.value}% → ${day.humidity.label}
+- Mưa: ${day.rain.value}mm → ${day.rain.label}
+- Nhu cầu tưới: ${day.wateringNeed.reason}
+${day.alerts.length > 0 ? `- Cảnh báo: ${day.alerts.join(', ')}` : ''}
 `).join('\n')}
 
+⚠️⚠️⚠️ QUAN TRỌNG TUYỆT ĐỐI:
+- PHẢI sử dụng NHÃN ĐÃ PHÂN TÍCH ở trên (ví dụ: "${analyzedWeather[0]?.temp.label}", "${analyzedWeather[0]?.humidity.label}", "${analyzedWeather[0]?.wateringNeed.reason}")
+- KHÔNG được tự suy luận từ số thô (ví dụ: KHÔNG được nói "nhiệt độ cao" nếu nhãn là "Bình thường")
+- KHÔNG được nói "cần bổ sung nước" nếu nhãn là "Có mưa, không cần tưới" hoặc độ ẩm là "Rất cao"
+- Sử dụng CHÍNH XÁC nhãn và lý do từ phần "Nhu cầu tưới" ở trên
+
 YÊU CẦU:
-${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
+${activeDiseases.length > 0 ? `
 🚨🚨🚨 YÊU CẦU ĐẦU TIÊN VÀ QUAN TRỌNG NHẤT:
-Cây đang có bệnh: ${plantBox.currentDiseases.map(d => d.name).join(', ')} - Mức độ: ${plantBox.currentDiseases.map(d => d.severity === 'mild' ? 'Nhẹ' : d.severity === 'moderate' ? 'Trung bình' : 'Nghiêm trọng').join(', ')}
+Cây đang có bệnh CẦN ĐIỀU TRỊ: ${activeDiseases.map(d => d.name).join(', ')} - Mức độ: ${activeDiseases.map(d => d.severity === 'mild' ? 'Nhẹ' : d.severity === 'moderate' ? 'Trung bình' : 'Nghiêm trọng').join(', ')}
 
 BẮT BUỘC: PHẢI đưa hành động điều trị bệnh vào ít nhất 2-3 ngày đầu tiên (ngày 1, 2, 3).
 Nếu không có hành động điều trị bệnh, chiến lược sẽ bị từ chối và yêu cầu tạo lại.
@@ -237,17 +362,35 @@ ${plantBox.currentDiseases.some(d => d.feedback && d.feedback.length > 0) ? `
     "reason": "Điều trị bệnh [tên bệnh], mức độ nghiêm trọng. Sử dụng [Tên thuốc] với liều lượng [liều lượng từ DB] theo hướng dẫn từ cơ sở dữ liệu.",
     "products": ["[Tên thuốc từ DB]"]
   }
-- Nếu có phương pháp sinh học, thêm hành động áp dụng phương pháp đó
-- Nếu có biện pháp canh tác, thêm hành động thực hiện biện pháp đó
+- BẮT BUỘC sử dụng phương pháp sinh học và biện pháp canh tác:
+  * Nếu có phương pháp sinh học trong DB → PHẢI đưa vào hành động (đặc biệt khi bệnh "tệ hơn", "không đổi", "đỡ hơn")
+  * Nếu có biện pháp canh tác trong DB → PHẢI đưa vào hành động (đặc biệt khi bệnh "đã khỏi" hoặc "đỡ hơn")
+  * KẾT HỢP: có thể kết hợp thuốc + sinh học + canh tác trong cùng ngày hoặc xen kẽ
 - KHÔNG được bỏ qua hoặc chỉ nói chung chung về điều trị bệnh
+- PHẢI sử dụng CỤ THỂ tên phương pháp sinh học và biện pháp canh tác từ cơ sở dữ liệu
 ` : ''}
 3. Mỗi ngày chỉ cần có các hành động THỰC SỰ CẦN THIẾT:
    - ${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
    ⚠️ ĐIỀU CHỈNH SỐ LƯỢNG HÀNH ĐỘNG ĐIỀU TRỊ DỰA TRÊN PHẢN HỒI:
-     * Nếu phản hồi "TỆ HƠN": PHẢI có 3-4 hành động điều trị trong tuần đầu (ngày 1-4), tăng tần suất
-     * Nếu phản hồi "KHÔNG ĐỔI": PHẢI có 2-3 hành động điều trị (ngày 1-3), xem xét đổi phương pháp
-     * Nếu phản hồi "ĐỠ HƠN": Có 1-2 hành động điều trị (ngày 1-2), giảm tần suất, chuyển sang phòng ngừa
-     * Nếu phản hồi "ĐÃ KHỎI": KHÔNG cần hành động điều trị tích cực, chỉ cần 1-2 hành động phòng ngừa
+     * Nếu phản hồi "TỆ HƠN": 
+       - PHẢI có 3-4 hành động điều trị trong 4 ngày đầu (ngày 1, 2, 3, 4)
+       - KẾT HỢP: thuốc hóa học + phương pháp sinh học + biện pháp canh tác
+       - Tăng tần suất: có thể 2 lần/ngày (sáng + chiều)
+       - Ví dụ: Ngày 1: phun thuốc + áp dụng sinh học, Ngày 2: phun thuốc + biện pháp canh tác
+     * Nếu phản hồi "KHÔNG ĐỔI": 
+       - PHẢI có 2-3 hành động điều trị trong 3 ngày đầu (ngày 1, 2, 3)
+       - ĐỔI PHƯƠNG PHÁP: thử phương pháp sinh học hoặc biện pháp canh tác
+       - KẾT HỢP: thuốc + sinh học (ví dụ: ngày 1 thuốc, ngày 2 sinh học)
+     * Nếu phản hồi "ĐỠ HƠN": 
+       - CHỈ có 1 hành động điều trị trong ngày đầu (ngày 1) - GIẢM MẠNH
+       - CHUYỂN SANG ưu tiên phương pháp sinh học và biện pháp canh tác (KHÔNG dùng thuốc hóa học nữa)
+       - Tập trung phòng ngừa tái phát bằng canh tác
+       - KHÔNG lặp lại các hành động giống nhau (KHÔNG bón phân NPK nhiều lần, KHÔNG tưới nước nhiều lần)
+       - Mỗi hành động phải có LÝ DO CỤ THỂ dựa trên thời tiết và tình trạng cây
+     * Nếu phản hồi "ĐÃ KHỎI": 
+       - KHÔNG có hành động điều trị tích cực (KHÔNG phun thuốc)
+       - CHỈ có 1-2 hành động PHÒNG NGỪA (biện pháp canh tác hoặc sinh học nhẹ)
+       - Tập trung vào chăm sóc thường xuyên
      * Nếu chưa có phản hồi: PHẢI có ít nhất 2-3 hành động điều trị trong tuần đầu (ngày 1-3)
    ` : ''}
    - CHỈ đưa ra hành động khi:
@@ -361,6 +504,10 @@ ${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
 3. KHÔNG được:
    - Bỏ qua hành động điều trị bệnh
    - Chỉ nói chung chung như "phun thuốc trị bệnh", "bón phân NPK", "tưới nước"
+- KHÔNG lặp lại các hành động giống nhau nhiều lần (ví dụ: không bón phân NPK 20-20-20 nhiều ngày liên tiếp)
+- Mỗi hành động phải có LÝ DO CỤ THỂ dựa trên thời tiết, tình trạng cây, và phản hồi từ người dùng
+- KHÔNG tạo ra các hành động "mock data" như: 3 ngày đầu dùng thuốc, 2 ngày không làm gì, 1 ngày bón phân, 1 ngày tưới nước
+- PHẢI suy nghĩ và tạo plan dựa trên THỰC TẾ: thời tiết, bệnh tật, phản hồi người dùng
    - Đưa ra hành động không liên quan đến điều trị bệnh mà không có hành động điều trị
 4. Nếu có nhiều thuốc/phương pháp trong cơ sở dữ liệu:
    - Ưu tiên thuốc hóa học cho ngày đầu
@@ -460,8 +607,8 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
         throw new Error('Invalid strategy structure');
       }
 
-      // Validate that treatment actions exist if plant has diseases
-      if (plantBox.currentDiseases && plantBox.currentDiseases.length > 0) {
+      // Validate that treatment actions exist if plant has ACTIVE diseases
+      if (activeDiseases.length > 0) {
         const hasTreatmentActions = strategyData.next7Days.some(day => 
           day.actions && day.actions.some(action => 
             action.type === 'protect' && 
@@ -474,10 +621,10 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
         );
 
         if (!hasTreatmentActions) {
-          console.warn('⚠️ [CareStrategy] No treatment actions found in strategy, but plant has diseases. Adding treatment actions...');
+          console.warn('⚠️ [CareStrategy] No treatment actions found in strategy, but plant has active diseases. Adding treatment actions...');
           
           // Auto-add treatment actions to first 2-3 days
-          const treatmentInfo = plantBox.currentDiseases.map(d => d.name).join(', ');
+          const treatmentInfo = activeDiseases.map(d => d.name).join(', ');
           for (let i = 0; i < Math.min(3, strategyData.next7Days.length); i++) {
             const day = strategyData.next7Days[i];
             if (!day.actions) day.actions = [];
@@ -486,11 +633,13 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
             const hasTreatment = day.actions.some(a => a.type === 'protect');
             if (!hasTreatment) {
               day.actions.unshift({
+                _id: `action_${i}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 type: 'protect',
                 time: '07:00',
                 description: `Phun thuốc trị bệnh ${treatmentInfo}`,
                 reason: `Điều trị bệnh ${treatmentInfo}. Cần sử dụng thuốc đặc trị theo hướng dẫn từ cơ sở dữ liệu (xem phần 📋 ĐIỀU TRỊ CHO... ở trên).`,
-                products: treatmentInfo.split(', ').map(d => `Thuốc trị ${d}`)
+                products: treatmentInfo.split(', ').map(d => `Thuốc trị ${d}`),
+                completed: false,
               });
             }
           }
@@ -513,9 +662,18 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
       const dayData = strategyData.next7Days[i] || {};
       const weatherData = weather.forecast[i] || {};
 
+      // Ensure each action has a unique _id
+      const actions = Array.isArray(dayData.actions) 
+        ? dayData.actions.map((action, actionIdx) => ({
+            ...action,
+            _id: action._id || `action_${i}_${actionIdx}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            completed: action.completed || false,
+          }))
+        : [];
+
       next7Days.push({
         date,
-        actions: Array.isArray(dayData.actions) ? dayData.actions : [],
+        actions,
         weather: {
           temp: dayData.weather?.temp || weatherData.temperature || { min: 20, max: 30 },
           humidity: dayData.weather?.humidity ?? weatherData.humidity ?? 60,
@@ -524,6 +682,8 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
         },
       });
     }
+
+    // Note: Strategy is saved to database in refreshCareStrategy service function
 
     return {
       lastUpdated: new Date(),
@@ -544,6 +704,15 @@ TRẢ LỜI CHỈ BẰNG JSON, KHÔNG CÓ GÌ KHÁC:
  * @returns {object} Basic care strategy
  */
 const createFallbackStrategy = (plantBox, weather) => {
+  // Filter active diseases (not resolved)
+  const activeDiseases = (plantBox.currentDiseases || []).filter(disease => {
+    const latestFeedback = disease.feedback && disease.feedback.length > 0
+      ? disease.feedback[disease.feedback.length - 1]
+      : null;
+    return disease.status !== 'resolved' && 
+           (!latestFeedback || latestFeedback.status !== 'resolved');
+  });
+  
   const next7Days = weather.forecast.slice(0, 7).map((day, index) => {
     const date = new Date();
     date.setDate(date.getDate() + index);
@@ -551,19 +720,21 @@ const createFallbackStrategy = (plantBox, weather) => {
 
     const actions = [];
 
-    // PRIORITY: Treatment actions if plant has diseases
-    if (plantBox.currentDiseases && plantBox.currentDiseases.length > 0 && index < 3) {
+    // PRIORITY: Treatment actions if plant has ACTIVE diseases
+    if (activeDiseases.length > 0 && index < 3) {
       // Add treatment action for first 3 days
-      const diseaseNames = plantBox.currentDiseases.map(d => d.name).join(', ');
-      const severity = plantBox.currentDiseases[0].severity || 'moderate';
+      const diseaseNames = activeDiseases.map(d => d.name).join(', ');
+      const severity = activeDiseases[0].severity || 'moderate';
       const severityText = severity === 'mild' ? 'nhẹ' : severity === 'moderate' ? 'trung bình' : 'nghiêm trọng';
       
       actions.push({
+        _id: `action_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: 'protect',
         time: index === 0 ? '07:00' : '17:00', // Alternate morning/evening
         description: `Phun thuốc trị bệnh ${diseaseNames}`,
         reason: `Điều trị bệnh ${diseaseNames} mức độ ${severityText}. Cần sử dụng thuốc đặc trị theo hướng dẫn từ cơ sở dữ liệu.`,
-        products: plantBox.currentDiseases.map(d => `Thuốc trị ${d.name}`),
+        products: activeDiseases.map(d => `Thuốc trị ${d.name}`),
+        completed: false,
       });
     }
 
@@ -572,38 +743,31 @@ const createFallbackStrategy = (plantBox, weather) => {
       // No rain or light rain, need watering
       const waterAmount = day.temperature.max > 30 ? 'đủ ẩm' : 'vừa phải';
       actions.push({
+        _id: `action_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: 'water',
         time: '08:00',
         description: `Tưới nước ${waterAmount} vào sáng sớm`,
         reason: `Nhiệt độ cao ${day.temperature.max}°C, độ ẩm ${day.humidity}%, cần bổ sung nước`,
         products: [],
+        completed: false,
       });
     }
 
     // Check action
     if (day.rain > 20) {
       actions.push({
+        _id: `action_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: 'check',
         time: '18:00',
         description: 'Kiểm tra hệ thống thoát nước',
         reason: `Mưa lớn dự báo ${day.rain}mm, cần kiểm tra tránh úng nước`,
         products: [],
+        completed: false,
       });
     }
 
-    // DON'T add generic fertilize actions if plant has diseases (focus on treatment)
-    if (!plantBox.currentDiseases || plantBox.currentDiseases.length === 0) {
-      // Only fertilize if no diseases, and only on day 3 and 6
-      if (index === 2 || index === 5) {
-        actions.push({
-          type: 'fertilize',
-          time: '10:00',
-          description: 'Bón phân NPK 20-20-20, 10g',
-          reason: 'Định kỳ bón phân để cây phát triển tốt',
-          products: ['Phân bón NPK 20-20-20'],
-        });
-      }
-    }
+    // DON'T add generic fertilize actions - let GPT decide based on actual conditions
+    // Only add if really necessary and not already in strategy
 
     const alerts = [];
     if (day.temperature.min < 5) {

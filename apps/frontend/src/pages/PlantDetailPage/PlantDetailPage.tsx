@@ -5,17 +5,15 @@ import { DetailHeader } from './components/DetailHeader'
 import { PlantOverviewCard } from './components/PlantOverviewCard'
 import { TabNavigation } from './components/TabNavigation'
 import { StrategyTab } from './components/StrategyTab'
-import { TimelineTab } from './components/TimelineTab'
-import { GalleryTab } from './components/GalleryTab'
 import { NotesTab } from './components/NotesTab'
 import { MiniChatBot } from './components/MiniChatBot'
-import { DiseaseFeedbackCard } from './components/DiseaseFeedbackCard'
+import { DiseaseManagement } from './components/DiseaseManagement'
 import { usePlantDetail } from './hooks/usePlantDetail'
 import { useCareStrategy } from './hooks/useCareStrategy'
 import { Loader2Icon } from 'lucide-react'
 import type { PlantNote } from '../MyPlantsPage/types/plantBox.types'
 import { useAuth } from '../../contexts/AuthContext'
-type TabType = 'strategy' | 'timeline' | 'gallery' | 'notes'
+type TabType = 'strategy' | 'notes'
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{
     id: string
@@ -61,7 +59,7 @@ export const PlantDetailPage: React.FC = () => {
   const handleAddNote = async (note: Omit<PlantNote, '_id' | 'date'>) => {
     if (!id) return
     try {
-      await addNote(note.content, note.type)
+      await addNote(note.content, note.type, note.imageUrl)
     } catch (err: any) {
       console.error('Error adding note:', err)
       alert('Không thể thêm ghi chú: ' + (err.message || 'Lỗi không xác định'))
@@ -114,21 +112,14 @@ export const PlantDetailPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-8 py-6">
         <PlantOverviewCard plantBox={plantBox} />
 
-        {/* Disease Feedback Section */}
-        {plantBox.currentDiseases && plantBox.currentDiseases.length > 0 && (
-          <div className="mb-6 space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">🦠 Tình trạng bệnh</h3>
-            {plantBox.currentDiseases.map((disease, index) => (
-              <DiseaseFeedbackCard
-                key={disease._id || index}
-                plantBoxId={plantBox._id}
-                disease={disease}
-                diseaseIndex={index}
-                onUpdate={refreshPlantBox}
-              />
-            ))}
-          </div>
-        )}
+        {/* Disease Management Section (includes feedback) */}
+        <DiseaseManagement
+          plantBoxId={plantBox._id}
+          diseases={plantBox.currentDiseases || []}
+          plantName={plantBox.plantName}
+          onUpdate={refreshPlantBox}
+          onRefreshStrategy={refreshStrategy}
+        />
 
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -140,10 +131,10 @@ export const PlantDetailPage: React.FC = () => {
               refreshing={refreshing}
               onRefresh={refreshStrategy}
               onToggleAction={toggleActionComplete}
+              plantBoxId={plantBox._id}
+              plantBox={plantBox}
             />
           )}
-          {activeTab === 'timeline' && <TimelineTab plantBox={plantBox} />}
-          {activeTab === 'gallery' && <GalleryTab plantBox={plantBox} />}
           {activeTab === 'notes' && (
             <NotesTab plantBox={plantBox} onAddNote={handleAddNote} />
           )}

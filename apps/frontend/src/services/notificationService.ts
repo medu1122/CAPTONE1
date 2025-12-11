@@ -109,21 +109,36 @@ export const notificationService = {
     onError?: (error: Event) => void
   ): EventSource {
     const token = getAccessToken();
+    if (!token) {
+      console.error('❌ [Notification SSE] No access token available');
+      // Return a dummy EventSource that will immediately close
+      const dummySource = new EventSource('about:blank');
+      setTimeout(() => dummySource.close(), 0);
+      return dummySource;
+    }
+    
     const url = `${API_BASE_URL}/notifications/stream`;
     
-    const eventSource = new EventSource(url, {
-      withCredentials: false,
-    });
-
-    // Note: EventSource doesn't support custom headers, so we'll need to pass token as query param
-    // Or use a different approach. For now, let's use query param
+    // Note: EventSource doesn't support custom headers, so we pass token as query param
     const eventSourceWithToken = new EventSource(
-      `${url}?token=${token}`,
+      `${url}?token=${encodeURIComponent(token)}`,
       { withCredentials: false }
     );
 
     eventSourceWithToken.addEventListener('connected', (event) => {
-      console.log('🔔 [Notification SSE] Connected');
+      const data = JSON.parse(event.data);
+      console.log('✅ [Notification SSE] Connected:', data);
+    });
+    
+    eventSourceWithToken.addEventListener('open', () => {
+      console.log('✅ [Notification SSE] Connection opened');
+    });
+    
+    eventSourceWithToken.addEventListener('error', (event) => {
+      console.error('❌ [Notification SSE] Connection error:', event);
+      if (eventSourceWithToken.readyState === EventSource.CLOSED) {
+        console.log('🔌 [Notification SSE] Connection closed');
+      }
     });
 
     eventSourceWithToken.addEventListener('notification', (event) => {

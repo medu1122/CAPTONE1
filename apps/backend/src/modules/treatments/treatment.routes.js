@@ -1,5 +1,5 @@
 import express from 'express';
-import { initMockData, getStats, searchDiseases } from './treatment.controller.js';
+import { initMockData, getStats, searchDiseases, getRecommendations } from './treatment.controller.js';
 
 const router = express.Router();
 
@@ -24,6 +24,15 @@ router.get('/stats', getStats);
  * @query {string} q - Search query
  */
 router.get('/search-diseases', searchDiseases);
+
+/**
+ * @route GET /api/v1/treatments/recommendations
+ * @desc Get treatment recommendations for a disease and plant
+ * @access Public
+ * @query {string} disease - Disease name (required)
+ * @query {string} plant - Plant name (optional)
+ */
+router.get('/recommendations', getRecommendations);
 
 export default router;
 

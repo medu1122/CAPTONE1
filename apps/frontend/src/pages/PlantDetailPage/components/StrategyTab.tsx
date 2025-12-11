@@ -7,14 +7,18 @@ import {
   CheckCircle2Icon,
   CircleIcon,
   ExternalLinkIcon,
+  InfoIcon,
 } from 'lucide-react'
 import type { CareStrategy } from '../../MyPlantsPage/types/plantBox.types'
+import { TaskDetailModal } from './TaskDetailModal'
 interface StrategyTabProps {
   strategy: CareStrategy | null
   loading: boolean
   refreshing: boolean
   onRefresh: () => void
   onToggleAction: (dayIndex: number, actionId: string) => void
+  plantBoxId: string
+  plantBox?: any // PlantBox type
 }
 export const StrategyTab: React.FC<StrategyTabProps> = ({
   strategy,
@@ -22,8 +26,15 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
   refreshing,
   onRefresh,
   onToggleAction,
+  plantBoxId,
+  plantBox,
 }) => {
   const [expandedDays, setExpandedDays] = useState<number[]>([0])
+  const [selectedTask, setSelectedTask] = useState<{
+    action: any
+    dayIndex: number
+    actionIndex: number
+  } | null>(null)
   const toggleDay = (dayIndex: number) => {
     setExpandedDays((prev) =>
       prev.includes(dayIndex)
@@ -239,6 +250,30 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
                             >
                               {action.time} - {action.description}
                             </span>
+                            <button
+                              onClick={() => {
+                                // Don't show detail modal for watering actions
+                                if (action.type === 'watering') {
+                                  return
+                                }
+                                const actionIndex = day.actions.findIndex(a => a._id === action._id)
+                                console.log('📋 [StrategyTab] Clicked task:', { dayIndex, actionIndex, actionId: action._id, totalActions: day.actions.length })
+                                if (actionIndex === -1) {
+                                  console.error('❌ [StrategyTab] Action not found in actions array')
+                                  alert('Không tìm thấy task này')
+                                  return
+                                }
+                                setSelectedTask({
+                                  action,
+                                  dayIndex,
+                                  actionIndex,
+                                })
+                              }}
+                              className="ml-auto p-1.5 hover:bg-green-100 rounded-lg transition-colors text-green-600"
+                              title="Xem hướng dẫn chi tiết"
+                            >
+                              <InfoIcon size={16} />
+                            </button>
                           </div>
                           <p className="text-xs text-gray-600 mb-2">
                             Lý do: {action.reason}
@@ -290,6 +325,19 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
           </div>
         )
       })}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          plantBoxId={plantBoxId}
+          action={selectedTask.action}
+          dayIndex={selectedTask.dayIndex}
+          actionIndex={selectedTask.actionIndex}
+          plantBox={plantBox}
+        />
+      )}
     </div>
   )
 }

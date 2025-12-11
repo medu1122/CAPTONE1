@@ -10,22 +10,30 @@ const reportSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['post', 'comment'],
+      enum: ['post', 'comment', 'analysis'],
       required: [true, 'Report type is required'],
     },
     targetId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed, // Can be ObjectId or string (for analysis ID)
       required: [true, 'Target ID is required'],
     },
     targetType: {
       type: String,
-      enum: ['post', 'comment'],
+      enum: ['post', 'comment', 'analysis'],
       required: [true, 'Target type is required'],
     },
     reason: {
       type: String,
-      enum: ['spam', 'inappropriate', 'harassment', 'fake', 'other'],
+      enum: ['spam', 'inappropriate', 'harassment', 'fake', 'error', 'wrong_result', 'other'],
       required: [true, 'Report reason is required'],
+    },
+    originalImageUrl: {
+      type: String, // Original image URL (for analysis reports - the image user uploaded for analysis)
+      default: null,
+    },
+    images: {
+      type: [String], // Array of image URLs (for analysis reports - images user uploaded to show errors/issues)
+      default: [],
     },
     description: {
       type: String,

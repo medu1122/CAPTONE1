@@ -49,16 +49,23 @@ export const streamNotifications = async (req, res) => {
     // Disable timeout for SSE
     res.setTimeout(0);
 
+    // Normalize userId to string for consistent key lookup
+    const userIdStr = userId.toString();
+    
+    console.log(`✅ [Notification SSE] New connection for user ${userIdStr}`);
+    console.log(`📊 [Notification SSE] Active connections: ${activeConnections.size}`);
+    
     // Send initial connection event
     res.write('event: connected\n');
-    res.write(`data: ${JSON.stringify({ status: 'connected', timestamp: Date.now() })}\n\n`);
+    res.write(`data: ${JSON.stringify({ status: 'connected', timestamp: Date.now(), userId: userIdStr })}\n\n`);
 
     // Store connection
-    activeConnections.set(userId, res);
+    activeConnections.set(userIdStr, res);
+    console.log(`📊 [Notification SSE] Stored connection for user ${userIdStr}. Total: ${activeConnections.size}`);
 
     // Send initial unread count
     const unreadCount = await Notification.countDocuments({
-      user: userId,
+      user: userIdStr,
       read: false,
     });
     res.write('event: unread-count\n');
@@ -66,18 +73,23 @@ export const streamNotifications = async (req, res) => {
 
     // Handle client disconnect
     req.on('close', () => {
-      activeConnections.delete(userId);
-      console.log(`🔌 [Notification SSE] Connection closed for user ${userId}`);
+      activeConnections.delete(userIdStr);
+      console.log(`🔌 [Notification SSE] Connection closed for user ${userIdStr}. Remaining: ${activeConnections.size}`);
+    });
+    
+    req.on('error', (error) => {
+      console.error(`❌ [Notification SSE] Connection error for user ${userIdStr}:`, error);
+      activeConnections.delete(userIdStr);
     });
 
     // Keep connection alive with heartbeat
     const heartbeatInterval = setInterval(() => {
-      if (activeConnections.has(userId)) {
+      if (activeConnections.has(userIdStr)) {
         try {
           res.write(': heartbeat\n\n');
         } catch (error) {
           clearInterval(heartbeatInterval);
-          activeConnections.delete(userId);
+          activeConnections.delete(userIdStr);
         }
       } else {
         clearInterval(heartbeatInterval);
@@ -98,30 +110,74 @@ export const streamNotifications = async (req, res) => {
 
 /**
  * Broadcast notification to user
- * @param {string} userId - User ID to notify
+ * @param {string|ObjectId} userId - User ID to notify
  * @param {object} notification - Notification object
  */
 export const broadcastNotification = async (userId, notification) => {
-  const connection = activeConnections.get(userId);
-  if (connection) {
-    try {
-      // Populate notification before sending
-      await notification.populate('actor', 'name profileImage');
-      await notification.populate('post', 'title');
+  try {
+    // Normalize userId to string
+    const userIdStr = userId.toString();
+    
+    const connection = activeConnections.get(userIdStr);
+    if (connection) {
+      try {
+        // Ensure notification is populated
+        // Check if actor needs population
+        if (!notification.actor || 
+            (typeof notification.actor === 'object' && !notification.actor.name)) {
+          await notification.populate('actor', 'name profileImage');
+        }
+        
+        // Check if post needs population
+        if (notification.post && 
+            (typeof notification.post === 'string' || 
+             (typeof notification.post === 'object' && !notification.post.title))) {
+          await notification.populate('post', 'title');
+        }
+        
+        // Convert to plain object
+        const notificationObj = notification.toObject ? notification.toObject() : notification;
 
-      connection.write('event: notification\n');
-      connection.write(`data: ${JSON.stringify(notification.toObject())}\n\n`);
+        // Convert to plain object for JSON serialization
+        const notificationData = {
+          _id: notificationObj._id?.toString() || notificationObj._id,
+          type: notificationObj.type,
+          read: notificationObj.read || false,
+          actor: {
+            _id: notificationObj.actor?._id?.toString() || notificationObj.actor?._id || notificationObj.actor,
+            name: notificationObj.actor?.name || 'Unknown',
+            profileImage: notificationObj.actor?.profileImage || null,
+          },
+          post: notificationObj.post ? {
+            _id: notificationObj.post._id?.toString() || notificationObj.post._id || notificationObj.post,
+            title: notificationObj.post.title || notificationObj.metadata?.postTitle || 'Bài viết',
+          } : null,
+          comment: notificationObj.comment?.toString() || notificationObj.comment || null,
+          content: notificationObj.content || null,
+          metadata: notificationObj.metadata || {},
+          createdAt: notificationObj.createdAt || new Date().toISOString(),
+          updatedAt: notificationObj.updatedAt || new Date().toISOString(),
+        };
 
-      // Update unread count
-      const unreadCount = await Notification.countDocuments({
-        user: userId,
-        read: false,
-      });
-      connection.write('event: unread-count\n');
-      connection.write(`data: ${JSON.stringify({ unreadCount })}\n\n`);
-    } catch (error) {
-      console.error('❌ [Notification SSE] Error broadcasting:', error);
+        connection.write('event: notification\n');
+        connection.write(`data: ${JSON.stringify(notificationData)}\n\n`);
+
+        // Update unread count
+        const unreadCount = await Notification.countDocuments({
+          user: userIdStr,
+          read: false,
+        });
+        connection.write('event: unread-count\n');
+        connection.write(`data: ${JSON.stringify({ unreadCount })}\n\n`);
+      } catch (error) {
+        console.error('❌ [Notification SSE] Error broadcasting:', error);
+      }
+    } else {
+      // Connection not found - notification will be fetched on next page load
+      console.log(`⚠️ [Notification SSE] No active connection for user ${userIdStr}`);
     }
+  } catch (error) {
+    console.error('❌ [Notification SSE] Error in broadcastNotification:', error);
   }
 };
 

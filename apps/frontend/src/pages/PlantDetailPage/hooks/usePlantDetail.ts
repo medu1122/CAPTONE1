@@ -49,6 +49,11 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
         status: fb.status,
         notes: fb.notes,
       })),
+      selectedTreatments: disease.selectedTreatments ? {
+        chemical: disease.selectedTreatments.chemical || [],
+        biological: disease.selectedTreatments.biological || [],
+        cultural: disease.selectedTreatments.cultural || [],
+      } : undefined,
     })),
     healthNotes: backendBox.healthNotes,
     images: (backendBox.images || []).map((img: any, idx: number) => ({
@@ -62,6 +67,7 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
       type: note.type,
       content: note.content,
       date: note.date ? new Date(note.date).toISOString() : new Date().toISOString(),
+      imageUrl: note.imageUrl,
     })),
     specialRequirements: backendBox.specialRequirements,
     careStrategy: backendBox.careStrategy || undefined, // Include careStrategy from backend
@@ -157,12 +163,13 @@ export const usePlantDetail = (plantBoxId: string) => {
 
   const addNote = useCallback(async (
     content: string,
-    type: 'care' | 'observation' | 'issue' | 'milestone' = 'observation'
+    type: 'care' | 'observation' | 'issue' | 'milestone' = 'observation',
+    imageUrl?: string
   ) => {
     if (!plantBoxId) return
 
     try {
-      const response = await addNoteToPlantBox(plantBoxId, content, type)
+      const response = await addNoteToPlantBox(plantBoxId, content, type, imageUrl)
 
       if (response.success && response.data) {
         const updatedBox = mapBackendToFrontend(response.data)

@@ -37,13 +37,16 @@ export const NotificationIcon: React.FC = () => {
     fetchNotifications();
 
     // Setup SSE connection for realtime updates
+    console.log('🔔 [NotificationIcon] Setting up SSE connection for user:', user?._id);
     const eventSource = notificationService.createSSEConnection(
       (notification) => {
+        console.log('🔔 [NotificationIcon] Received notification:', notification);
         // Add new notification to the list
         setNotifications((prev) => [notification, ...prev]);
         setUnreadCount((prev) => prev + 1);
       },
       (count) => {
+        console.log('🔔 [NotificationIcon] Unread count updated:', count);
         setUnreadCount(count);
       },
       (error) => {
@@ -52,10 +55,23 @@ export const NotificationIcon: React.FC = () => {
     );
 
     eventSourceRef.current = eventSource;
+    
+    // Log connection state
+    eventSource.addEventListener('open', () => {
+      console.log('✅ [NotificationIcon] SSE connection opened');
+    });
+    
+    eventSource.addEventListener('error', (e) => {
+      console.error('❌ [NotificationIcon] SSE connection error:', e);
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('🔌 [NotificationIcon] SSE connection closed');
+      }
+    });
 
     // Cleanup on unmount
     return () => {
       if (eventSourceRef.current) {
+        console.log('🔌 [NotificationIcon] Closing SSE connection');
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }

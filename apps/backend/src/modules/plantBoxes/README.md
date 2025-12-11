@@ -1,14 +1,164 @@
 # Plant Boxes Module
 
-Module quản lý các "Plant Box" - hộp quản lý cây trồng với AI care strategy và mini chat bot.
+Module quản lý các "Plant Box" - hệ thống quản lý cây trồng thông minh với AI care strategy và mini chat bot.
 
 ## 📋 Tổng quan
 
 Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
-- Tạo các box quản lý cây trồng (đang trồng hoặc dự định trồng)
-- Tự động generate care strategy dựa trên thời tiết 7 ngày
-- Chat với bot về cây trồng (context-aware)
-- Thêm notes, images, theo dõi tiến trình
+- ✅ Tạo các box quản lý cây trồng (đang trồng hoặc dự định trồng)
+- ✅ Tự động generate care strategy dựa trên thời tiết 7 ngày + thông tin cây + bệnh tật
+- ✅ Quản lý bệnh tật với phản hồi người dùng (tệ hơn/đỡ hơn/đã khỏi)
+- ✅ Tích hợp thông tin điều trị từ database (thuốc hóa học, phương pháp sinh học, biện pháp canh tác)
+- ✅ Chat với bot về cây trồng (context-aware)
+- ✅ Thêm notes, images, theo dõi tiến trình
+- ✅ Thông tin mùa ra trái dựa trên loại cây + vị trí
+
+## 🔄 Flow Công Việc Chính
+
+### 1. Tạo Plant Box
+
+```
+User tạo Plant Box
+    ↓
+Nhập thông tin: tên cây, vị trí, loại đất, ánh sáng, giai đoạn,...
+    ↓
+Nếu có bệnh: Nhập tên bệnh, triệu chứng, mức độ
+    ↓
+Backend lưu vào DB
+    ↓
+Nếu plantType === 'existing' và có coordinates:
+    → Tự động generate care strategy
+```
+
+### 2. Generate Care Strategy
+
+```
+User refresh strategy hoặc tạo box mới
+    ↓
+Backend fetch:
+    - Weather data (7 ngày) từ OpenWeather API
+    - Treatment recommendations từ database (nếu có bệnh)
+    - Fruiting season info (nếu là cây ăn trái)
+    ↓
+Build GPT prompt với:
+    - Thông tin cây (tên, giai đoạn, sức khỏe, vị trí)
+    - Weather forecast 7 ngày
+    - Treatment info từ DB (thuốc, liều lượng, cách dùng)
+    - User feedback về bệnh (nếu có)
+    - Fruiting season info
+    ↓
+Call GPT-3.5-turbo để generate strategy
+    ↓
+Parse JSON response
+    ↓
+Validate: Kiểm tra có hành động điều trị bệnh không (nếu có bệnh)
+    ↓
+Nếu không có → Tự động thêm vào 2-3 ngày đầu
+    ↓
+Lưu vào DB (careStrategy field)
+    ↓
+Return strategy cho frontend
+```
+
+### 3. Quản lý Bệnh Tật
+
+```
+User nhập bệnh khi tạo/update box
+    ↓
+Backend search treatment recommendations từ database:
+    - Fuzzy matching tên bệnh (không dấu, không chính tả)
+    - Tìm thuốc hóa học, phương pháp sinh học, biện pháp canh tác
+    ↓
+Lưu bệnh vào currentDiseases array
+    ↓
+Khi generate strategy:
+    - Ưu tiên điều trị bệnh
+    - Sử dụng thông tin từ DB (tên thuốc, liều lượng cụ thể)
+    - Điều chỉnh theo phản hồi người dùng
+```
+
+### 4. Phản Hồi Bệnh Tật
+
+```
+User cập nhật tình trạng bệnh (tệ hơn/đỡ hơn/đã khỏi)
+    ↓
+Backend lưu feedback vào disease.feedback array
+    ↓
+Cập nhật disease.status dựa trên feedback:
+    - 'resolved' → status = 'resolved'
+    - 'better' → status = 'treating'
+    - 'worse' → status = 'active'
+    ↓
+Khi refresh strategy:
+    - Đọc latest feedback
+    - Điều chỉnh số lượng và tần suất hành động điều trị:
+      * "TỆ HƠN" → 3-4 hành động trong 4 ngày đầu
+      * "KHÔNG ĐỔI" → 2-3 hành động trong 3 ngày đầu
+      * "ĐỠ HƠN" → 1-2 hành động trong 2 ngày đầu
+      * "ĐÃ KHỎI" → Chỉ phòng ngừa, không điều trị tích cực
+```
+
+### 5. Mini Chat Bot
+
+```
+User gửi message về cây trồng
+    ↓
+Backend load context:
+    - Plant box data (tên, giai đoạn, sức khỏe, bệnh tật)
+    - Weather data (7 ngày)
+    - Care strategy (actions, reasons)
+    - Treatment info (nếu có bệnh)
+    ↓
+Build system prompt với tất cả context
+    ↓
+Call GPT với system prompt + user message
+    ↓
+Return response (tối đa 150 từ, cụ thể và ngắn gọn)
+```
+
+## 🎯 Chức Năng Chính
+
+### 1. CRUD Plant Boxes
+- **Create**: Tạo box mới với validation đầy đủ
+- **Read**: Lấy danh sách box (có filter, pagination) hoặc box theo ID
+- **Update**: Cập nhật thông tin box (tự động regenerate strategy nếu cần)
+- **Delete**: Soft delete (set `isActive: false`)
+
+### 2. AI Care Strategy Generation
+- **Auto-generate** khi:
+  - Tạo box mới (nếu `plantType === 'existing'` và có coordinates)
+  - Update location/plant info
+  - User manually refresh
+- **Input**:
+  - Plant info (tên, giai đoạn, sức khỏe, vị trí, đất, ánh sáng)
+  - Weather forecast 7 ngày
+  - Treatment recommendations (nếu có bệnh)
+  - User feedback về bệnh (nếu có)
+  - Fruiting season info
+- **Output**: Strategy với actions cụ thể cho 7 ngày:
+  - `water`: Tưới nước (dựa trên thời tiết)
+  - `fertilize`: Bón phân (khi cần thiết)
+  - `protect`: Điều trị bệnh (BẮT BUỘC nếu có bệnh)
+  - `check`: Kiểm tra (khi có cảnh báo thời tiết)
+  - `prune`: Cắt tỉa (khi cần)
+
+### 3. Disease Management
+- **Thêm bệnh**: User nhập tên bệnh, triệu chứng, mức độ
+- **Search treatment**: Fuzzy matching tên bệnh, tìm trong database
+- **Treatment types**:
+  - Thuốc hóa học (tên, hoạt chất, liều lượng, cách dùng, tần suất)
+  - Phương pháp sinh học (vật liệu, các bước, thời gian)
+  - Biện pháp canh tác (hành động, mô tả, ưu tiên)
+- **Feedback**: User cập nhật tình trạng bệnh → ảnh hưởng đến strategy
+
+### 4. Mini Chat Bot
+- **Context-aware**: Hiểu plant info + weather + care strategy + treatment info
+- **Stateless**: Mỗi request độc lập, không lưu history
+- **Short responses**: Tối đa 150 từ, cụ thể và ngắn gọn
+
+### 5. Notes & Images
+- **Notes**: Thêm ghi chú về chăm sóc, quan sát, vấn đề, milestone
+- **Images**: Upload ảnh với mô tả, theo dõi tiến trình
 
 ## 🗄️ Database Schema
 
@@ -28,14 +178,13 @@ Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
   // Timing
   plantedDate: Date,               // Nếu existing
   plannedDate: Date,               // Nếu planned
-  expectedHarvestDate: Date,
   
   // Location
   location: {
     name: String,                   // "Vườn sau nhà"
     coordinates: { lat, lon },
     area: Number,                   // m²
-    soilType: String,
+    soilType: String | [String],    // Cho phép nhiều loại đất
     sunlight: 'full' | 'partial' | 'shade'
   },
   
@@ -44,26 +193,25 @@ Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
   growthStage: 'seed' | 'seedling' | 'vegetative' | 'flowering' | 'fruiting',
   currentHealth: 'excellent' | 'good' | 'fair' | 'poor',
   
+  // Diseases
+  currentDiseases: [{
+    name: String,                  // Tên bệnh
+    symptoms: String,              // Triệu chứng
+    severity: 'mild' | 'moderate' | 'severe',
+    detectedDate: Date,
+    treatmentPlan: String,
+    status: 'active' | 'treating' | 'resolved',
+    feedback: [{                   // User feedback
+      date: Date,
+      status: 'worse' | 'same' | 'better' | 'resolved',
+      notes: String
+    }]
+  }],
+  healthNotes: String,
+  
   // Care Preferences
   careLevel: 'low' | 'medium' | 'high',
   wateringMethod: 'manual' | 'drip' | 'sprinkler',
-  fertilizerType: String,
-  
-  // Additional
-  purpose: 'food' | 'ornamental' | 'medicinal' | 'commercial',
-  budgetRange: String,
-  experienceLevel: 'beginner' | 'intermediate' | 'expert',
-  specialRequirements: String,
-  companionPlants: [String],
-  
-  // Notifications
-  notifications: {
-    enabled: Boolean,
-    email: Boolean,
-    sms: Boolean,
-    frequency: 'daily' | 'weekly' | 'custom',
-    customSchedule: [String]
-  },
   
   // AI Strategy (auto-generated)
   careStrategy: {
@@ -72,10 +220,10 @@ Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
       date: Date,
       actions: [{
         type: 'water' | 'fertilize' | 'prune' | 'check' | 'protect',
-        time: String,
-        description: String,
-        reason: String,
-        products: [String]
+        time: String,              // "07:00" hoặc "Sáng sớm"
+        description: String,        // Mô tả cụ thể hành động
+        reason: String,             // Lý do dựa trên thời tiết/bệnh
+        products: [String]          // Tên thuốc/sản phẩm cần dùng
       }],
       weather: {
         temp: { min, max },
@@ -84,7 +232,7 @@ Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
         alerts: [String]
       }
     }],
-    summary: String
+    summary: String                // Tóm tắt chiến lược (có thể chứa fruiting season info)
   },
   
   // Images & Notes
@@ -109,29 +257,7 @@ Plant Box là hệ thống quản lý cây trồng thông minh, cho phép user:
 
 ### 1. Get All Plant Boxes
 ```http
-GET /api/v1/plant-boxes
-```
-
-**Query Parameters:**
-- `plantType` (optional): `'existing'` | `'planned'`
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 20)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Plant boxes retrieved successfully",
-  "data": {
-    "plantBoxes": [...],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 10,
-      "pages": 1
-    }
-  }
-}
+GET /api/v1/plant-boxes?plantType=existing&page=1&limit=20
 ```
 
 ### 2. Get Plant Box by ID
@@ -143,32 +269,7 @@ GET /api/v1/plant-boxes/:id
 ```http
 POST /api/v1/plant-boxes
 ```
-
-**Body:**
-```json
-{
-  "name": "Cà chua vườn sau",
-  "plantType": "existing",
-  "plantName": "Cà chua",
-  "scientificName": "Solanum lycopersicum",
-  "plantedDate": "2024-01-01",
-  "location": {
-    "name": "Vườn sau nhà",
-    "coordinates": {
-      "lat": 21.0285,
-      "lon": 105.8542
-    },
-    "area": 10,
-    "soilType": "Đất thịt",
-    "sunlight": "full"
-  },
-  "quantity": 5,
-  "growthStage": "vegetative",
-  "currentHealth": "good",
-  "careLevel": "medium",
-  "wateringMethod": "manual"
-}
-```
+**Body:** Xem schema ở trên
 
 **Note:** Nếu `plantType === 'existing'` và có `location.coordinates`, hệ thống sẽ tự động generate care strategy.
 
@@ -183,21 +284,31 @@ PUT /api/v1/plant-boxes/:id
 ```http
 DELETE /api/v1/plant-boxes/:id
 ```
-
 Soft delete (set `isActive: false`).
 
 ### 6. Refresh Care Strategy
 ```http
 POST /api/v1/plant-boxes/:id/refresh-strategy
 ```
-
 Force regenerate care strategy với weather data mới nhất.
 
-### 7. Chat with Plant Box (Mini Chat Bot)
+### 7. Add Disease Feedback
+```http
+POST /api/v1/plant-boxes/:id/disease-feedback
+```
+**Body:**
+```json
+{
+  "diseaseIndex": 0,
+  "status": "worse" | "same" | "better" | "resolved",
+  "notes": "Ghi chú thêm (optional)"
+}
+```
+
+### 8. Chat with Plant Box
 ```http
 POST /api/v1/plant-boxes/:id/chat
 ```
-
 **Body:**
 ```json
 {
@@ -205,120 +316,71 @@ POST /api/v1/plant-boxes/:id/chat
 }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Chat response generated successfully",
-  "data": {
-    "message": "Hôm nay nhiệt độ cao 32°C và độ ẩm thấp 45%, nên cần tưới 500ml nước để đảm bảo cây không bị thiếu nước..."
-  }
-}
-```
-
-**Context:** Bot hiểu context từ:
-- Plant info (name, type, growth stage, health)
-- Weather 7 days
-- Care strategy (actions, reasons)
-
-### 8. Add Note
+### 9. Add Note
 ```http
 POST /api/v1/plant-boxes/:id/notes
 ```
 
-**Body:**
-```json
-{
-  "content": "Đã bón phân NPK hôm nay",
-  "type": "care"
-}
-```
-
-### 9. Add Image
+### 10. Add Image
 ```http
 POST /api/v1/plant-boxes/:id/images
 ```
 
-**Body:**
-```json
-{
-  "url": "https://cloudinary.com/image.jpg",
-  "description": "Cây sau 1 tuần"
-}
-```
+## 🤖 AI Care Strategy - Chi Tiết
 
-## 🤖 AI Care Strategy
+### Prompt Structure
 
-### Auto-generation
+1. **Plant Info**: Tên, giai đoạn, sức khỏe, vị trí, đất, ánh sáng
+2. **Disease Info** (nếu có):
+   - Tên bệnh, triệu chứng, mức độ
+   - Treatment recommendations từ DB (thuốc, liều lượng, cách dùng)
+   - User feedback (tệ hơn/đỡ hơn/đã khỏi)
+3. **Fruiting Season Info** (nếu là cây ăn trái)
+4. **Weather Forecast**: 7 ngày với nhiệt độ, độ ẩm, mưa, cảnh báo
 
-Care strategy được tự động generate khi:
-1. Tạo plant box mới (nếu `plantType === 'existing'` và có coordinates)
-2. Update location/plant info
-3. User manually refresh
+### Strategy Generation Rules
 
-### Strategy Generation Process
+**Nếu có bệnh:**
+- ✅ **BẮT BUỘC** đưa hành động điều trị vào ít nhất 2-3 ngày đầu
+- ✅ Sử dụng **TÊN THUỐC/PHƯƠNG PHÁP CỤ THỂ** từ database
+- ✅ Bao gồm **liều lượng, cách dùng** từ database
+- ✅ Điều chỉnh theo **phản hồi người dùng**:
+  - "TỆ HƠN" → 3-4 hành động trong 4 ngày đầu
+  - "KHÔNG ĐỔI" → 2-3 hành động trong 3 ngày đầu
+  - "ĐỠ HƠN" → 1-2 hành động trong 2 ngày đầu
+  - "ĐÃ KHỎI" → Chỉ phòng ngừa
 
-1. **Get Weather Data** (7 days forecast)
-2. **Build GPT Prompt** với:
-   - Plant info
-   - Weather forecast
-   - User preferences
-3. **Parse GPT Response** (JSON format)
-4. **Fallback Strategy** nếu GPT fails
+**Nếu không có bệnh:**
+- Chỉ đưa hành động khi **THỰC SỰ CẦN THIẾT**:
+  - Tưới nước (dựa trên thời tiết)
+  - Cảnh báo thời tiết
+  - Kiểm tra (khi có dấu hiệu bất thường)
+- **KHÔNG** đưa hành động định kỳ không có lý do (ví dụ: "Bón phân NPK" chung chung)
 
-### Strategy Format
+### Validation & Fallback
 
-```javascript
-{
-  lastUpdated: Date,
-  next7Days: [
-    {
-      date: Date,
-      actions: [
-        {
-          type: 'water',
-          time: '08:00',
-          description: 'Tưới 500ml nước vào sáng sớm',
-          reason: 'Nhiệt độ cao 32°C, độ ẩm thấp 45%',
-          products: []
-        }
-      ],
-      weather: {
-        temp: { min: 25, max: 32 },
-        humidity: 45,
-        rain: 0,
-        alerts: []
-      }
-    }
-  ],
-  summary: 'Tóm tắt chiến lược...'
-}
-```
+- **Validation**: Kiểm tra có hành động điều trị không (nếu có bệnh)
+- **Auto-fix**: Nếu không có → Tự động thêm vào 2-3 ngày đầu
+- **Fallback**: Nếu GPT fails → Tạo strategy cơ bản với treatment actions (nếu có bệnh)
 
 ## 💬 Mini Chat Bot
 
-### Features
+### Context Loading
+1. Plant box data (tên, giai đoạn, sức khỏe, bệnh tật)
+2. Weather data (7 ngày)
+3. Care strategy (actions, reasons)
+4. Treatment info (nếu có bệnh)
 
-- **Context-aware**: Hiểu plant info + weather + care strategy
-- **No history**: Mỗi request độc lập, không lưu chat history
-- **Short responses**: Tối đa 150 từ, cụ thể và ngắn gọn
-
-### How It Works
-
-1. User gửi message
-2. Backend load:
-   - Plant box data
-   - Weather data (7 days)
-   - Care strategy
-3. Build system prompt với tất cả context
-4. Call GPT với system prompt + user message
-5. Return response
+### Response Style
+- Tối đa 150 từ
+- Cụ thể và ngắn gọn
+- Tham chiếu đến care strategy và treatment info
 
 ### Example Questions
-
 - "Tại sao hôm nay tưới nhiều hơn?"
 - "Có cần bón phân không?"
 - "Cây có vẻ yếu, làm sao?"
+- "Thuốc này có hiệu quả không?"
 - "Ngày mai có cần che phủ không?"
 
 ## 🔐 Authentication
@@ -330,7 +392,8 @@ Tất cả endpoints đều yêu cầu authentication (`authMiddleware`).
 - Care strategy được cache trong DB, refresh khi cần
 - Weather data được cache 1 giờ
 - Chat bot không lưu history (stateless)
-- Plant box soft delete (isActive: false)
+- Plant box soft delete (`isActive: false`)
+- Treatment recommendations được search với fuzzy matching (không dấu, không chính tả)
 
 ## 🚀 Future Enhancements
 
@@ -340,4 +403,5 @@ Tất cả endpoints đều yêu cầu authentication (`authMiddleware`).
 - [ ] Export care report (PDF)
 - [ ] Plant timeline view
 - [ ] Photo gallery với comparison
-
+- [ ] Natural language input cho form tạo box
+- [ ] Auto-fill từ knowledge base khi chọn cây

@@ -10,6 +10,11 @@ import {
   addNoteController,
   addImageController,
   addDiseaseFeedbackController,
+  analyzeTaskController,
+  deleteDiseaseController,
+  addDiseaseController,
+  updateDiseaseTreatmentsController,
+  toggleActionCompletedController,
 } from './plantBox.controller.js';
 import {
   validateCreatePlantBox,
@@ -17,6 +22,7 @@ import {
   validateChatMessage,
   validateAddNote,
   validateAddImage,
+  validateAnalyzeTask,
 } from './plantBox.validation.js';
 import { authMiddleware } from '../../common/middleware/auth.js';
 
@@ -119,6 +125,62 @@ router.post(
   '/:id/disease-feedback',
   authMiddleware,
   addDiseaseFeedbackController
+);
+
+/**
+ * @route POST /api/v1/plant-boxes/:id/analyze-task
+ * @desc Analyze a specific task action and get detailed guidance
+ * @access Private
+ */
+router.post(
+  '/:id/analyze-task',
+  authMiddleware,
+  validateAnalyzeTask,
+  analyzeTaskController
+);
+
+/**
+ * @route POST /api/v1/plant-boxes/:id/diseases
+ * @desc Add a new disease to plant box
+ * @access Private
+ */
+router.post(
+  '/:id/diseases',
+  authMiddleware,
+  addDiseaseController
+);
+
+/**
+ * @route DELETE /api/v1/plant-boxes/:id/diseases
+ * @desc Delete a disease from plant box
+ * @access Private
+ */
+router.delete(
+  '/:id/diseases',
+  authMiddleware,
+  deleteDiseaseController
+);
+
+/**
+ * @route PUT /api/v1/plant-boxes/:id/diseases/:diseaseIndex/treatments
+ * @desc Update selected treatments for a disease
+ * @access Private
+ */
+router.put(
+  '/:id/diseases/:diseaseIndex/treatments',
+  authMiddleware,
+  updateDiseaseTreatmentsController
+);
+
+/**
+ * @route PUT /api/v1/plant-boxes/:id/actions/toggle
+ * @desc Toggle action completed status
+ * @access Private
+ */
+router.put(
+  '/:id/actions/toggle',
+  authMiddleware,
+  toggleActionCompletedController
 );
 
 export default router;

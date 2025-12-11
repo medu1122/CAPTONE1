@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Header } from '../ChatAnalyzePage/components/layout/Header'
 import { UploadSection } from './components/UploadSection'
 import { PlantInfoCard } from './components/PlantInfoCard'
@@ -8,12 +8,16 @@ import { WelcomeSection } from './components/WelcomeSection'
 import { PlantInfoSection } from './components/sections/PlantInfoSection'
 import { DiseaseListSection } from './components/sections/DiseaseListSection'
 import { TreatmentSection } from './components/sections/TreatmentSection'
+import { AnalysisReportModal } from './components/AnalysisReportModal'
 import { useImageAnalysis } from './hooks/useImageAnalysis'
 import { useAuth } from '../../contexts/AuthContext'
 
 export const PlantAnalysisPage: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, logout } = useAuth()
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [autoUploading, setAutoUploading] = useState(false)
   const {
     images,
     selectedImage,
@@ -26,6 +30,36 @@ export const PlantAnalysisPage: React.FC = () => {
     needsAnalysis,
     streamingState,
   } = useImageAnalysis()
+
+  // Auto-upload image from URL parameter
+  useEffect(() => {
+    const imageUrl = searchParams.get('imageUrl')
+    if (imageUrl && !autoUploading && images.length === 0) {
+      setAutoUploading(true)
+      // Fetch image and convert to File
+      fetch(imageUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const file = new File([blob], 'analysis-image.jpg', { type: blob.type })
+          const { id, image } = addImage(file)
+          console.log('✅ [PlantAnalysisPage] Auto-uploaded image from URL:', imageUrl, 'Image ID:', id)
+          // Auto-analyze after upload
+          setTimeout(() => {
+            analyze(id, image.file).catch((error) => {
+              console.error('Failed to auto-analyze:', error)
+            })
+          }, 1000)
+        })
+        .catch((error) => {
+          console.error('Failed to auto-upload image:', error)
+          alert('Không thể tải hình ảnh từ URL')
+        })
+        .finally(() => {
+          setAutoUploading(false)
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get('imageUrl')])
 
   const handleFileSelect = async (files: File[]) => {
     for (const file of files) {
@@ -143,6 +177,19 @@ export const PlantAnalysisPage: React.FC = () => {
               </div>
             ) : (
               <>
+                {/* Report Button - Only show after analysis is complete */}
+                {selectedImage.result && !selectedImage.analyzing && (
+                  <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                    <button
+                      onClick={() => setShowReportModal(true)}
+                      className="w-full px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span>🚩</span>
+                      <span>Báo cáo lỗi hoặc kết quả sai</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Analysis Interface - Show when analyzing or has result */}
                 {/* Small Progress Indicator - Only show progress bar, not full component */}
                 {selectedImage.analyzing && streamingState.status !== 'idle' && streamingState.status !== 'complete' && (
@@ -228,6 +275,17 @@ export const PlantAnalysisPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Analysis Report Modal */}
+      <AnalysisReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        analysisId={selectedImage?.result?.analysisId || null}
+        originalImageUrl={selectedImage?.result?.imageUrl || selectedImage?.previewUrl || null}
+        onSuccess={() => {
+          console.log('✅ Report submitted successfully')
+        }}
+      />
     </div>
   )
 }

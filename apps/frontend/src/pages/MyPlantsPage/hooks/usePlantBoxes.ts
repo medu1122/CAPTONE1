@@ -54,6 +54,17 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
       detectedDate: disease.detectedDate ? new Date(disease.detectedDate).toISOString() : undefined,
       treatmentPlan: disease.treatmentPlan,
       status: disease.status,
+      feedback: (disease.feedback || []).map((fb: any) => ({
+        _id: fb._id,
+        date: fb.date ? new Date(fb.date).toISOString() : new Date().toISOString(),
+        status: fb.status,
+        notes: fb.notes,
+      })),
+      selectedTreatments: disease.selectedTreatments ? {
+        chemical: disease.selectedTreatments.chemical || [],
+        biological: disease.selectedTreatments.biological || [],
+        cultural: disease.selectedTreatments.cultural || [],
+      } : undefined,
     })),
     healthNotes: backendBox.healthNotes,
     images: (backendBox.images || []).map((img: any, idx: number) => ({

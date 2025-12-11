@@ -38,7 +38,20 @@ const notificationSchema = new mongoose.Schema({
   customSchedule: [String], // ["08:00", "18:00"]
 }, { _id: false });
 
+const taskAnalysisSchema = new mongoose.Schema({
+  analyzedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  detailedSteps: [String],
+  materials: [String],
+  precautions: [String],
+  tips: String,
+  estimatedDuration: String,
+}, { _id: false });
+
 const careActionSchema = new mongoose.Schema({
+  _id: String, // Unique ID for action
   type: {
     type: String,
     enum: ['water', 'fertilize', 'prune', 'check', 'protect'],
@@ -48,6 +61,11 @@ const careActionSchema = new mongoose.Schema({
   description: String,
   reason: String,
   products: [String],
+  completed: {
+    type: Boolean,
+    default: false,
+  },
+  taskAnalysis: taskAnalysisSchema, // Phân tích chi tiết khi user click vào task
 }, { _id: false });
 
 const dayStrategySchema = new mongoose.Schema({
@@ -96,6 +114,7 @@ const noteSchema = new mongoose.Schema({
     enum: ['care', 'observation', 'issue', 'milestone'],
     default: 'observation',
   },
+  imageUrl: String, // URL to uploaded image
 }, { _id: false });
 
 const plantBoxSchema = new mongoose.Schema(
@@ -164,6 +183,21 @@ const plantBoxSchema = new mongoose.Schema(
         default: Date.now,
       },
       treatmentPlan: String,    // Suggested treatment plan
+      selectedTreatments: {     // User-selected treatments (only chemical)
+        chemical: [{
+          name: String,
+          activeIngredient: String,
+          manufacturer: String,
+          dosage: String,
+          usage: String,
+          frequency: String,
+          isolationPeriod: String,
+          precautions: [String],
+          imageUrl: String,
+          price: String,
+        }],
+        // Note: biological and cultural are auto-suggested by bot, not user-selected
+      },
       status: {
         type: String,
         enum: ['active', 'treating', 'resolved'],

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { InfoIcon } from 'lucide-react'
 import { DiseaseTooltip } from '../DiseaseTooltip'
 import { DiseaseDetectionSkeleton } from '../LoadingSkeletons'
@@ -19,6 +19,7 @@ export const DiseaseListSection: React.FC<DiseaseListSectionProps> = ({
   enabled,
 }) => {
   const { getExplanation, explanations } = useDiseaseExplanation()
+  const [openDiseaseName, setOpenDiseaseName] = useState<string | null>(null)
 
   // Pre-fetch explanations for all diseases after analysis completes
   useEffect(() => {
@@ -62,6 +63,14 @@ export const DiseaseListSection: React.FC<DiseaseListSectionProps> = ({
             diseaseName={disease.name}
             plantName={plantName}
             enabled={true} // Always enabled - tooltip works anytime
+            isOpen={openDiseaseName === disease.name}
+            onOpen={() => {
+              // Close any other open modal and open this one
+              setOpenDiseaseName(disease.name)
+            }}
+            onClose={() => {
+              setOpenDiseaseName(null)
+            }}
           >
             <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer group">
               <div className="flex items-center gap-3 flex-1 min-w-0">

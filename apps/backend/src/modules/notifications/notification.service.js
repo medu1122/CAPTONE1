@@ -41,8 +41,11 @@ export const createNotification = async (data) => {
       read: false,
     });
 
-    // Populate actor for response
+    // Populate actor and post for response
     await notification.populate('actor', 'name profileImage');
+    if (postId) {
+      await notification.populate('post', 'title');
+    }
 
     return notification;
   } catch (error) {

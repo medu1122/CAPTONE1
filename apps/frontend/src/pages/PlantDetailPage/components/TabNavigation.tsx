@@ -1,5 +1,5 @@
 import React from 'react'
-type TabType = 'strategy' | 'timeline' | 'gallery' | 'notes'
+type TabType = 'strategy' | 'notes'
 interface TabNavigationProps {
   activeTab: TabType
   onTabChange: (tab: TabType) => void
@@ -14,16 +14,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
       label: 'Chiến lược',
     },
     {
-      id: 'timeline' as TabType,
-      label: 'Timeline',
-    },
-    {
-      id: 'gallery' as TabType,
-      label: 'Gallery',
-    },
-    {
       id: 'notes' as TabType,
-      label: 'Notes',
+      label: 'Ghi chú',
     },
   ]
   return (

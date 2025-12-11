@@ -244,16 +244,101 @@ export const chatWithPlantBox = async (
 }
 
 /**
+ * Add a new disease to plant box
+ */
+export const addDisease = async (
+  id: string,
+  data: { name: string; symptoms?: string; severity?: 'mild' | 'moderate' | 'severe' }
+): Promise<{ success: boolean; message: string; data: any }> => {
+  const response = await api.post(`/plant-boxes/${id}/diseases`, data)
+  return response.data
+}
+
+/**
+ * Delete a disease from plant box
+ */
+export const deleteDisease = async (
+  id: string,
+  diseaseIndex: number
+): Promise<{ success: boolean; message: string; data: any }> => {
+  const response = await api.delete(`/plant-boxes/${id}/diseases`, {
+    data: { diseaseIndex },
+  })
+  return response.data
+}
+
+/**
+ * Update selected treatments for a disease
+ */
+export const updateDiseaseTreatments = async (
+  id: string,
+  diseaseIndex: number,
+  treatments: {
+    chemical?: any[]
+    biological?: any[]
+    cultural?: any[]
+  }
+): Promise<{ success: boolean; message: string; data: any }> => {
+  const response = await api.put(`/plant-boxes/${id}/diseases/${diseaseIndex}/treatments`, {
+    treatments,
+  })
+  return response.data
+}
+
+/**
+ * Analyze a specific task action
+ */
+export const analyzeTask = async (
+  id: string,
+  dayIndex: number,
+  actionIndex: number
+): Promise<{
+  success: boolean
+  message: string
+  data: {
+    analyzedAt: string
+    detailedSteps: string[]
+    materials: string[]
+    precautions: string[]
+    tips: string
+    estimatedDuration: string
+    dosageCalculation?: {
+      baseDosage: string
+      totalQuantity: string
+      totalWater: string
+      soilAdjustment: string
+      finalDosage: string
+      purchaseAmount: string
+    }
+  }
+}> => {
+  console.log('📤 [analyzeTask] Sending request:', { id, dayIndex, actionIndex, dayIndexType: typeof dayIndex, actionIndexType: typeof actionIndex })
+  
+  // Ensure dayIndex and actionIndex are numbers
+  const payload = {
+    dayIndex: Number(dayIndex),
+    actionIndex: Number(actionIndex),
+  }
+  
+  console.log('📤 [analyzeTask] Payload:', payload)
+  
+  const response = await api.post(`/plant-boxes/${id}/analyze-task`, payload)
+  return response.data
+}
+
+/**
  * Add note to plant box
  */
 export const addNoteToPlantBox = async (
   id: string,
   content: string,
-  type: 'care' | 'observation' | 'issue' | 'milestone' = 'observation'
+  type: 'care' | 'observation' | 'issue' | 'milestone' = 'observation',
+  imageUrl?: string
 ): Promise<AddNoteResponse> => {
   const response = await api.post(`/plant-boxes/${id}/notes`, {
     content,
     type,
+    imageUrl,
   })
   return response.data
 }

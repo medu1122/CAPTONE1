@@ -142,11 +142,13 @@ export interface Report {
     email: string
     profileImage?: string
   }
-  type: 'post' | 'comment'
+  type: 'post' | 'comment' | 'analysis'
   targetId: string
-  targetType: 'post' | 'comment'
-  reason: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'other'
+  targetType: 'post' | 'comment' | 'analysis'
+  reason: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'error' | 'wrong_result' | 'other'
   description?: string
+  originalImageUrl?: string // For analysis reports - original image used for analysis
+  images?: string[] // For analysis reports - images showing errors/issues
   status: 'pending' | 'reviewing' | 'resolved' | 'dismissed'
   adminNotes?: string
   resolvedAt?: string
@@ -369,11 +371,13 @@ export const adminService = {
   },
 
   async createReport(data: {
-    type: 'post' | 'comment'
+    type: 'post' | 'comment' | 'analysis'
     targetId: string
-    targetType: 'post' | 'comment'
-    reason: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'other'
+    targetType: 'post' | 'comment' | 'analysis'
+    reason: 'spam' | 'inappropriate' | 'harassment' | 'fake' | 'error' | 'wrong_result' | 'other'
     description?: string
+    originalImageUrl?: string
+    images?: string[]
   }): Promise<Report> {
     const response = await api.post('/reports', data)
     return response.data.data

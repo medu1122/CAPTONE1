@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { PlusIcon, CalendarIcon } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { PlusIcon, CalendarIcon, ImageIcon, XIcon, Loader2Icon } from 'lucide-react'
 import type { PlantBox, PlantNote } from '../../MyPlantsPage/types/plantBox.types'
+import { uploadImage } from '../../PlantAnalysisPage/services/analysisService'
 interface NotesTabProps {
   plantBox: PlantBox
   onAddNote: (note: Omit<PlantNote, '_id' | 'date'>) => void
@@ -10,10 +11,15 @@ export const NotesTab: React.FC<NotesTabProps> = ({ plantBox, onAddNote }) => {
   const [newNote, setNewNote] = useState<{
     type: PlantNote['type']
     content: string
+    imageUrl?: string
   }>({
     type: 'care',
     content: '',
+    imageUrl: undefined,
   })
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const notes = plantBox.notes || []
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -23,17 +29,63 @@ export const NotesTab: React.FC<NotesTabProps> = ({ plantBox, onAddNote }) => {
       year: 'numeric',
     })
   }
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file hình ảnh')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Kích thước file không được vượt quá 5MB')
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      const imageUrl = await uploadImage(file)
+      setNewNote({ ...newNote, imageUrl })
+      setImagePreview(URL.createObjectURL(file))
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      alert('Không thể upload hình ảnh. Vui lòng thử lại.')
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setNewNote({ ...newNote, imageUrl: undefined })
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleAddNote = () => {
     if (!newNote.content.trim()) return
     onAddNote({
       type: newNote.type,
       content: newNote.content,
+      imageUrl: newNote.imageUrl,
     })
     setNewNote({
       type: 'care',
       content: '',
+      imageUrl: undefined,
     })
+    setImagePreview(null)
     setShowAddNote(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
   const getTypeBadge = (type: PlantNote['type']) => {
     const badges = {
@@ -140,6 +192,57 @@ export const NotesTab: React.FC<NotesTabProps> = ({ plantBox, onAddNote }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
               />
             </div>
+
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hình ảnh (tùy chọn)
+              </label>
+              {imagePreview || newNote.imageUrl ? (
+                <div className="relative">
+                  <img
+                    src={imagePreview || newNote.imageUrl}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <XIcon size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="note-image-upload"
+                  />
+                  <label
+                    htmlFor="note-image-upload"
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    {uploadingImage ? (
+                      <>
+                        <Loader2Icon size={24} className="animate-spin text-green-600" />
+                        <span className="text-sm text-gray-600">Đang upload...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon size={24} className="text-gray-400" />
+                        <span className="text-sm text-gray-600">Click để chọn hình ảnh</span>
+                        <span className="text-xs text-gray-500">(Tối đa 5MB)</span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              )}
+            </div>
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -183,7 +286,14 @@ export const NotesTab: React.FC<NotesTabProps> = ({ plantBox, onAddNote }) => {
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-900">{note.content}</p>
+              <p className="text-sm text-gray-900 mb-2">{note.content}</p>
+              {note.imageUrl && (
+                <img
+                  src={note.imageUrl}
+                  alt="Note attachment"
+                  className="w-full max-w-md h-auto rounded-lg border border-gray-200"
+                />
+              )}
             </div>
           )
         })}

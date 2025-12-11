@@ -1,4 +1,4 @@
-import { createMockData, searchDiseaseNames } from './treatment.service.js';
+import { createMockData, searchDiseaseNames, getTreatmentRecommendations } from './treatment.service.js';
 
 /**
  * Initialize mock data for testing
@@ -81,6 +81,33 @@ export const searchDiseases = async (req, res, next) => {
     });
   } catch (error) {
     console.error('❌ [TreatmentController] Error searching diseases:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get treatment recommendations for a disease and plant
+ * @route GET /api/v1/treatments/recommendations
+ */
+export const getRecommendations = async (req, res, next) => {
+  try {
+    const { disease, plant } = req.query;
+    
+    if (!disease) {
+      return res.status(400).json({
+        success: false,
+        message: 'Disease name is required'
+      });
+    }
+    
+    const recommendations = await getTreatmentRecommendations(disease, plant || null);
+    
+    return res.status(200).json({
+      success: true,
+      data: recommendations
+    });
+  } catch (error) {
+    console.error('❌ [TreatmentController] Error getting recommendations:', error);
     next(error);
   }
 };

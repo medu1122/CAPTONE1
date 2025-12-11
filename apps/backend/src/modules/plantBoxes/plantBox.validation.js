@@ -214,11 +214,42 @@ export const validateAddImage = (req, res, next) => {
   next();
 };
 
+/**
+ * Validation schema for analyzing task
+ */
+export const validateAnalyzeTask = (req, res, next) => {
+  console.log('🔍 [validateAnalyzeTask] Validating:', { body: req.body, params: req.params });
+  
+  const schema = Joi.object({
+    dayIndex: Joi.number().integer().min(0).max(6).required(),
+    actionIndex: Joi.number().integer().min(0).required(),
+  });
+
+  const { error, value } = schema.validate(req.body);
+
+  if (error) {
+    console.error('❌ [validateAnalyzeTask] Validation failed:', error.details);
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: error.details.map((detail) => ({
+        field: detail.path.join('.'),
+        message: detail.message,
+      })),
+      received: req.body,
+    });
+  }
+
+  console.log('✅ [validateAnalyzeTask] Validation passed:', value);
+  next();
+};
+
 export default {
   validateCreatePlantBox,
   validateUpdatePlantBox,
   validateChatMessage,
   validateAddNote,
   validateAddImage,
+  validateAnalyzeTask,
 };
 

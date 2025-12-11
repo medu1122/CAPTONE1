@@ -756,6 +756,7 @@ const addComment = async (req, res, next) => {
           });
           
           if (notification) {
+            console.log(`✅ [COMMENT] Created reply notification for user ${parentComment.author._id.toString()}`);
             await broadcastNotification(parentComment.author._id.toString(), notification);
           }
         }
@@ -775,6 +776,7 @@ const addComment = async (req, res, next) => {
           });
           
           if (notification) {
+            console.log(`✅ [COMMENT] Created comment notification for user ${post.author.toString()}`);
             await broadcastNotification(post.author.toString(), notification);
           }
         }
@@ -1073,7 +1075,10 @@ const toggleLike = async (req, res, next) => {
           });
           
           if (notification) {
+            console.log(`✅ [POST] Created like notification for user ${postAuthorId}`);
             await broadcastNotification(postAuthorId, notification);
+          } else {
+            console.log(`⚠️ [POST] Notification creation returned null (user ${postAuthorId} is same as actor)`);
           }
         }
       } catch (error) {

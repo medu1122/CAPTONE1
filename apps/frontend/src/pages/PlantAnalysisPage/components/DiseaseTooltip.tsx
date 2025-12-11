@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Loader2Icon, InfoIcon, XIcon } from 'lucide-react'
 import { useDiseaseExplanation } from '../hooks/useDiseaseExplanation'
 
@@ -7,6 +8,9 @@ interface DiseaseTooltipProps {
   plantName?: string
   children: React.ReactNode
   enabled?: boolean // Only enable after analysis complete
+  onOpen?: () => void // Callback when modal opens
+  isOpen?: boolean // Controlled open state
+  onClose?: () => void // Callback when modal closes
 }
 
 export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
@@ -14,11 +18,26 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
   plantName,
   children,
   enabled = true, // Default enabled, but should be false until analysis complete
+  onOpen,
+  isOpen: controlledIsOpen,
+  onClose,
 }) => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
+  // Use controlled state if provided, otherwise use internal state
+  const [internalIsVisible, setInternalIsVisible] = useState(false)
+  const isVisible = controlledIsOpen !== undefined ? controlledIsOpen : internalIsVisible
+  const setIsVisible = (value: boolean) => {
+    if (controlledIsOpen === undefined) {
+      setInternalIsVisible(value)
+    }
+    if (value && onOpen) {
+      onOpen()
+    }
+    if (!value && onClose) {
+      onClose()
+    }
+  }
+  
+  const modalRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
 
   const { getExplanation, explanations, loading } = useDiseaseExplanation()
@@ -53,97 +72,6 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
     }
   }, [explanations, diseaseName, explanation])
 
-  // Calculate tooltip position - improved positioning logic
-  useEffect(() => {
-    if (isVisible && triggerRef.current) {
-      // Use requestAnimationFrame to ensure DOM is updated
-      requestAnimationFrame(() => {
-        if (!triggerRef.current) return
-
-        const triggerRect = triggerRef.current.getBoundingClientRect()
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
-        const scrollY = window.scrollY
-        const scrollX = window.scrollX
-
-        // Estimate tooltip size (will be adjusted after render)
-        const estimatedWidth = 350 // max-w-sm ≈ 350px
-        const estimatedHeight = 150 // approximate
-
-        // Default: show below the trigger, centered horizontally
-        let top = triggerRect.bottom + scrollY + 8
-        let left = triggerRect.left + scrollX + (triggerRect.width / 2) - (estimatedWidth / 2)
-
-        // Adjust horizontal position if goes off screen
-        if (left + estimatedWidth > scrollX + viewportWidth - 16) {
-          // Tooltip goes off right edge - align to right with margin
-          left = scrollX + viewportWidth - estimatedWidth - 16
-        }
-        if (left < scrollX + 16) {
-          // Tooltip goes off left edge - align to left with margin
-          left = scrollX + 16
-        }
-
-        // Adjust vertical position if goes off screen
-        const spaceBelow = viewportHeight - triggerRect.bottom
-        const spaceAbove = triggerRect.top
-
-        if (estimatedHeight + 8 > spaceBelow && spaceAbove > spaceBelow) {
-          // Not enough space below, but more space above - show above
-          top = triggerRect.top + scrollY - estimatedHeight - 8
-        } else if (estimatedHeight + 8 > spaceBelow) {
-          // Not enough space below or above - show at bottom of viewport
-          top = scrollY + viewportHeight - estimatedHeight - 16
-        }
-
-        // Ensure tooltip doesn't go above viewport
-        if (top < scrollY + 16) {
-          top = scrollY + 16
-        }
-
-        setPosition({ top, left })
-
-        // Recalculate after tooltip is rendered to get actual size
-        if (tooltipRef.current) {
-          requestAnimationFrame(() => {
-            if (!tooltipRef.current || !triggerRef.current) return
-
-            const actualTooltipRect = tooltipRef.current.getBoundingClientRect()
-            const actualTriggerRect = triggerRef.current.getBoundingClientRect()
-
-            // Recalculate with actual dimensions
-            let finalTop = actualTriggerRect.bottom + scrollY + 8
-            let finalLeft = actualTriggerRect.left + scrollX + (actualTriggerRect.width / 2) - (actualTooltipRect.width / 2)
-
-            // Adjust horizontal
-            if (finalLeft + actualTooltipRect.width > scrollX + viewportWidth - 16) {
-              finalLeft = scrollX + viewportWidth - actualTooltipRect.width - 16
-            }
-            if (finalLeft < scrollX + 16) {
-              finalLeft = scrollX + 16
-            }
-
-            // Adjust vertical
-            const actualSpaceBelow = viewportHeight - actualTriggerRect.bottom
-            const actualSpaceAbove = actualTriggerRect.top
-
-            if (actualTooltipRect.height + 8 > actualSpaceBelow && actualSpaceAbove > actualSpaceBelow) {
-              finalTop = actualTriggerRect.top + scrollY - actualTooltipRect.height - 8
-            } else if (actualTooltipRect.height + 8 > actualSpaceBelow) {
-              finalTop = scrollY + viewportHeight - actualTooltipRect.height - 16
-            }
-
-            if (finalTop < scrollY + 16) {
-              finalTop = scrollY + 16
-            }
-
-            setPosition({ top: finalTop, left: finalLeft })
-          })
-        }
-      })
-    }
-  }, [isVisible, explanation])
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     console.log('🖱️ [DiseaseTooltip] Clicked, opening tooltip for:', diseaseName)
@@ -153,34 +81,19 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
     }
   }
 
-  // Close tooltip when clicking outside (but not on trigger or tooltip itself)
+  // Close modal on Escape key
   useEffect(() => {
     if (!isVisible) return
 
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node
-      
-      // Don't close if clicking on trigger or tooltip
-      if (
-        triggerRef.current?.contains(target) ||
-        tooltipRef.current?.contains(target)
-      ) {
-        return
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsVisible(false)
       }
-      
-      // Close if clicking outside both trigger and tooltip
-      console.log('🖱️ [DiseaseTooltip] Clicked outside, closing tooltip')
-      setIsVisible(false)
     }
 
-    // Use a delay to avoid immediate close after open
-    const timeoutId = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside, true) // Use capture phase
-    }, 200)
-
+    document.addEventListener('keydown', handleEscape)
     return () => {
-      clearTimeout(timeoutId)
-      document.removeEventListener('mousedown', handleClickOutside, true)
+      document.removeEventListener('keydown', handleEscape)
     }
   }, [isVisible])
 
@@ -194,71 +107,76 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
     >
       {children}
 
-      {/* Tooltip */}
-      {isVisible && (
-        <>
-          {/* Backdrop to ensure tooltip is on top - completely transparent */}
+      {/* Modal - Render via Portal to body for highest z-index */}
+      {isVisible && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 pointer-events-none" style={{ zIndex: 99999 }}>
+          {/* Invisible backdrop - only for click detection, no blur/opacity */}
           <div
-            className="fixed inset-0 z-[9998]"
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsVisible(false)
-            }}
-            style={{ 
-              pointerEvents: 'auto',
-              backgroundColor: 'transparent',
-              backdropFilter: 'none',
-            }}
+            className="absolute inset-0 bg-transparent pointer-events-auto"
+            onClick={() => setIsVisible(false)}
           />
+          
+          {/* Modal Content - Centered, highest z-index */}
           <div
-            ref={tooltipRef}
-            className="fixed z-[9999] bg-white rounded-lg shadow-2xl border-2 border-blue-200 p-4 max-w-sm"
-            style={{
-              top: `${position.top}px`,
-              left: `${position.left}px`,
-              pointerEvents: 'auto',
-              maxWidth: '400px',
-              minWidth: '250px',
-            }}
+            ref={modalRef}
+            className="relative bg-white rounded-xl shadow-2xl border-2 border-gray-300 p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto pointer-events-auto animate-[fadeIn_0.2s_ease-out]"
+            style={{ zIndex: 100000 }}
             onClick={(e) => {
-              // Prevent closing when clicking inside tooltip
+              // Prevent closing when clicking inside modal
               e.stopPropagation()
             }}
           >
-          {/* Header */}
-          <div className="flex items-start gap-2 mb-2">
-            <InfoIcon className="text-blue-600 mt-0.5 flex-shrink-0" size={18} />
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="font-semibold text-gray-900 text-sm">{diseaseName}</h4>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setIsVisible(false)
-                  }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                  aria-label="Đóng"
-                >
-                  <XIcon size={14} />
-                </button>
+            {/* Header */}
+            <div className="flex items-start gap-3 mb-4 pb-4 border-b border-gray-200">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <InfoIcon className="text-blue-600" size={24} />
+                </div>
               </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-xl font-bold text-gray-900 leading-tight">{diseaseName}</h3>
+                  <button
+                    onClick={() => setIsVisible(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100 flex-shrink-0"
+                    aria-label="Đóng"
+                  >
+                    <XIcon size={20} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mb-6">
               {loading[diseaseName] ? (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <Loader2Icon className="animate-spin" size={14} />
-                  <span>Đang tải giải thích...</span>
+                <div className="flex items-center justify-center gap-3 py-8">
+                  <Loader2Icon className="animate-spin text-blue-600" size={20} />
+                  <span className="text-gray-600">Đang tải giải thích...</span>
                 </div>
               ) : explanation ? (
-                <p className="text-xs text-gray-700 leading-relaxed">{explanation}</p>
+                <div className="bg-blue-50 rounded-lg p-5 border border-blue-200">
+                  <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">{explanation}</p>
+                </div>
               ) : (
-                <p className="text-xs text-gray-500">Không thể tải giải thích</p>
+                <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 text-center">
+                  <p className="text-gray-500">Không thể tải giải thích về bệnh này.</p>
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Arrow */}
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-blue-200 rotate-45"></div>
-        </div>
-        </>
+            {/* Close Button */}
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setIsVisible(false)}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   )

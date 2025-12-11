@@ -7,38 +7,49 @@ import { httpError } from '../../common/utils/http.js';
 export const validateCreateReport = (req, res, next) => {
   const schema = Joi.object({
     type: Joi.string()
-      .valid('post', 'comment')
+      .valid('post', 'comment', 'analysis')
       .required()
       .messages({
         'any.required': 'Report type is required',
-        'any.only': 'Report type must be one of: post, comment',
+        'any.only': 'Report type must be one of: post, comment, analysis',
       }),
-    targetId: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
+    targetId: Joi.alternatives()
+      .try(
+        Joi.string().pattern(/^[0-9a-fA-F]{24}$/), // ObjectId
+        Joi.string().min(1).max(100) // String ID (for analysis)
+      )
       .required()
       .messages({
         'any.required': 'Target ID is required',
-        'string.pattern.base': 'Target ID must be a valid ObjectId',
       }),
     targetType: Joi.string()
-      .valid('post', 'comment')
+      .valid('post', 'comment', 'analysis')
       .required()
       .messages({
         'any.required': 'Target type is required',
-        'any.only': 'Target type must be one of: post, comment',
+        'any.only': 'Target type must be one of: post, comment, analysis',
       }),
     reason: Joi.string()
-      .valid('spam', 'inappropriate', 'harassment', 'fake', 'other')
+      .valid('spam', 'inappropriate', 'harassment', 'fake', 'error', 'wrong_result', 'other')
       .required()
       .messages({
         'any.required': 'Report reason is required',
-        'any.only': 'Report reason must be one of: spam, inappropriate, harassment, fake, other',
+        'any.only': 'Report reason must be one of: spam, inappropriate, harassment, fake, error, wrong_result, other',
       }),
     description: Joi.string()
       .max(1000)
       .trim()
       .optional()
       .allow(null, ''),
+    originalImageUrl: Joi.string()
+      .uri()
+      .optional()
+      .allow(null, ''),
+    images: Joi.array()
+      .items(Joi.string().uri())
+      .max(10)
+      .optional()
+      .default([]),
   });
 
   const { error, value } = schema.validate(req.body);
@@ -84,13 +95,13 @@ export const validateUpdateReportStatus = (req, res, next) => {
 export const validateGetReports = (req, res, next) => {
   const schema = Joi.object({
     type: Joi.string()
-      .valid('post', 'comment')
+      .valid('post', 'comment', 'analysis')
       .optional(),
     status: Joi.string()
       .valid('pending', 'reviewing', 'resolved', 'dismissed')
       .optional(),
     reason: Joi.string()
-      .valid('spam', 'inappropriate', 'harassment', 'fake', 'other')
+      .valid('spam', 'inappropriate', 'harassment', 'fake', 'error', 'wrong_result', 'other')
       .optional(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
