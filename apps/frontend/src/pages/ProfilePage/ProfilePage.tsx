@@ -4,7 +4,6 @@ import { Toast } from '../../components/ui/Toast'
 import type { UserProfile } from './types/profile.types'
 import { BasicInfoSection } from './components/BasicInfoSection'
 import { AddressSection } from './components/AddressSection'
-import { SettingsSection } from './components/SettingsSection'
 import { StatisticsSection } from './components/StatisticsSection'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -14,7 +13,7 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<
-    'basic' | 'address' | 'settings' | 'stats'
+    'basic' | 'address' | 'stats'
   >('basic')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{
@@ -97,10 +96,6 @@ export const ProfilePage: React.FC = () => {
       label: 'Địa chỉ',
     },
     {
-      id: 'settings' as const,
-      label: 'Cài đặt',
-    },
-    {
       id: 'stats' as const,
       label: 'Thống kê',
     },
@@ -140,7 +135,7 @@ export const ProfilePage: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Hồ sơ người dùng</h1>
           <p className="text-gray-600 mt-2">
-            Quản lý thông tin cá nhân và cài đặt của bạn
+            Quản lý thông tin cá nhân của bạn
           </p>
         </div>
         {/* Tabs */}
@@ -169,13 +164,6 @@ export const ProfilePage: React.FC = () => {
           )}
           {activeTab === 'address' && (
             <AddressSection
-              profile={profile}
-              onUpdate={handleUpdateProfile}
-              showToast={showToast}
-            />
-          )}
-          {activeTab === 'settings' && (
-            <SettingsSection
               profile={profile}
               onUpdate={handleUpdateProfile}
               showToast={showToast}

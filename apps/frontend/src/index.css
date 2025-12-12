@@ -73,3 +73,32 @@ body { margin: 0; background: #ffffff; overflow-x: hidden; }
 @layer base {
   body { @apply bg-background text-foreground; }
 }
+
+/* Ẩn icon mặc định của browser cho password input */
+@layer utilities {
+  input[type="password"]::-webkit-credentials-auto-fill-button,
+  input[type="password"]::-webkit-strong-password-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  
+  /* Đảm bảo chỉ có 1 icon được hiển thị */
+  .relative input[type="password"] + button,
+  .relative input[type="text"][autocomplete*="password"] + button {
+    position: absolute !important;
+    right: 0.75rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 20 !important;
+  }
+}

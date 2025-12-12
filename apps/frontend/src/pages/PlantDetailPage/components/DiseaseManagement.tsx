@@ -21,6 +21,25 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
   onUpdate,
   onRefreshStrategy,
 }) => {
+  // Filter out resolved diseases (status === 'resolved' or severityScore <= 0)
+  const activeDiseases = diseases.filter(disease => {
+    // Check if disease is resolved
+    if (disease.status === 'resolved') {
+      return false
+    }
+    
+    // Check severity score
+    const score = disease.severityScore !== undefined && disease.severityScore !== null
+      ? disease.severityScore
+      : (disease.severity === 'mild' ? 3 : disease.severity === 'moderate' ? 5 : 7)
+    
+    // Hide if score is 0 or less (resolved)
+    if (score <= 0) {
+      return false
+    }
+    
+    return true
+  })
   const [showAddForm, setShowAddForm] = useState(false)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
   const [formData, setFormData] = useState({
@@ -104,9 +123,6 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
       setDiseaseSuggestions(commonMatches)
     }
   }
-
-  // Track search query separately from selected disease
-  const [searchQuery, setSearchQuery] = useState('')
 
   // Handle selecting a disease from suggestions
   const handleSelectDisease = (diseaseName: string) => {
@@ -280,7 +296,7 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
     }
   }
 
-  if (diseases.length === 0 && !showAddForm) {
+  if (activeDiseases.length === 0 && diseases.length === 0 && !showAddForm) {
     return (
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -513,10 +529,12 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
         />
       )}
 
-      {/* Diseases List with Feedback */}
-      {diseases.length > 0 && (
+      {/* Diseases List with Feedback - Only show active (non-resolved) diseases */}
+      {activeDiseases.length > 0 && (
         <div className="space-y-4">
-          {diseases.map((disease, index) => {
+          {activeDiseases.map((disease, index) => {
+            // Find original index in diseases array for API calls
+            const originalIndex = diseases.findIndex(d => d._id === disease._id)
             const latestFeedback = disease.feedback && disease.feedback.length > 0
               ? disease.feedback[disease.feedback.length - 1]
               : null
@@ -577,7 +595,7 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                           ))}
                         </div>
                         <button
-                          onClick={() => setShowTreatmentRecommendations(index)}
+                          onClick={() => setShowTreatmentRecommendations(originalIndex >= 0 ? originalIndex : index)}
                           className="mt-2 text-xs text-blue-600 hover:underline"
                         >
                           Xem/Chỉnh sửa thuốc
@@ -619,8 +637,8 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                     )}
                   </div>
                   <button
-                    onClick={() => handleDeleteDisease(index)}
-                    disabled={isDeleting === index}
+                    onClick={() => handleDeleteDisease(originalIndex >= 0 ? originalIndex : index)}
+                    disabled={isDeleting === (originalIndex >= 0 ? originalIndex : index)}
                     className="ml-4 p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600 disabled:opacity-50"
                     title="Xóa bệnh"
                   >
@@ -631,7 +649,7 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                 {/* Treatment Selection Button */}
                 {!hasSelectedTreatments && (
                   <button
-                    onClick={() => setShowTreatmentRecommendations(index)}
+                    onClick={() => setShowTreatmentRecommendations(originalIndex >= 0 ? originalIndex : index)}
                     className="mb-3 w-full px-3 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
                   >
                     <PackageIcon size={14} />
@@ -640,9 +658,12 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                 )}
 
                 {/* Feedback Form */}
-                {!showFeedbackForm[index] ? (
+                {!showFeedbackForm[originalIndex >= 0 ? originalIndex : index] ? (
                   <button
-                    onClick={() => setShowFeedbackForm({ ...showFeedbackForm, [index]: true })}
+                    onClick={() => {
+                      const idx = originalIndex >= 0 ? originalIndex : index
+                      setShowFeedbackForm({ ...showFeedbackForm, [idx]: true })
+                    }}
                     className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
                   >
                     <MessageSquareIcon size={16} />
@@ -656,54 +677,66 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                       </label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
-                          onClick={() => setSelectedStatus({ ...selectedStatus, [index]: 'worse' })}
+                          onClick={() => {
+                            const idx = originalIndex >= 0 ? originalIndex : index
+                            setSelectedStatus({ ...selectedStatus, [idx]: 'worse' })
+                          }}
                           className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
-                            selectedStatus[index] === 'worse'
+                            selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'worse'
                               ? 'border-red-500 bg-red-50'
                               : 'border-gray-300 hover:border-red-300'
                           }`}
                         >
-                          <TrendingDownIcon size={18} className={selectedStatus[index] === 'worse' ? 'text-red-600' : 'text-gray-400'} />
-                          <span className={`text-sm font-medium ${selectedStatus[index] === 'worse' ? 'text-red-700' : 'text-gray-700'}`}>
+                          <TrendingDownIcon size={18} className={selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'worse' ? 'text-red-600' : 'text-gray-400'} />
+                          <span className={`text-sm font-medium ${selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'worse' ? 'text-red-700' : 'text-gray-700'}`}>
                             Tệ hơn
                           </span>
                         </button>
                         <button
-                          onClick={() => setSelectedStatus({ ...selectedStatus, [index]: 'same' })}
+                          onClick={() => {
+                            const idx = originalIndex >= 0 ? originalIndex : index
+                            setSelectedStatus({ ...selectedStatus, [idx]: 'same' })
+                          }}
                           className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
-                            selectedStatus[index] === 'same'
+                            selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'same'
                               ? 'border-gray-500 bg-gray-50'
                               : 'border-gray-300 hover:border-gray-400'
                           }`}
                         >
-                          <MinusIcon size={18} className={selectedStatus[index] === 'same' ? 'text-gray-600' : 'text-gray-400'} />
-                          <span className={`text-sm font-medium ${selectedStatus[index] === 'same' ? 'text-gray-700' : 'text-gray-700'}`}>
+                          <MinusIcon size={18} className={selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'same' ? 'text-gray-600' : 'text-gray-400'} />
+                          <span className={`text-sm font-medium ${selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'same' ? 'text-gray-700' : 'text-gray-700'}`}>
                             Không đổi
                           </span>
                         </button>
                         <button
-                          onClick={() => setSelectedStatus({ ...selectedStatus, [index]: 'better' })}
+                          onClick={() => {
+                            const idx = originalIndex >= 0 ? originalIndex : index
+                            setSelectedStatus({ ...selectedStatus, [idx]: 'better' })
+                          }}
                           className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
-                            selectedStatus[index] === 'better'
+                            selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'better'
                               ? 'border-green-500 bg-green-50'
                               : 'border-gray-300 hover:border-green-300'
                           }`}
                         >
-                          <TrendingUpIcon size={18} className={selectedStatus[index] === 'better' ? 'text-green-600' : 'text-gray-400'} />
-                          <span className={`text-sm font-medium ${selectedStatus[index] === 'better' ? 'text-green-700' : 'text-gray-700'}`}>
+                          <TrendingUpIcon size={18} className={selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'better' ? 'text-green-600' : 'text-gray-400'} />
+                          <span className={`text-sm font-medium ${selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'better' ? 'text-green-700' : 'text-gray-700'}`}>
                             Đỡ hơn
                           </span>
                         </button>
                         <button
-                          onClick={() => setSelectedStatus({ ...selectedStatus, [index]: 'resolved' })}
+                          onClick={() => {
+                            const idx = originalIndex >= 0 ? originalIndex : index
+                            setSelectedStatus({ ...selectedStatus, [idx]: 'resolved' })
+                          }}
                           className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
-                            selectedStatus[index] === 'resolved'
+                            selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'resolved'
                               ? 'border-green-600 bg-green-100'
                               : 'border-gray-300 hover:border-green-400'
                           }`}
                         >
-                          <CheckCircleIcon size={18} className={selectedStatus[index] === 'resolved' ? 'text-green-700' : 'text-gray-400'} />
-                          <span className={`text-sm font-medium ${selectedStatus[index] === 'resolved' ? 'text-green-800' : 'text-gray-700'}`}>
+                          <CheckCircleIcon size={18} className={selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'resolved' ? 'text-green-700' : 'text-gray-400'} />
+                          <span className={`text-sm font-medium ${selectedStatus[originalIndex >= 0 ? originalIndex : index] === 'resolved' ? 'text-green-800' : 'text-gray-700'}`}>
                             Đã khỏi
                           </span>
                         </button>
@@ -715,8 +748,11 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
                         Ghi chú (tùy chọn):
                       </label>
                       <textarea
-                        value={feedbackNotes[index] || ''}
-                        onChange={(e) => setFeedbackNotes({ ...feedbackNotes, [index]: e.target.value })}
+                        value={feedbackNotes[originalIndex >= 0 ? originalIndex : index] || ''}
+                        onChange={(e) => {
+                          const idx = originalIndex >= 0 ? originalIndex : index
+                          setFeedbackNotes({ ...feedbackNotes, [idx]: e.target.value })
+                        }}
                         placeholder="Mô tả thêm về tình trạng..."
                         rows={2}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none text-sm"
@@ -725,17 +761,18 @@ export const DiseaseManagement: React.FC<DiseaseManagementProps> = ({
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleSubmitFeedback(index)}
-                        disabled={!selectedStatus[index] || isSubmittingFeedback[index]}
+                        onClick={() => handleSubmitFeedback(originalIndex >= 0 ? originalIndex : index)}
+                        disabled={!selectedStatus[originalIndex >= 0 ? originalIndex : index] || isSubmittingFeedback[originalIndex >= 0 ? originalIndex : index]}
                         className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
                       >
-                        {isSubmittingFeedback[index] ? 'Đang gửi...' : 'Gửi phản hồi'}
+                        {isSubmittingFeedback[originalIndex >= 0 ? originalIndex : index] ? 'Đang gửi...' : 'Gửi phản hồi'}
                       </button>
                       <button
                         onClick={() => {
-                          setShowFeedbackForm({ ...showFeedbackForm, [index]: false })
-                          setSelectedStatus({ ...selectedStatus, [index]: null })
-                          setFeedbackNotes({ ...feedbackNotes, [index]: '' })
+                          const idx = originalIndex >= 0 ? originalIndex : index
+                          setShowFeedbackForm({ ...showFeedbackForm, [idx]: false })
+                          setSelectedStatus({ ...selectedStatus, [idx]: null })
+                          setFeedbackNotes({ ...feedbackNotes, [idx]: '' })
                         }}
                         className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
                       >

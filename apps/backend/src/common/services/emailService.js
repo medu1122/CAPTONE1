@@ -353,6 +353,277 @@ Hãy bắt đầu hành trình trồng cây thông minh của bạn!
 © 2024 GreenGrow. Tất cả quyền được bảo lưu.
     `;
   }
+
+  /**
+   * Gửi email thông báo khi đổi mật khẩu thành công
+   * @param {string} to - Email người nhận
+   * @param {string} name - Tên người dùng
+   * @param {string} ipAddress - IP address của request (optional)
+   * @param {string} userAgent - User agent của request (optional)
+   * @returns {Promise<object>} Kết quả gửi email
+   */
+  async sendPasswordChangeEmail(to, name, ipAddress = null, userAgent = null) {
+    try {
+      const timestamp = new Date().toLocaleString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || 'GreenGrow <noreply@greengrow.com>',
+        to: to,
+        subject: '🔐 Mật khẩu của bạn đã được thay đổi',
+        html: this.getPasswordChangeEmailTemplate(name, timestamp, ipAddress, userAgent),
+        text: this.getPasswordChangeEmailText(name, timestamp, ipAddress, userAgent),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      console.log(`✅ Password change notification email sent to ${to}`);
+      return {
+        success: true,
+        messageId: result.messageId,
+        to: to,
+      };
+    } catch (error) {
+      console.error('❌ Failed to send password change email:', error.message);
+      // Don't throw error - password change is still successful
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * HTML template cho password change notification
+   */
+  getPasswordChangeEmailTemplate(name, timestamp, ipAddress, userAgent) {
+    const deviceInfo = userAgent ? `<p><strong>Thiết bị:</strong> ${userAgent}</p>` : '';
+    const ipInfo = ipAddress ? `<p><strong>Địa chỉ IP:</strong> ${ipAddress}</p>` : '';
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thông báo thay đổi mật khẩu</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #FF6B6B; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .info-box { background: #fff; border-left: 4px solid #FF6B6B; padding: 15px; margin: 20px 0; border-radius: 4px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .warning { background: #FFF3CD; border: 1px solid #FFC107; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 GreenGrow</h1>
+            <h2>Thông báo thay đổi mật khẩu</h2>
+          </div>
+          <div class="content">
+            <h3>Xin chào ${name}!</h3>
+            <p>Mật khẩu tài khoản GreenGrow của bạn đã được thay đổi thành công.</p>
+            
+            <div class="info-box">
+              <p><strong>Thời gian:</strong> ${timestamp}</p>
+              ${ipInfo}
+              ${deviceInfo}
+            </div>
+
+            <div class="warning">
+              <p><strong>⚠️ Lưu ý quan trọng:</strong></p>
+              <p>Nếu bạn không thực hiện thay đổi này, vui lòng:</p>
+              <ul>
+                <li>Đổi lại mật khẩu ngay lập tức</li>
+                <li>Kiểm tra hoạt động đăng nhập gần đây</li>
+                <li>Liên hệ với chúng tôi nếu bạn nghi ngờ có người khác truy cập tài khoản</li>
+              </ul>
+            </div>
+
+            <p>Để bảo mật tài khoản của bạn, chúng tôi khuyến nghị:</p>
+            <ul>
+              <li>✅ Sử dụng mật khẩu mạnh và duy nhất</li>
+              <li>✅ Không chia sẻ mật khẩu với người khác</li>
+              <li>✅ Đổi mật khẩu định kỳ</li>
+            </ul>
+          </div>
+          <div class="footer">
+            <p>© 2024 GreenGrow. Tất cả quyền được bảo lưu.</p>
+            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Gửi email OTP cho đổi mật khẩu
+   * @param {string} to - Email người nhận
+   * @param {string} name - Tên người dùng
+   * @param {string} otp - OTP code (6 digits)
+   * @returns {Promise<object>} Kết quả gửi email
+   */
+  async sendPasswordChangeOTPEmail(to, name, otp) {
+    try {
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || 'GreenGrow <noreply@greengrow.com>',
+        to: to,
+        subject: '🔐 Mã xác thực đổi mật khẩu GreenGrow',
+        html: this.getPasswordChangeOTPEmailTemplate(name, otp),
+        text: this.getPasswordChangeOTPEmailText(name, otp),
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      console.log(`✅ Password change OTP email sent to ${to}`);
+      return {
+        success: true,
+        messageId: result.messageId,
+        to: to,
+      };
+    } catch (error) {
+      console.error('❌ Failed to send password change OTP email:', error.message);
+      throw httpError(500, 'Failed to send OTP email');
+    }
+  }
+
+  /**
+   * HTML template cho password change OTP
+   */
+  getPasswordChangeOTPEmailTemplate(name, otp) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Mã xác thực đổi mật khẩu</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #22c55e; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+          .otp-box { background: #fff; border: 2px dashed #22c55e; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
+          .otp-code { font-size: 32px; font-weight: bold; color: #22c55e; letter-spacing: 8px; font-family: 'Courier New', monospace; }
+          .info-box { background: #fff; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0; border-radius: 4px; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .warning { background: #FFF3CD; border: 1px solid #FFC107; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🌱 GreenGrow</h1>
+            <h2>Mã xác thực đổi mật khẩu</h2>
+          </div>
+          <div class="content">
+            <h3>Xin chào ${name}!</h3>
+            <p>Bạn đang thực hiện thay đổi mật khẩu cho tài khoản GreenGrow của mình.</p>
+            
+            <div class="otp-box">
+              <p style="margin: 0 0 10px 0; color: #666;">Mã xác thực của bạn là:</p>
+              <div class="otp-code">${otp}</div>
+              <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Mã này có hiệu lực trong 10 phút</p>
+            </div>
+
+            <div class="info-box">
+              <p><strong>⚠️ Lưu ý bảo mật:</strong></p>
+              <ul>
+                <li>Không chia sẻ mã này với bất kỳ ai</li>
+                <li>Mã chỉ có hiệu lực trong 10 phút</li>
+                <li>Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này</li>
+              </ul>
+            </div>
+
+            <div class="warning">
+              <p><strong>🔒 Bảo mật tài khoản:</strong></p>
+              <p>Nếu bạn không thực hiện yêu cầu đổi mật khẩu này, vui lòng:</p>
+              <ul>
+                <li>Kiểm tra hoạt động đăng nhập gần đây</li>
+                <li>Đổi mật khẩu ngay lập tức nếu nghi ngờ</li>
+                <li>Liên hệ với chúng tôi nếu cần hỗ trợ</li>
+              </ul>
+            </div>
+          </div>
+          <div class="footer">
+            <p>© 2024 GreenGrow. Tất cả quyền được bảo lưu.</p>
+            <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Text template cho password change OTP
+   */
+  getPasswordChangeOTPEmailText(name, otp) {
+    return `
+Xin chào ${name}!
+
+Bạn đang thực hiện thay đổi mật khẩu cho tài khoản GreenGrow của mình.
+
+Mã xác thực của bạn là: ${otp}
+Mã này có hiệu lực trong 10 phút.
+
+⚠️ LƯU Ý BẢO MẬT:
+- Không chia sẻ mã này với bất kỳ ai
+- Mã chỉ có hiệu lực trong 10 phút
+- Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này
+
+🔒 BẢO MẬT TÀI KHOẢN:
+Nếu bạn không thực hiện yêu cầu đổi mật khẩu này, vui lòng:
+- Kiểm tra hoạt động đăng nhập gần đây
+- Đổi mật khẩu ngay lập tức nếu nghi ngờ
+- Liên hệ với chúng tôi nếu cần hỗ trợ
+
+© 2024 GreenGrow. Tất cả quyền được bảo lưu.
+Email này được gửi tự động, vui lòng không trả lời.
+    `;
+  }
+
+  /**
+   * Text template cho password change notification
+   */
+  getPasswordChangeEmailText(name, timestamp, ipAddress, userAgent) {
+    const deviceInfo = userAgent ? `Thiết bị: ${userAgent}\n` : '';
+    const ipInfo = ipAddress ? `Địa chỉ IP: ${ipAddress}\n` : '';
+    
+    return `
+Xin chào ${name}!
+
+Mật khẩu tài khoản GreenGrow của bạn đã được thay đổi thành công.
+
+Thông tin:
+Thời gian: ${timestamp}
+${ipInfo}${deviceInfo}
+
+⚠️ LƯU Ý QUAN TRỌNG:
+Nếu bạn không thực hiện thay đổi này, vui lòng:
+- Đổi lại mật khẩu ngay lập tức
+- Kiểm tra hoạt động đăng nhập gần đây
+- Liên hệ với chúng tôi nếu bạn nghi ngờ có người khác truy cập tài khoản
+
+Để bảo mật tài khoản của bạn, chúng tôi khuyến nghị:
+- Sử dụng mật khẩu mạnh và duy nhất
+- Không chia sẻ mật khẩu với người khác
+- Đổi mật khẩu định kỳ
+
+© 2024 GreenGrow. Tất cả quyền được bảo lưu.
+Email này được gửi tự động, vui lòng không trả lời.
+    `;
+  }
 }
 
 // Export singleton instance

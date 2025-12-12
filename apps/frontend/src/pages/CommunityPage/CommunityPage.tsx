@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { PlusIcon } from 'lucide-react'
 import { PostCard } from './components/PostCard'
 import { PostFilters } from './components/PostFilters'
@@ -12,6 +13,11 @@ import type { Post, UpdatePostData } from './types/community.types'
 
 export const CommunityPage: React.FC = () => {
   const { isAuthenticated } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const postIdFromUrl = searchParams.get('post')
+  const commentIdFromUrl = searchParams.get('comment')
+  const hasScrolledRef = useRef(false)
+  
   const {
     posts,
     loading,
@@ -63,6 +69,42 @@ export const CommunityPage: React.FC = () => {
       await fetchPosts() // Refresh to remove deleted post
     }
   }
+
+  // Scroll to post when postId is in URL (e.g., from notification)
+  useEffect(() => {
+    if (postIdFromUrl && posts.length > 0 && !loading && !hasScrolledRef.current) {
+      // Wait a bit for posts to render
+      const timer = setTimeout(() => {
+        const postElement = document.getElementById(`post-${postIdFromUrl}`)
+        if (postElement) {
+          postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          postElement.classList.add('ring-2', 'ring-green-500', 'ring-offset-2')
+          setTimeout(() => {
+            postElement.classList.remove('ring-2', 'ring-green-500', 'ring-offset-2')
+          }, 3000)
+          
+          // If there's a commentId, try to scroll to it after a delay
+          if (commentIdFromUrl) {
+            setTimeout(() => {
+              const commentElement = document.getElementById(`comment-${commentIdFromUrl}`)
+              if (commentElement) {
+                commentElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                commentElement.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2')
+                setTimeout(() => {
+                  commentElement.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2')
+                }, 3000)
+              }
+            }, 500)
+          }
+          
+          hasScrolledRef.current = true
+          // Clean up URL params after scrolling
+          setSearchParams({}, { replace: true })
+        }
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [postIdFromUrl, commentIdFromUrl, posts, loading, setSearchParams])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -235,14 +277,15 @@ export const CommunityPage: React.FC = () => {
             ) : (
               <div className="space-y-4">
                 {posts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onComment={handleComment}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
+                  <div key={post.id} id={`post-${post.id}`}>
+                    <PostCard
+                      post={post}
+                      onLike={handleLike}
+                      onComment={handleComment}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  </div>
                 ))}
 
                 {/* Pagination */}

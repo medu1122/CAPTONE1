@@ -516,7 +516,19 @@ Bạn: "Cảm ơn bạn đã hỏi! Tôi là trợ lý nông nghiệp, luôn s�
       throw httpError(429, 'OpenAI API rate limit exceeded');
     }
     if (error.response?.status === 400) {
-      throw httpError(400, 'Invalid request to OpenAI API');
+      const errorDetails = error.response?.data || error.message;
+      console.error('❌ [OpenAI API 400 Error] Details:', JSON.stringify(errorDetails, null, 2));
+      if (openaiMessages && openaiMessages.length > 0) {
+        console.error('❌ [OpenAI API 400 Error] Request messages length:', openaiMessages.length);
+        if (openaiMessages[0].content) {
+          const contentLength = openaiMessages[0].content.length;
+          console.error('❌ [OpenAI API 400 Error] First message content length:', contentLength);
+          if (contentLength > 100000) {
+            console.error('⚠️ [OpenAI API] Prompt is very long, may exceed token limit');
+          }
+        }
+      }
+      throw httpError(400, `Invalid request to OpenAI API: ${JSON.stringify(errorDetails)}`);
     }
     if (error.statusCode) throw error;
     throw httpError(500, `OpenAI API call failed: ${error.message}`);

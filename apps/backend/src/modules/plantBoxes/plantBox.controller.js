@@ -12,6 +12,7 @@ import {
   deleteDisease,
   addDisease,
   updateDiseaseTreatments,
+  toggleActionCompleted,
 } from './plantBox.service.js';
 import { generatePlantBoxChatResponse } from './plantBoxChat.service.js';
 import { getWeatherData } from '../weather/weather.service.js';
@@ -240,10 +241,14 @@ export const refreshStrategy = async (req, res) => {
 
     const { id } = req.params;
 
+    console.log(`🔄 [refreshStrategy] Refreshing strategy for plant box ${id}, user ${userId}`);
+
     const plantBox = await refreshCareStrategy({
       boxId: id,
       userId,
     });
+
+    console.log(`✅ [refreshStrategy] Strategy refreshed successfully for plant box ${id}`);
 
     res.json({
       success: true,
@@ -251,6 +256,8 @@ export const refreshStrategy = async (req, res) => {
       data: plantBox,
     });
   } catch (error) {
+    console.error('❌ [refreshStrategy] Error:', error);
+    console.error('❌ [refreshStrategy] Error stack:', error.stack);
     if (error.statusCode) {
       return res.status(error.statusCode).json({
         success: false,
@@ -259,7 +266,7 @@ export const refreshStrategy = async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: error.message || 'Internal server error',
     });
   }
 };
@@ -280,7 +287,7 @@ export const chatWithPlantBox = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { message } = req.body;
+    const { message, conversationHistory } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({
@@ -308,12 +315,13 @@ export const chatWithPlantBox = async (req, res) => {
       }
     }
 
-    // Generate chat response
+    // Generate chat response with conversation history (if provided)
     const response = await generatePlantBoxChatResponse({
       userMessage: message.trim(),
-      plantBox,
+      plantBox: plantBox.toObject(),
       weather: weather || { forecast: [] },
       careStrategy: plantBox.careStrategy || null,
+      conversationHistory: req.body.conversationHistory || [], // Array of { role, content }
     });
 
     res.json({

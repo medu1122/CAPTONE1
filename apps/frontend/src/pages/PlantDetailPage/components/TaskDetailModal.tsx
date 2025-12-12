@@ -48,6 +48,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
+  // Check if analysis is already in action.taskAnalysis (from backend cache)
+  const cachedAnalysis = action.taskAnalysis
+  
   // Get product info from analysis.productDetails or selectedTreatments or action.products
   const getProductInfo = (productName: string) => {
     // Priority 1: Use productDetails from analysis (from backend)
@@ -60,9 +63,30 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       }
     }
     
-    // Priority 2: Search in selectedTreatments
+    // Priority 2: Search in selectedTreatments (only from ACTIVE diseases, not resolved)
     if (plantBox && plantBox.currentDiseases) {
-      for (const disease of plantBox.currentDiseases) {
+      // Filter out resolved diseases
+      const activeDiseases = plantBox.currentDiseases.filter(disease => {
+        // Check if disease is resolved
+        if (disease.status === 'resolved') {
+          return false
+        }
+        
+        // Check severity score
+        const score = disease.severityScore !== undefined && disease.severityScore !== null
+          ? disease.severityScore
+          : (disease.severity === 'mild' ? 3 : disease.severity === 'moderate' ? 5 : 7)
+        
+        // Hide if score is 0 or less (resolved)
+        if (score <= 0) {
+          return false
+        }
+        
+        return true
+      })
+      
+      // Only search in active diseases
+      for (const disease of activeDiseases) {
         if (disease.selectedTreatments?.chemical) {
           const product = disease.selectedTreatments.chemical.find(
             p => p.name === productName || productName.includes(p.name) || p.name.includes(productName)
@@ -91,12 +115,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 
   useEffect(() => {
     if (isOpen && plantBoxId && dayIndex !== undefined && dayIndex !== null && actionIndex !== undefined && actionIndex !== null) {
+      // First check if we have cached analysis from backend
+      if (cachedAnalysis) {
+        console.log('✅ [TaskDetailModal] Using cached analysis from backend')
+        setAnalysis(cachedAnalysis as TaskAnalysis)
+        setLoading(false)
+        setError(null)
+        return
+      }
+      
+      // Otherwise load from API (may have been preloaded)
       loadAnalysis()
     } else {
       setAnalysis(null)
       setError(null)
     }
-  }, [isOpen, plantBoxId, dayIndex, actionIndex])
+  }, [isOpen, plantBoxId, dayIndex, actionIndex, cachedAnalysis])
 
   const loadAnalysis = async () => {
     if (dayIndex === undefined || dayIndex === null || actionIndex === undefined || actionIndex === null) {

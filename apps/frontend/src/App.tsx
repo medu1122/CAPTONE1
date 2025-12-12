@@ -8,6 +8,7 @@ import { EmailVerificationPage } from './pages/EmailVerificationPage'
 import { LogoutPage } from './pages/LogoutPage'
 import { ProfilePage } from './pages/ProfilePage/ProfilePage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage/ResetPasswordPage'
+import ChangePasswordPage from './pages/ChangePasswordPage/ChangePasswordPage'
 import { MyPlantsPage } from './pages/MyPlantsPage/MyPlantsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
@@ -88,6 +89,16 @@ function App() {
             element={
               <VerifiedRoute>
                 <SettingsPage />
+              </VerifiedRoute>
+            } 
+          />
+          
+          {/* Change Password Page - Requires verification */}
+          <Route 
+            path="/change-password" 
+            element={
+              <VerifiedRoute>
+                <ChangePasswordPage />
               </VerifiedRoute>
             } 
           />

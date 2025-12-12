@@ -54,6 +54,13 @@ export const validateCreatePlantBox = (req, res, next) => {
       })
     ).optional(),
     healthNotes: Joi.string().max(1000).optional(),
+    images: Joi.array().items(
+      Joi.object({
+        url: Joi.string().uri().required(),
+        date: Joi.date().optional(),
+        description: Joi.string().trim().max(500).optional(),
+      })
+    ).optional(),
     notifications: Joi.object({
       enabled: Joi.boolean().optional(),
       email: Joi.boolean().optional(),
@@ -113,6 +120,13 @@ export const validateUpdatePlantBox = (req, res, next) => {
       .valid('manual', 'drip', 'sprinkler')
       .optional(),
     fertilizerType: Joi.string().optional(),
+    images: Joi.array().items(
+      Joi.object({
+        url: Joi.string().uri().required(),
+        date: Joi.date().optional(),
+        description: Joi.string().trim().max(500).optional(),
+      })
+    ).optional(),
     notifications: Joi.object({
       enabled: Joi.boolean().optional(),
       email: Joi.boolean().optional(),

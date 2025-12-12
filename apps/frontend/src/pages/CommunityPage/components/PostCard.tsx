@@ -268,7 +268,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     return `${diffInDays} ngày trước`
   }
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="p-4 flex items-start justify-between">
         <div className="flex items-start gap-3">

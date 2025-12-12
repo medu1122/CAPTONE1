@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { XIcon, Loader2Icon, NavigationIcon, PlusIcon, TrashIcon, AlertCircleIcon, XCircleIcon } from 'lucide-react'
+import { XIcon, Loader2Icon, NavigationIcon, PlusIcon, TrashIcon, AlertCircleIcon, XCircleIcon, ImageIcon, XCircle } from 'lucide-react'
 import type { CreatePlantBoxData, PlantDisease } from '../types/plantBox.types'
 import { geolocationService } from '../../../services/geolocationService'
 import { vietnamProvinces, getProvinceByCoordinates } from '../../../data/vietnamProvinces'
 import { searchDiseaseNames } from '../../../services/treatmentService'
 import { getMatchingCommonDiseases } from '../../../data/commonDiseases'
+import { getMatchingCommonPlants, correctPlantName } from '../../../data/commonPlants'
+import { imageUploadService } from '../../../services/imageUploadService'
 interface CreateBoxModalProps {
   isOpen: boolean
   onClose: () => void
@@ -48,6 +50,14 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
   const [diseaseSuggestions, setDiseaseSuggestions] = useState<{ [key: number]: string[] }>({})
   const [searchingDisease, setSearchingDisease] = useState<{ [key: number]: boolean }>({})
   const diseaseSearchTimeoutRef = useRef<{ [key: number]: ReturnType<typeof setTimeout> }>({})
+  
+  // Plant name autocomplete
+  const [plantNameSuggestions, setPlantNameSuggestions] = useState<string[]>([])
+  const [showPlantSuggestions, setShowPlantSuggestions] = useState(false)
+  const [selectedPlantIndex, setSelectedPlantIndex] = useState(-1)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [boxImage, setBoxImage] = useState<{ file: File | null; preview: string | null; url: string | null }>({ file: null, preview: null, url: null })
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const handleGetCurrentLocation = async () => {
     setIsGettingLocation(true)
@@ -100,11 +110,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
       })
     } catch (error: any) {
       console.error('Error getting location:', error)
-      setLocationError(
-        error.type === 'PERMISSION_DENIED'
-          ? 'Bạn đã từ chối quyền truy cập vị trí. Vui lòng chọn tỉnh thành thủ công.'
-          : 'Không thể lấy vị trí hiện tại. Vui lòng chọn tỉnh thành thủ công.'
-      )
+      // Silently fail - user can manually select province
     } finally {
       setIsGettingLocation(false)
     }
@@ -168,8 +174,27 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate required fields
-    if (!formData.plantName.trim()) {
+    // Auto-correct plant name before validation
+    const inputPlantName = formData.plantName.trim()
+    if (inputPlantName) {
+      const correctedName = correctPlantName(inputPlantName)
+      if (correctedName !== inputPlantName) {
+        // Update form data with corrected name
+        setFormData({
+          ...formData,
+          plantName: correctedName,
+          name: correctedName && formData.location.name 
+            ? `${correctedName} - ${formData.location.name.split(',').pop()?.trim() || formData.location.name}`
+            : correctedName || '',
+        })
+        // Wait a bit for state to update, then continue
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
+    // Validate required fields (use corrected name if available)
+    const finalPlantName = correctPlantName(formData.plantName.trim()) || formData.plantName.trim()
+    if (!finalPlantName) {
       alert('Vui lòng nhập tên cây')
       setActiveTab('basic')
       return
@@ -213,9 +238,34 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
     
     setIsSubmitting(true)
     try {
+      // Upload image if exists
+      let imageUrl: string | undefined = undefined
+      if (boxImage.file) {
+        setIsUploadingImage(true)
+        try {
+          const uploadResult = await imageUploadService.uploadImage(boxImage.file, {
+            folder: 'greengrow/plant-boxes',
+            quality: 'auto',
+            format: 'auto',
+          })
+          imageUrl = uploadResult.url
+        } catch (error) {
+          console.error('Error uploading image:', error)
+          alert('Không thể tải ảnh lên. Vui lòng thử lại hoặc bỏ qua.')
+          setIsUploadingImage(false)
+          setIsSubmitting(false)
+          return
+        } finally {
+          setIsUploadingImage(false)
+        }
+      }
+      
+      // Ensure plant name is corrected
+      const correctedPlantName = correctPlantName(formData.plantName.trim()) || formData.plantName.trim()
+      
       // Auto-generate name if not set
       const finalName = formData.name.trim() || 
-        `${formData.plantName} - ${formData.location.name.split(',').pop()?.trim() || formData.location.name}`
+        `${correctedPlantName} - ${formData.location.name.split(',').pop()?.trim() || formData.location.name}`
       
       // Auto-calculate growthStage from plantedDate if active
       let autoGrowthStage = formData.growthStage
@@ -232,13 +282,15 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
         }
       }
       
-      // Include diseases in form data
+      // Include diseases and image in form data (with corrected plant name)
       const submitData = {
         ...formData,
+        plantName: correctedPlantName, // Use corrected plant name
         name: finalName,
         growthStage: autoGrowthStage,
         currentDiseases: hasHealthIssue && diseases.length > 0 ? diseases : undefined,
-      }
+        imageUrl, // Add image URL
+      } as CreatePlantBoxData & { imageUrl?: string }
       await onSubmit(submitData)
       onClose()
       // Reset form
@@ -267,6 +319,12 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
       setGrowingType('')
       setSunlightHours('')
       setPlantedDuration({ value: 0, unit: 'month' })
+      setBoxImage({ file: null, preview: null, url: null })
+      setPlantNameSuggestions([])
+      setShowPlantSuggestions(false)
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ''
+      }
     } catch (error: any) {
       console.error('Error creating box:', error)
       console.error('Error details:', error?.response?.data)
@@ -334,7 +392,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {activeTab === 'basic' && (
             <>
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tên cây <span className="text-red-500">*</span>
                 </label>
@@ -342,23 +400,191 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                   type="text"
                   value={formData.plantName}
                   onChange={(e) => {
-                    const plantName = e.target.value
+                    const inputValue = e.target.value
+                    
                     setFormData({
                       ...formData,
-                      plantName,
+                      plantName: inputValue,
                       // Auto-generate name from plant name + location (if available)
-                      name: plantName && formData.location.name 
-                        ? `${plantName} - ${formData.location.name.split(',')[formData.location.name.split(',').length - 1]?.trim() || ''}`
-                        : plantName || '',
+                      name: inputValue && formData.location.name 
+                        ? `${inputValue} - ${formData.location.name.split(',')[formData.location.name.split(',').length - 1]?.trim() || ''}`
+                        : inputValue || '',
                     })
-                    // TODO: Auto-fill scientificName from knowledge base
+                    
+                    // Show suggestions
+                    const suggestions = getMatchingCommonPlants(inputValue)
+                    setPlantNameSuggestions(suggestions)
+                    setShowPlantSuggestions(suggestions.length > 0 && inputValue.trim().length > 0)
+                    setSelectedPlantIndex(-1)
+                  }}
+                  onFocus={() => {
+                    const suggestions = getMatchingCommonPlants(formData.plantName)
+                    setPlantNameSuggestions(suggestions)
+                    setShowPlantSuggestions(suggestions.length > 0)
+                  }}
+                  onBlur={(e) => {
+                    // Auto-correct plant name when user finishes typing
+                    const inputValue = e.target.value.trim()
+                    if (inputValue) {
+                      const correctedName = correctPlantName(inputValue)
+                      if (correctedName !== inputValue) {
+                        // Only update if correction was made
+                        setFormData({
+                          ...formData,
+                          plantName: correctedName,
+                          // Auto-generate name from corrected plant name + location
+                          name: correctedName && formData.location.name 
+                            ? `${correctedName} - ${formData.location.name.split(',')[formData.location.name.split(',').length - 1]?.trim() || ''}`
+                            : correctedName || '',
+                        })
+                      }
+                    }
+                    
+                    setTimeout(() => {
+                      setShowPlantSuggestions(false)
+                      setSelectedPlantIndex(-1)
+                    }, 200)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault()
+                      setSelectedPlantIndex(prev => 
+                        prev < plantNameSuggestions.length - 1 ? prev + 1 : prev
+                      )
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault()
+                      setSelectedPlantIndex(prev => prev > 0 ? prev - 1 : -1)
+                    } else if (e.key === 'Enter' && selectedPlantIndex >= 0) {
+                      e.preventDefault()
+                      const selected = plantNameSuggestions[selectedPlantIndex]
+                      setFormData({
+                        ...formData,
+                        plantName: selected,
+                        name: selected && formData.location.name 
+                          ? `${selected} - ${formData.location.name.split(',')[formData.location.name.split(',').length - 1]?.trim() || ''}`
+                          : selected || '',
+                      })
+                      setShowPlantSuggestions(false)
+                      setSelectedPlantIndex(-1)
+                    }
                   }}
                   placeholder="Nhập tên cây (ví dụ: Cà chua, Rau muống...)"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                   required
                 />
+                
+                {/* Plant name suggestions dropdown */}
+                {showPlantSuggestions && plantNameSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {plantNameSuggestions.map((suggestion, index) => {
+                      const query = formData.plantName.toLowerCase()
+                      const suggestionLower = suggestion.toLowerCase()
+                      const matchIndex = suggestionLower.indexOf(query)
+                      
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              plantName: suggestion,
+                              name: suggestion && formData.location.name 
+                                ? `${suggestion} - ${formData.location.name.split(',')[formData.location.name.split(',').length - 1]?.trim() || ''}`
+                                : suggestion || '',
+                            })
+                            setShowPlantSuggestions(false)
+                            setSelectedPlantIndex(-1)
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+                            selectedPlantIndex === index ? 'bg-green-50' : ''
+                          }`}
+                        >
+                          {matchIndex >= 0 && query.length > 0 ? (
+                            <>
+                              {suggestion.substring(0, matchIndex)}
+                              <span className="font-semibold text-green-600">
+                                {suggestion.substring(matchIndex, matchIndex + query.length)}
+                              </span>
+                              {suggestion.substring(matchIndex + query.length)}
+                            </>
+                          ) : (
+                            suggestion
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                
                 <p className="text-xs text-gray-500 mt-1">
-                  💡 Tên box sẽ tự động tạo từ tên cây + vị trí
+                  💡 Tên box sẽ tự động tạo từ tên cây + vị trí. Hệ thống sẽ tự động sửa tên nếu bạn nhập sai.
+                </p>
+              </div>
+
+              {/* Image upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hình ảnh box (tùy chọn, tối đa 5MB)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      if (file.size > 5 * 1024 * 1024) {
+                        alert('Kích thước ảnh không được vượt quá 5MB.')
+                        return
+                      }
+                      setBoxImage({
+                        file,
+                        preview: URL.createObjectURL(file),
+                        url: null,
+                      })
+                    }
+                  }}
+                  ref={imageInputRef}
+                  className="hidden"
+                  id="box-image-upload"
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    disabled={isUploadingImage}
+                  >
+                    {isUploadingImage ? (
+                      <Loader2Icon size={16} className="animate-spin" />
+                    ) : (
+                      <ImageIcon size={16} />
+                    )}
+                    <span>{isUploadingImage ? 'Đang tải lên...' : 'Chọn ảnh'}</span>
+                  </button>
+                  {boxImage.preview && (
+                    <div className="relative flex items-center gap-2">
+                      <img src={boxImage.preview} alt="Preview" className="h-16 w-16 object-cover rounded-md" />
+                      <span className="text-sm text-gray-600">
+                        {boxImage.file?.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBoxImage({ file: null, preview: null, url: null })
+                          if (imageInputRef.current) {
+                            imageInputRef.current.value = ''
+                          }
+                        }}
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+                      >
+                        <XCircle size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  💡 Upload hình ảnh của box để dễ nhận biết
                 </p>
               </div>
 
@@ -394,9 +620,6 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                     )}
                   </button>
                 </div>
-                {locationError && (
-                  <p className="text-sm text-red-600 mt-1">{locationError}</p>
-                )}
               </div>
 
               {formData.type === 'active' ? (
@@ -485,43 +708,6 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loại <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="active"
-                      checked={formData.type === 'active'}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          type: e.target.value as 'active' | 'planned',
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    <span>Đang trồng</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="planned"
-                      checked={formData.type === 'planned'}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          type: e.target.value as 'active' | 'planned',
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    <span>Dự định trồng</span>
-                  </label>
-                </div>
-              </div>
             </>
           )}
 

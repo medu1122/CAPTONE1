@@ -28,8 +28,8 @@ export const AuthPage: React.FC = () => {
       message,
       type,
     })
-    // Thông báo lỗi hiển thị lâu hơn (6 giây) để người dùng kịp đọc
-    const duration = type === 'error' ? 6000 : 3000
+    // Thông báo lỗi hiển thị lâu hơn (10 giây) để người dùng kịp đọc
+    const duration = type === 'error' ? 10000 : 3000
     setTimeout(() => setToast(null), duration)
   }
   return (
@@ -88,7 +88,7 @@ export const AuthPage: React.FC = () => {
         <Toast
           message={toast.message}
           type={toast.type}
-          duration={toast.type === 'error' ? 6000 : 3000}
+          duration={toast.type === 'error' ? 10000 : 3000}
         />
       )}
     </div>

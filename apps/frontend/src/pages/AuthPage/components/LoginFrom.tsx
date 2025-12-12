@@ -50,6 +50,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    
     // Validate all fields
     const emailError = validateEmail(email)
     const passwordError = validatePassword(password)
@@ -60,6 +62,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       })
       return
     }
+    
     setLoading(true)
     try {
       // Use AuthContext login
@@ -75,35 +78,82 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     } catch (error: any) {
       console.error('Login error:', error)
       
-      // Handle different types of errors
-      if (error.response?.status === 400) {
-        // Validation errors
-        const apiErrors = error.response.data.errors
-        if (apiErrors) {
-          setErrors(apiErrors)
+      // Đảm bảo không có lỗi nào khiến trang reload
+      try {
+        // Handle different types of errors
+        if (error?.response?.status === 400) {
+          // Validation errors
+          const apiErrors = error.response.data?.errors
+          if (apiErrors) {
+            setErrors(apiErrors)
+            // Hiển thị toast với lỗi đầu tiên
+            const firstError = Object.values(apiErrors).find(Boolean)
+            if (firstError) {
+              showToast(firstError as string, 'error')
+            }
+          } else {
+            const errorMsg = error.response.data?.message || 'Thông tin không hợp lệ'
+            showToast(errorMsg, 'error')
+            setErrors({
+              email: '',
+              password: errorMsg,
+            })
+          }
+        } else if (error?.response?.status === 401) {
+          // Hiển thị lỗi trực tiếp trên form
+          const errorMsg = 'Email hoặc mật khẩu không đúng'
+          setErrors({
+            email: '',
+            password: errorMsg,
+          })
+          // Cũng hiển thị toast với thời gian dài hơn
+          showToast('Email hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.', 'error')
+        } else if (error?.response?.status === 403) {
+          // User chưa verify email
+          const errorMessage = error.response.data?.message || ''
+          if (errorMessage.includes('verify') || errorMessage.includes('xác thực')) {
+            showToast('Vui lòng xác thực email trước khi đăng nhập', 'error')
+            // Redirect to verification screen
+            setTimeout(() => {
+              navigate('/verify-email')
+            }, 2000)
+          } else {
+            showToast('Tài khoản bị khóa hoặc không có quyền truy cập', 'error')
+            setErrors({
+              email: '',
+              password: 'Tài khoản bị khóa hoặc không có quyền truy cập',
+            })
+          }
+        } else if (error?.response?.status === 429) {
+          const errorMsg = 'Quá nhiều lần thử, vui lòng đợi một chút trước khi thử lại'
+          showToast(errorMsg, 'error')
+          setErrors({
+            email: '',
+            password: errorMsg,
+          })
+        } else if (error?.code === 'NETWORK_ERROR' || !error?.response) {
+          const errorMsg = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối internet của bạn.'
+          showToast(errorMsg, 'error')
+          setErrors({
+            email: '',
+            password: errorMsg,
+          })
         } else {
-          showToast(error.response.data.message || 'Thông tin không hợp lệ', 'error')
+          const errorMsg = error?.message || 'Đăng nhập thất bại. Vui lòng thử lại.'
+          showToast(errorMsg, 'error')
+          setErrors({
+            email: '',
+            password: errorMsg,
+          })
         }
-      } else if (error.response?.status === 401) {
-        showToast('Email hoặc mật khẩu không đúng', 'error')
-      } else if (error.response?.status === 403) {
-        // User chưa verify email
-        const errorMessage = error.response.data.message
-        if (errorMessage.includes('verify') || errorMessage.includes('xác thực')) {
-          showToast('Vui lòng xác thực email trước khi đăng nhập', 'error')
-          // Redirect to verification screen
-          setTimeout(() => {
-            navigate('/verify-email')
-          }, 2000)
-        } else {
-          showToast('Tài khoản bị khóa hoặc không có quyền truy cập', 'error')
-        }
-      } else if (error.response?.status === 429) {
-        showToast('Quá nhiều lần thử, vui lòng đợi một chút', 'error')
-      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
-        showToast('Không thể kết nối đến server', 'error')
-      } else {
+      } catch (innerError) {
+        // Nếu có lỗi trong error handling, vẫn hiển thị thông báo chung
+        console.error('Error in error handling:', innerError)
         showToast('Đăng nhập thất bại. Vui lòng thử lại.', 'error')
+        setErrors({
+          email: '',
+          password: 'Đăng nhập thất bại. Vui lòng thử lại.',
+        })
       }
     } finally {
       setLoading(false)
@@ -119,7 +169,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     : 'bg-green-600 hover:bg-green-700 focus:ring-green-300 disabled:bg-gray-200 disabled:text-gray-500'
   const errorClasses = 'text-red-500 text-xs mt-1'
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate onKeyDown={(e) => {
+      if (e.key === 'Enter' && loading) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }}>
       <div>
         <label
           htmlFor="email"
@@ -157,22 +212,29 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             id="password"
             value={password}
             onChange={handlePasswordChange}
-            className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
+            className={`block w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
             placeholder="••••••••"
             required
+            autoComplete="current-password"
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'password-error' : undefined}
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowPassword(!showPassword)}
+            key={showPassword ? 'eye-off-login' : 'eye-on-login'}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowPassword(!showPassword)
+            }}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center z-20 pointer-events-auto"
+            style={{ pointerEvents: 'auto' }}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? (
-              <EyeOffIcon className="h-5 w-5 text-gray-400" />
+              <EyeOffIcon className="h-5 w-5 text-gray-400 block" />
             ) : (
-              <EyeIcon className="h-5 w-5 text-gray-400" />
+              <EyeIcon className="h-5 w-5 text-gray-400 block" />
             )}
           </button>
         </div>

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import User from './auth.model.js';
 import AuthToken from './authToken.model.js';
 import EmailVerification from '../emailVerification/emailVerification.model.js';
+import * as passwordChangeOTPService from '../passwordChange/passwordChangeOTP.service.js';
 import emailService from '../../common/services/emailService.js';
 import { httpError } from '../../common/utils/http.js';
 import { generateAccessToken, generateRefreshToken, decodeToken } from '../../common/utils/jwt.js';
@@ -593,13 +594,27 @@ const resendVerificationEmail = async (email) => {
  * @param {string} userId - User ID
  * @param {string} currentPassword - Current password
  * @param {string} newPassword - New password
+ * @param {string} verificationToken - Verification token from OTP verification
+ * @param {object} req - Express request object (optional)
  * @returns {object} Success message
  */
-const changePassword = async (userId, currentPassword, newPassword) => {
+const changePassword = async (userId, currentPassword, newPassword, verificationToken, req = null) => {
   const user = await User.findById(userId).select('+passwordHash');
   
   if (!user) {
     throw httpError(404, 'User not found');
+  }
+  
+  // Verify verification token (OTP must be verified first)
+  if (!verificationToken) {
+    throw httpError(400, 'Verification token is required. Please verify OTP first.');
+  }
+  
+  try {
+    await passwordChangeOTPService.validateVerificationToken(userId, verificationToken);
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(400, 'Invalid or expired verification token');
   }
   
   // Verify current password
@@ -617,6 +632,19 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   // Update password (will be hashed by pre-save middleware)
   user.passwordHash = newPassword;
   await user.save();
+  
+  // Mark verification token as used
+  await passwordChangeOTPService.markVerificationTokenAsUsed(userId, verificationToken);
+  
+  // Send email notification
+  try {
+    const ipAddress = req?.ip || req?.connection?.remoteAddress || null;
+    const userAgent = req?.get('user-agent') || null;
+    await emailService.sendPasswordChangeEmail(user.email, user.name, ipAddress, userAgent);
+  } catch (emailError) {
+    console.error('❌ Failed to send password change email:', emailError.message);
+    // Don't throw error - password change is still successful
+  }
   
   return {
     message: 'Password changed successfully',

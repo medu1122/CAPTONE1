@@ -178,6 +178,16 @@ const plantBoxSchema = new mongoose.Schema(
         enum: ['mild', 'moderate', 'severe'],
         default: 'moderate',
       },
+      severityScore: {
+        type: Number,
+        default: function() {
+          // Initialize based on severity: mild=3, moderate=5, severe=7
+          const severityMap = { mild: 3, moderate: 5, severe: 7 };
+          return severityMap[this.severity] || 5;
+        },
+        min: 0,
+        max: 10,
+      },
       detectedDate: {
         type: Date,
         default: Date.now,

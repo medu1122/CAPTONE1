@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   RefreshCwIcon,
   ChevronDownIcon,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { CareStrategy } from '../../MyPlantsPage/types/plantBox.types'
 import { TaskDetailModal } from './TaskDetailModal'
+import { analyzeTask } from '../../../services/plantBoxService'
 interface StrategyTabProps {
   strategy: CareStrategy | null
   loading: boolean
@@ -35,6 +36,78 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     dayIndex: number
     actionIndex: number
   } | null>(null)
+  
+  // Cache for preloaded task analyses
+  const [taskAnalysesCache, setTaskAnalysesCache] = useState<Record<string, {
+    data: any
+    loading: boolean
+    error: string | null
+  }>>({})
+  
+  // Preload task analyses when a day is expanded (only when expandedDays changes)
+  useEffect(() => {
+    if (!strategy) return
+    
+    expandedDays.forEach(dayIndex => {
+      const day = strategy.next7Days[dayIndex]
+      if (!day || !day.actions || day.actions.length === 0) return
+      
+      // Preload all non-watering actions for this day
+      day.actions.forEach((action, actionIndex) => {
+        // Skip watering actions
+        if (action.type === 'watering') return
+        
+        // Skip if already has taskAnalysis from backend
+        if (action.taskAnalysis) {
+          return
+        }
+        
+        const cacheKey = `${dayIndex}_${actionIndex}`
+        
+        // Check cache using functional update to avoid dependency
+        setTaskAnalysesCache(prev => {
+          // Skip if already cached or loading
+          if (prev[cacheKey]?.data || prev[cacheKey]?.loading) {
+            return prev
+          }
+          
+          // Mark as loading
+          const newCache = {
+            ...prev,
+            [cacheKey]: { data: null, loading: true, error: null }
+          }
+          
+          // Start loading in background
+          analyzeTask(plantBoxId, dayIndex, actionIndex)
+            .then(response => {
+              if (response.success && response.data) {
+                setTaskAnalysesCache(prevCache => ({
+                  ...prevCache,
+                  [cacheKey]: { data: response.data, loading: false, error: null }
+                }))
+                console.log(`✅ [StrategyTab] Preloaded analysis for day ${dayIndex}, action ${actionIndex}`)
+              } else {
+                setTaskAnalysesCache(prevCache => ({
+                  ...prevCache,
+                  [cacheKey]: { data: null, loading: false, error: 'Failed to load' }
+                }))
+              }
+            })
+            .catch((error: any) => {
+              console.warn(`⚠️ [StrategyTab] Failed to preload analysis for day ${dayIndex}, action ${actionIndex}:`, error.message)
+              setTaskAnalysesCache(prevCache => ({
+                ...prevCache,
+                [cacheKey]: { data: null, loading: false, error: error.message || 'Failed to load' }
+              }))
+            })
+          
+          return newCache
+        })
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expandedDays, strategy, plantBoxId])
+  
   const toggleDay = (dayIndex: number) => {
     setExpandedDays((prev) =>
       prev.includes(dayIndex)

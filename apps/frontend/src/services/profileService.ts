@@ -239,7 +239,7 @@ export const profileService = {
     }
   },
 
-  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+  changePassword: async (currentPassword: string, newPassword: string, verificationToken: string): Promise<void> => {
     try {
       const token = getAccessToken()
       const response = await axios.post(
@@ -247,6 +247,7 @@ export const profileService = {
         {
           currentPassword,
           newPassword,
+          verificationToken,
         },
         {
           headers: {

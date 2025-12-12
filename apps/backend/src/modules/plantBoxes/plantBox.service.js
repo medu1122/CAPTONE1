@@ -258,17 +258,22 @@ export const refreshCareStrategy = async ({ boxId, userId }) => {
     });
 
     // Generate new care strategy
+    console.log(`🔄 [refreshCareStrategy] Generating care strategy for plant box ${boxId}`);
     const careStrategy = await generateCareStrategy({
       plantBox: plantBox.toObject(),
       weather,
     });
+    console.log(`✅ [refreshCareStrategy] Care strategy generated successfully`);
 
     // Update plant box
     plantBox.careStrategy = careStrategy;
     await plantBox.save();
+    console.log(`✅ [refreshCareStrategy] Plant box saved successfully`);
 
     return plantBox;
   } catch (error) {
+    console.error(`❌ [refreshCareStrategy] Error for plant box ${boxId}:`, error);
+    console.error(`❌ [refreshCareStrategy] Error stack:`, error.stack);
     if (error.statusCode) throw error;
     throw httpError(500, `Failed to refresh care strategy: ${error.message}`);
   }
@@ -387,22 +392,84 @@ export const addDiseaseFeedback = async ({ boxId, userId, diseaseIndex, feedback
       disease.feedback = [];
     }
     
+    // Initialize severityScore if not exists
+    if (disease.severityScore === undefined || disease.severityScore === null) {
+      const severityMap = { mild: 3, moderate: 5, severe: 7 };
+      disease.severityScore = severityMap[disease.severity] || 5;
+    }
+    
     disease.feedback.push({
       date: new Date(),
       status: feedback.status,
       notes: feedback.notes || '',
     });
 
-    // Update disease status based on feedback
+    // Update severity score based on feedback
+    // better: -1 point, worse: +2 points, same: +0, resolved: set to 0
+    let shouldRegenerateStrategy = false;
+    
     if (feedback.status === 'resolved') {
+      disease.severityScore = 0;
       disease.status = 'resolved';
-    } else if (feedback.status === 'better' && disease.status === 'active') {
-      disease.status = 'treating';
-    } else if (feedback.status === 'worse' && disease.status === 'treating') {
-      disease.status = 'active';
+      
+      // Xóa thuốc đã chọn và plan điều trị khi đã khỏi
+      disease.selectedTreatments = undefined;
+      disease.treatmentPlan = undefined;
+      
+      console.log(`✅ [addDiseaseFeedback] Disease "${disease.name}" resolved. Removed selectedTreatments and treatmentPlan.`);
+      shouldRegenerateStrategy = true; // Regenerate strategy to remove treatment actions
+    } else if (feedback.status === 'better') {
+      disease.severityScore = Math.max(0, disease.severityScore - 1);
+      if (disease.severityScore <= 0) {
+        disease.status = 'resolved';
+        // Xóa thuốc đã chọn và plan điều trị khi đã khỏi (từ better)
+        disease.selectedTreatments = undefined;
+        disease.treatmentPlan = undefined;
+        console.log(`✅ [addDiseaseFeedback] Disease "${disease.name}" resolved (from better). Removed selectedTreatments and treatmentPlan.`);
+        shouldRegenerateStrategy = true;
+      } else if (disease.status === 'active') {
+        disease.status = 'treating';
+      }
+    } else if (feedback.status === 'worse') {
+      disease.severityScore = Math.min(10, disease.severityScore + 2);
+      if (disease.severityScore >= 7) {
+        disease.status = 'active';
+      }
+    } else if (feedback.status === 'same') {
+      // No change in score, but might need to adjust status
+      if (disease.severityScore >= 7 && disease.status === 'treating') {
+        disease.status = 'active';
+      }
     }
 
     await plantBox.save();
+
+    // Regenerate care strategy if disease is resolved (to remove treatment actions)
+    if (shouldRegenerateStrategy && plantBox.location.coordinates) {
+      try {
+        console.log(`🔄 [addDiseaseFeedback] Regenerating care strategy after disease resolved...`);
+        const { getWeatherData } = await import('../weather/weather.service.js');
+        const { generateCareStrategy } = await import('./plantBoxCareStrategy.service.js');
+        
+        const weather = await getWeatherData({
+          lat: plantBox.location.coordinates.lat,
+          lon: plantBox.location.coordinates.lon,
+        });
+        
+        const careStrategy = await generateCareStrategy({
+          plantBox: plantBox.toObject(),
+          weather,
+        });
+        
+        plantBox.careStrategy = careStrategy;
+        await plantBox.save();
+        
+        console.log(`✅ [addDiseaseFeedback] Care strategy regenerated successfully (disease resolved).`);
+      } catch (strategyError) {
+        console.error(`⚠️ [addDiseaseFeedback] Failed to regenerate strategy after disease resolved:`, strategyError);
+        // Don't fail the whole operation if strategy regeneration fails
+      }
+    }
 
     return plantBox;
   } catch (error) {

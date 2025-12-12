@@ -1,15 +1,13 @@
 import React from 'react'
-import { ArrowLeftIcon, SettingsIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 interface DetailHeaderProps {
   plantName: string
   onDelete: () => void
-  onSettings: () => void
 }
 export const DetailHeader: React.FC<DetailHeaderProps> = ({
   plantName,
   onDelete,
-  onSettings,
 }) => {
   const navigate = useNavigate()
   return (
@@ -25,12 +23,6 @@ export const DetailHeader: React.FC<DetailHeaderProps> = ({
       <h1 className="text-xl font-bold text-gray-900">{plantName}</h1>
 
       <div className="flex items-center gap-4">
-        <button
-          onClick={onSettings}
-          className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <SettingsIcon size={24} />
-        </button>
         <button
           onClick={onDelete}
           className="p-2 text-red-500 hover:text-red-600 transition-colors"

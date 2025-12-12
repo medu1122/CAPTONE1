@@ -111,6 +111,10 @@ export const API_CONFIG = {
       RESET: '/password-reset/reset',
       PENDING_RESETS: '/password-reset/pending-resets'
     },
+    PASSWORD_CHANGE_OTP: {
+      GENERATE: '/password-change-otp/generate',
+      VERIFY: '/password-change-otp/verify'
+    },
     CHAT_SESSIONS: {
       LIST: '/chat-sessions',
       CREATE: '/chat-sessions',

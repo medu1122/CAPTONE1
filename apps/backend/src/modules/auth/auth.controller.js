@@ -221,8 +221,8 @@ export const resendVerificationEmail = async (req, res, next) => {
  */
 export const changePassword = async (req, res, next) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
+    const { currentPassword, newPassword, verificationToken } = req.body;
+    const result = await authService.changePassword(req.user.id, currentPassword, newPassword, verificationToken, req);
     
     const { statusCode, body } = httpSuccess(200, result.message);
     

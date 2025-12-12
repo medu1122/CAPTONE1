@@ -16,6 +16,7 @@ export const generatePlantBoxChatResponse = async ({
   plantBox,
   weather,
   careStrategy,
+  conversationHistory = [],
 }) => {
   try {
     // Build comprehensive system prompt with all context
@@ -67,11 +68,24 @@ YÊU CẦU TRẢ LỜI:
 - Không cần nhắc lại câu hỏi của user
 `;
 
-    // Only send current message (no history)
+    // Build messages array with conversation history (last 10 messages for context)
     const messages = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
     ];
+    
+    // Add conversation history (last 10 messages to keep context manageable)
+    const recentHistory = conversationHistory.slice(-10);
+    recentHistory.forEach(msg => {
+      if (msg.role && msg.content) {
+        messages.push({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content,
+        });
+      }
+    });
+    
+    // Add current user message
+    messages.push({ role: 'user', content: userMessage });
 
     const response = await generateAIResponse({
       messages,

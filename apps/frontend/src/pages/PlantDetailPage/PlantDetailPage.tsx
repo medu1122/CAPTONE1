@@ -52,10 +52,6 @@ export const PlantDetailPage: React.FC = () => {
       alert('Không thể xóa plant box: ' + (err.message || 'Lỗi không xác định'))
     }
   }
-  const handleSettings = () => {
-    // TODO: Open settings modal
-    console.log('Open settings modal')
-  }
   const handleAddNote = async (note: Omit<PlantNote, '_id' | 'date'>) => {
     if (!id) return
     try {
@@ -106,11 +102,10 @@ export const PlantDetailPage: React.FC = () => {
       <DetailHeader
         plantName={plantBox.name}
         onDelete={handleDelete}
-        onSettings={handleSettings}
       />
 
       <div className="max-w-7xl mx-auto px-8 py-6">
-        <PlantOverviewCard plantBox={plantBox} />
+        <PlantOverviewCard plantBox={plantBox} onImageUpload={refreshPlantBox} />
 
         {/* Disease Management Section (includes feedback) */}
         <DiseaseManagement

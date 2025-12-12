@@ -6,6 +6,7 @@ import chatRoutes from './modules/chat/chat.routes.js';  // ✅ NEW: Simple chat
 import oldChatRoutes from './modules/chats/chat.routes.js';  // Keep old for backward compatibility
 import emailVerificationRoutes from './modules/emailVerification/emailVerification.routes.js';
 import passwordResetRoutes from './modules/passwordReset/passwordReset.routes.js';
+import passwordChangeOTPRoutes from './modules/passwordChange/passwordChangeOTP.routes.js';
 import chatSessionRoutes from './modules/chatSessions/chatSession.routes.js';
 import weatherRoutes from './modules/weather/weather.routes.js';
 import productRecommendationRoutes from './modules/productRecommendations/productRecommendation.routes.js';
@@ -35,6 +36,7 @@ router.use('/chat', chatRoutes);  // ✅ /api/v1/chat/ask, /api/v1/chat/context
 router.use('/chat', oldChatRoutes);  // ✅ /api/v1/chat/messages, /api/v1/chat/history, /api/v1/chat/sessions, etc.
 router.use('/email-verification', emailVerificationRoutes);
 router.use('/password-reset', passwordResetRoutes);
+router.use('/password-change-otp', passwordChangeOTPRoutes);
 router.use('/chat-sessions', chatSessionRoutes);
 router.use('/weather', weatherRoutes);
 router.use('/products', productRecommendationRoutes);

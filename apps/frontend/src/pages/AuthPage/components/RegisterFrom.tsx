@@ -281,9 +281,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             id="register-password"
             value={password}
             onChange={handlePasswordChange}
-            className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
+            className={`block w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
             placeholder="••••••••"
             required
+            autoComplete="new-password"
             aria-invalid={!!errors.password}
             aria-describedby={
               errors.password ? 'register-password-error' : undefined
@@ -291,14 +292,20 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowPassword(!showPassword)}
+            key={showPassword ? 'eye-off-register' : 'eye-on-register'}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowPassword(!showPassword)
+            }}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center z-20 pointer-events-auto"
+            style={{ pointerEvents: 'auto' }}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? (
-              <EyeOffIcon className="h-5 w-5 text-gray-400" />
+              <EyeOffIcon className="h-5 w-5 text-gray-400 block" />
             ) : (
-              <EyeIcon className="h-5 w-5 text-gray-400" />
+              <EyeIcon className="h-5 w-5 text-gray-400 block" />
             )}
           </button>
         </div>
@@ -433,9 +440,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             id="confirm-password"
             value={confirmPassword}
             onChange={handleConfirmPasswordChange}
-            className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
+            className={`block w-full px-3 py-2 pr-10 border rounded-md shadow-sm focus:outline-none focus:ring-1 ${inputClasses}`}
             placeholder="••••••••"
             required
+            autoComplete="new-password"
             aria-invalid={!!errors.confirmPassword}
             aria-describedby={
               errors.confirmPassword ? 'confirm-password-error' : undefined
@@ -443,14 +451,20 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           />
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            key={showConfirmPassword ? 'eye-off-confirm-register' : 'eye-on-confirm-register'}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowConfirmPassword(!showConfirmPassword)
+            }}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center z-20 pointer-events-auto"
+            style={{ pointerEvents: 'auto' }}
             aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
           >
             {showConfirmPassword ? (
-              <EyeOffIcon className="h-5 w-5 text-gray-400" />
+              <EyeOffIcon className="h-5 w-5 text-gray-400 block" />
             ) : (
-              <EyeIcon className="h-5 w-5 text-gray-400" />
+              <EyeIcon className="h-5 w-5 text-gray-400 block" />
             )}
           </button>
         </div>

@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import { SendIcon, XIcon, MessageCircleIcon, MinusIcon, Loader2Icon } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { SendIcon, XIcon, MessageCircleIcon, MinusIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
 import { chatWithPlantBox } from '../../../services/plantBoxService'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  timestamp?: string
 }
 
 interface MiniChatBotProps {
@@ -12,17 +13,80 @@ interface MiniChatBotProps {
   plantBoxId: string
 }
 
+// LocalStorage key for storing chat history (temporary, not in MongoDB)
+const getStorageKey = (plantBoxId: string) => `mini_chat_${plantBoxId}`
+
 export const MiniChatBot: React.FC<MiniChatBotProps> = ({ plantName, plantBoxId }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `Xin chào! Tôi có thể giúp gì về ${plantName} của bạn?`,
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const storageKey = getStorageKey(plantBoxId)
+    try {
+      const savedMessages = localStorage.getItem(storageKey)
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed)
+        } else {
+          // Initialize with welcome message if no history
+          setMessages([{
+            role: 'assistant',
+            content: `Xin chào! Tôi có thể giúp gì về ${plantName} của bạn?`,
+            timestamp: new Date().toISOString(),
+          }])
+        }
+      } else {
+        // Initialize with welcome message if no history
+        setMessages([{
+          role: 'assistant',
+          content: `Xin chào! Tôi có thể giúp gì về ${plantName} của bạn?`,
+          timestamp: new Date().toISOString(),
+        }])
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error)
+      setMessages([{
+        role: 'assistant',
+        content: `Xin chào! Tôi có thể giúp gì về ${plantName} của bạn?`,
+        timestamp: new Date().toISOString(),
+      }])
+    }
+  }, [plantBoxId, plantName])
+  
+  // Save messages to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      const storageKey = getStorageKey(plantBoxId)
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(messages))
+      } catch (error) {
+        console.error('Error saving chat history:', error)
+      }
+    }
+  }, [messages, plantBoxId])
+  
+  // Auto-scroll to bottom when new message arrives
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+  
+  const clearChatHistory = () => {
+    if (window.confirm('Bạn có chắc muốn xóa lịch sử chat này?')) {
+      const storageKey = getStorageKey(plantBoxId)
+      localStorage.removeItem(storageKey)
+      setMessages([{
+        role: 'assistant',
+        content: `Xin chào! Tôi có thể giúp gì về ${plantName} của bạn?`,
+        timestamp: new Date().toISOString(),
+      }])
+    }
+  }
   
   const quickQuestions = [
     'Tại sao tưới nhiều?',
@@ -35,20 +99,31 @@ export const MiniChatBot: React.FC<MiniChatBotProps> = ({ plantName, plantBoxId 
     
     const userMessage: Message = {
       role: 'user',
-      content: input,
+      content: input.trim(),
+      timestamp: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
-    const currentInput = input
+    const currentInput = input.trim()
     setInput('')
     setSending(true)
 
     try {
-      const response = await chatWithPlantBox(plantBoxId, currentInput)
+      // Send message with conversation history (last 10 messages for context, excluding welcome message)
+      const conversationHistory = messages
+        .filter(msg => msg.role === 'user' || (msg.role === 'assistant' && !msg.content.includes('Xin chào!')))
+        .slice(-10)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }))
+      
+      const response = await chatWithPlantBox(plantBoxId, currentInput, conversationHistory)
       
       if (response.success && response.data) {
         const botMessage: Message = {
           role: 'assistant',
           content: response.data.response || 'Xin lỗi, tôi không thể trả lời câu hỏi này.',
+          timestamp: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, botMessage])
       } else {
@@ -59,6 +134,7 @@ export const MiniChatBot: React.FC<MiniChatBotProps> = ({ plantName, plantBoxId 
       const errorMessage: Message = {
         role: 'assistant',
         content: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau.',
+        timestamp: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])
     } finally {
@@ -87,6 +163,15 @@ export const MiniChatBot: React.FC<MiniChatBotProps> = ({ plantName, plantBoxId 
           <h3 className="text-sm font-medium">Hỏi về {plantName}</h3>
         </div>
         <div className="flex items-center gap-1">
+          {messages.length > 1 && (
+            <button
+              onClick={clearChatHistory}
+              className="p-1 hover:bg-green-700 rounded transition-colors"
+              title="Xóa lịch sử chat"
+            >
+              <Trash2Icon size={18} />
+            </button>
+          )}
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-1 hover:bg-green-700 rounded transition-colors"
@@ -114,10 +199,18 @@ export const MiniChatBot: React.FC<MiniChatBotProps> = ({ plantName, plantBoxId 
                 <div
                   className={`max-w-[80%] rounded-xl p-3 ${msg.role === 'user' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-800'}`}
                 >
-                  <p className="text-sm">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                 </div>
               </div>
             ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="bg-gray-100 text-gray-800 rounded-xl p-3">
+                  <Loader2Icon size={16} className="animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Quick Questions */}

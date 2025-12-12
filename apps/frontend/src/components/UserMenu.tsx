@@ -71,7 +71,7 @@ export const UserMenu: React.FC = () => {
           />
           
           {/* Menu */}
-          <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+          <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center space-x-3">
                 <img

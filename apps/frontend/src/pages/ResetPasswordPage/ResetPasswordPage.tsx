@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { Toast } from '../../components/ui/Toast'
 
@@ -101,9 +101,6 @@ export const ResetPasswordPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
-            <LockIcon className="h-8 w-8 text-red-600" />
-          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Token không hợp lệ</h2>
           <p className="text-gray-600 mb-6">
             Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.
@@ -123,9 +120,6 @@ export const ResetPasswordPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-            <LockIcon className="h-8 w-8 text-green-600" />
-          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Đặt lại mật khẩu</h2>
           <p className="text-gray-600">Nhập mật khẩu mới của bạn</p>
         </div>
@@ -141,19 +135,27 @@ export const ResetPasswordPage: React.FC = () => {
                 id="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
+                autoComplete="new-password"
                 required
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowPassword(!showPassword)}
+                key={showPassword ? 'eye-off-reset' : 'eye-on-reset'}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowPassword(!showPassword)
+                }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center z-20 pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
-                  <EyeOffIcon className="h-5 w-5 text-gray-400" />
+                  <EyeOffIcon className="h-5 w-5 text-gray-400 block" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5 text-gray-400 block" />
                 )}
               </button>
             </div>
@@ -172,19 +174,27 @@ export const ResetPasswordPage: React.FC = () => {
                 id="confirm-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="Nhập lại mật khẩu mới"
+                autoComplete="new-password"
                 required
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                key={showConfirmPassword ? 'eye-off-confirm-reset' : 'eye-on-confirm-reset'}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowConfirmPassword(!showConfirmPassword)
+                }}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center z-20 pointer-events-auto"
+                style={{ pointerEvents: 'auto' }}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
                 {showConfirmPassword ? (
-                  <EyeOffIcon className="h-5 w-5 text-gray-400" />
+                  <EyeOffIcon className="h-5 w-5 text-gray-400 block" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5 text-gray-400 block" />
                 )}
               </button>
             </div>

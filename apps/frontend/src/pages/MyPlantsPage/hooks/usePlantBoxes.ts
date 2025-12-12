@@ -90,7 +90,7 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
 }
 
 // Helper to map frontend data to backend format
-const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox>): any => {
+const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox> | (CreatePlantBoxData & { imageUrl?: string })): any => {
   const mapped: any = {
     name: data.name?.trim(),
     plantType: data.type === 'active' ? 'existing' : 'planned',
@@ -142,6 +142,15 @@ const mapFrontendToBackend = (data: CreatePlantBoxData | Partial<PlantBox>): any
         }))
       : undefined,
     healthNotes: data.healthNotes?.trim() || undefined,
+  }
+  
+  // Handle imageUrl if provided (from CreateBoxModal)
+  if ('imageUrl' in data && data.imageUrl) {
+    mapped.images = [{
+      url: data.imageUrl,
+      date: new Date(),
+      description: 'Hình ảnh box',
+    }]
   }
 
   // Remove undefined values from location

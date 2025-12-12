@@ -27,11 +27,40 @@ export const analyzeTask = async ({ plantBox, action, weather, dayIndex }) => {
     let productInfo = '';
     let productDetails = []; // Store product details with targetDiseases and targetCrops
     
-    if (action.type === 'protect' && plantBox.currentDiseases && plantBox.currentDiseases.length > 0) {
+    // Filter out resolved diseases (only use active diseases for treatment info)
+    const activeDiseases = (plantBox.currentDiseases || []).filter(disease => {
+      // Check if disease is resolved
+      if (disease.status === 'resolved') {
+        return false
+      }
+      
+      // Check severity score
+      const score = disease.severityScore !== undefined && disease.severityScore !== null
+        ? disease.severityScore
+        : (disease.severity === 'mild' ? 3 : disease.severity === 'moderate' ? 5 : 7)
+      
+      // Hide if score is 0 or less (resolved)
+      if (score <= 0) {
+        return false
+      }
+      
+      // Check latest feedback
+      const latestFeedback = disease.feedback && disease.feedback.length > 0
+        ? disease.feedback[disease.feedback.length - 1]
+        : null
+      
+      if (latestFeedback && latestFeedback.status === 'resolved') {
+        return false
+      }
+      
+      return true
+    })
+    
+    if (action.type === 'protect' && activeDiseases.length > 0) {
       try {
-        // Check if user has selected treatments
+        // Check if user has selected treatments (only from active diseases)
         const treatments = await Promise.all(
-          plantBox.currentDiseases.map(async (disease) => {
+          activeDiseases.map(async (disease) => {
             // Priority: Use selected treatments if available
             if (disease.selectedTreatments && disease.selectedTreatments.chemical?.length > 0) {
               // Get biological and cultural from database
@@ -71,7 +100,7 @@ export const analyzeTask = async ({ plantBox, action, weather, dayIndex }) => {
         treatmentInfo = treatments
           .filter(t => t && t.length > 0)
           .map((t, idx) => {
-            const disease = plantBox.currentDiseases[idx];
+            const disease = activeDiseases[idx]; // Use activeDiseases instead of plantBox.currentDiseases
             let info = `\n📋 THÔNG TIN ĐIỀU TRỊ CHO BỆNH: "${disease.name}"\n`;
             
             t.forEach(treatment => {
@@ -150,6 +179,11 @@ export const analyzeTask = async ({ plantBox, action, weather, dayIndex }) => {
     const analysisPrompt = `
 Bạn là chuyên gia nông nghiệp. Hãy phân tích CHI TIẾT công việc chăm sóc cây trồng sau:
 
+🚨 QUAN TRỌNG:
+- Nếu action type="check" và description chứa "Kiểm tra có phát hiện bệnh nấm": CHỈ hướng dẫn cách KIỂM TRA, KHÔNG hướng dẫn phun thuốc
+- CHỈ hướng dẫn phun thuốc khi CÓ bệnh nấm đang active (trong currentDiseases)
+- Phòng ngừa = kiểm tra + quan sát, KHÔNG phải phun thuốc ngay
+
 🌱 THÔNG TIN CÂY VÀ QUY MÔ TRỒNG:
 - Tên: ${plantBox.plantName}${plantBox.scientificName ? ` (${plantBox.scientificName})` : ''}
 - Giai đoạn: ${plantBox.growthStage || 'Không xác định'}
@@ -176,6 +210,14 @@ ${analyzedWeather.alerts.length > 0 ? `- Cảnh báo: ${analyzedWeather.alerts.j
 
 ${treatmentInfo ? `\n${treatmentInfo}\n` : ''}
 ${productInfo ? `\n${productInfo}\n` : ''}
+
+${action.type === 'check' && action.description && action.description.includes('Kiểm tra có phát hiện bệnh nấm') ? `
+🚨 ĐẶC BIỆT QUAN TRỌNG CHO ACTION NÀY:
+- Đây là hành động KIỂM TRA phòng ngừa, KHÔNG phải điều trị
+- CHỈ hướng dẫn cách KIỂM TRA và QUAN SÁT dấu hiệu bệnh nấm
+- KHÔNG được hướng dẫn phun thuốc hoặc sử dụng hóa chất
+- Nếu phát hiện bệnh, hướng dẫn người dùng thêm bệnh vào hệ thống để được tư vấn điều trị
+` : ''}
 
 YÊU CẦU:
 1. Phân tích CHI TIẾT từng bước thực hiện công việc này

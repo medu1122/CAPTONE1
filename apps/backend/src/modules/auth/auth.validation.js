@@ -262,6 +262,12 @@ export const validateChangePassword = (req, res, next) => {
         'string.pattern.base': 'New password must contain at least one lowercase letter, one uppercase letter, and one number',
         'any.required': 'New password is required',
       }),
+    verificationToken: Joi.string()
+      .required()
+      .messages({
+        'string.empty': 'Verification token is required. Please verify OTP first.',
+        'any.required': 'Verification token is required. Please verify OTP first.',
+      }),
   });
   
   const { error } = schema.validate(req.body);

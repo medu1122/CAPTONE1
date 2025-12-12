@@ -201,10 +201,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <>
-      <div className={`flex gap-2 ${isReply ? 'pl-4' : ''}`}>
+      <div id={`comment-${comment._id}`} className={`flex gap-2 items-start ${isReply ? 'pl-4' : ''}`}>
         <button
           onClick={() => navigate(`/users/${comment.author._id}`)}
-          className="flex-shrink-0"
+          className="flex-shrink-0 self-start"
         >
           <img
             src={getAvatarUrl(comment.author.profileImage)}
@@ -212,7 +212,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             className={`${isReply ? 'w-7 h-7' : 'w-8 h-8'} rounded-full object-cover hover:ring-2 hover:ring-green-500 transition-all cursor-pointer`}
           />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {isEditing ? (
             <div className="bg-white rounded-lg px-3 py-2 border border-gray-200">
               <textarea
@@ -335,7 +335,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                       <MoreVerticalIcon size={14} />
                     </button>
                     {showMenu && (
-                      <div className="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                      <div className="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[100]">
                         <button
                           onClick={() => {
                             setShowMenu(false)

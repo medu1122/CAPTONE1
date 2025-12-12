@@ -1,12 +1,19 @@
-import React from 'react'
-import { MapPinIcon, CalendarIcon, SproutIcon, InfoIcon } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { MapPinIcon, CalendarIcon, SproutIcon, InfoIcon, UploadIcon, XIcon } from 'lucide-react'
 import type { PlantBox } from '../../MyPlantsPage/types/plantBox.types'
+import { imageUploadService } from '../../../services/imageUploadService'
+import { addImageToPlantBox } from '../../../services/plantBoxService'
 interface PlantOverviewCardProps {
   plantBox: PlantBox
+  onImageUpload?: () => void
 }
 export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
   plantBox,
+  onImageUpload,
 }) => {
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Chưa xác định'
     const date = new Date(dateString)
@@ -101,14 +108,71 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
 
   const fruitingInfo = getFruitingInfo()
 
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file ảnh')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Kích thước file không được vượt quá 5MB')
+      return
+    }
+
+    // Show preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+
+    // Upload image
+    setUploading(true)
+    try {
+      const uploadResult = await imageUploadService.uploadImage(file)
+      
+      // Add image to plant box
+      await addImageToPlantBox(plantBox._id, uploadResult.url)
+      
+      // Refresh plant box data
+      if (onImageUpload) {
+        onImageUpload()
+      }
+      
+      setPreviewUrl(null)
+      alert('Upload ảnh thành công!')
+    } catch (error: any) {
+      console.error('Error uploading image:', error)
+      alert('Không thể upload ảnh: ' + (error.message || 'Lỗi không xác định'))
+      setPreviewUrl(null)
+    } finally {
+      setUploading(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const currentImageUrl = previewUrl || (plantBox.images && plantBox.images.length > 0 ? plantBox.images[0].url : null)
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex gap-6">
         {/* Image */}
-        <div className="w-[300px] h-[300px] flex-shrink-0">
-          {plantBox.images && plantBox.images.length > 0 ? (
+        <div className="w-[300px] h-[300px] flex-shrink-0 relative group">
+          {currentImageUrl ? (
             <img
-              src={plantBox.images[0].url}
+              src={currentImageUrl}
               alt={plantBox.name}
               className="w-full h-full object-cover rounded-lg"
             />
@@ -117,6 +181,36 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
               <SproutIcon size={64} className="text-gray-400" />
             </div>
           )}
+          
+          {/* Upload overlay */}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+            <button
+              onClick={handleUploadClick}
+              disabled={uploading}
+              className="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+                  <span>Đang upload...</span>
+                </>
+              ) : (
+                <>
+                  <UploadIcon size={16} />
+                  <span>Upload ảnh</span>
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
         </div>
 
         {/* Info */}

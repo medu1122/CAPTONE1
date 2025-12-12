@@ -8,7 +8,7 @@ const API_BASE_URL = API_CONFIG.BASE_URL
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // Increased timeout to 60s for long-running operations like task analysis
   headers: {
     'Content-Type': 'application/json',
   },
@@ -237,9 +237,13 @@ export const refreshCareStrategy = async (
  */
 export const chatWithPlantBox = async (
   id: string,
-  message: string
+  message: string,
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<ChatResponse> => {
-  const response = await api.post(`/plant-boxes/${id}/chat`, { message })
+  const response = await api.post(`/plant-boxes/${id}/chat`, { 
+    message,
+    conversationHistory: conversationHistory || [],
+  })
   return response.data
 }
 
@@ -323,6 +327,23 @@ export const analyzeTask = async (
   console.log('📤 [analyzeTask] Payload:', payload)
   
   const response = await api.post(`/plant-boxes/${id}/analyze-task`, payload)
+  return response.data
+}
+
+/**
+ * Toggle action completed status
+ */
+export const toggleActionCompleted = async (
+  id: string,
+  dayIndex: number,
+  actionId: string,
+  completed: boolean
+): Promise<{ success: boolean; message: string; data: any }> => {
+  const response = await api.put(`/plant-boxes/${id}/actions/toggle`, {
+    dayIndex,
+    actionId,
+    completed,
+  })
   return response.data
 }
 
