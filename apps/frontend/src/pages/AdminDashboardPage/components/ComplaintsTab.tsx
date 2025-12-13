@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { adminService } from '../../../services/adminService'
 import type { Complaint, Report } from '../../../services/adminService'
 import { XIcon } from 'lucide-react'
@@ -24,64 +24,33 @@ export const ComplaintsTab: React.FC = () => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Fetch complaints and reports separately to handle errors independently
+        // Always fetch ALL complaints and reports, filter on client side
+        // This ensures counts are accurate and consistent
         let complaintsData: Complaint[] = []
         let reportsData: Report[] = []
         
         try {
-          console.log('📋 [ComplaintsTab] Fetching complaints with filter:', activeFilter)
           const complaintsRes = await adminService.getComplaints({
-            status: activeFilter === 'pending' ? 'pending' : activeFilter === 'resolved' ? 'resolved' : undefined,
             page: 1,
             limit: 100,
-          })
-          console.log('📋 [ComplaintsTab] Complaints response:', {
-            hasData: !!complaintsRes,
-            complaintsCount: complaintsRes?.complaints?.length || 0,
-            complaints: complaintsRes?.complaints,
           })
           complaintsData = complaintsRes?.complaints || []
         } catch (error: any) {
           console.error('❌ [ComplaintsTab] Error fetching complaints:', error)
-          console.error('Error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            url: error.config?.url,
-            method: error.config?.method,
-          })
-          console.error('Full error response:', JSON.stringify(error.response?.data, null, 2))
           if (error.response?.status === 401) {
-            // Unauthorized - might need to refresh token
             console.warn('Unauthorized access to complaints')
           }
         }
         
         try {
-          console.log('📋 [ComplaintsTab] Fetching reports with filter:', activeFilter)
           const reportsRes = await adminService.getReports({
-            status: activeFilter === 'pending' ? 'pending' : activeFilter === 'resolved' ? 'resolved' : undefined,
             page: 1,
             limit: 100,
-          })
-          console.log('📋 [ComplaintsTab] Reports response:', {
-            hasData: !!reportsRes,
-            reportsCount: reportsRes?.reports?.length || 0,
-            reports: reportsRes?.reports,
           })
           reportsData = reportsRes?.reports || []
         } catch (error: any) {
           console.error('❌ [ComplaintsTab] Error fetching reports:', error)
-          console.error('Error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            url: error.config?.url,
-            method: error.config?.method,
-          })
-          console.error('Full error response:', JSON.stringify(error.response?.data, null, 2))
           if (error.response?.status === 401) {
-            // Unauthorized - might need to refresh token
             console.warn('Unauthorized access to reports')
           }
         }
@@ -97,64 +66,59 @@ export const ComplaintsTab: React.FC = () => {
       }
     }
     fetchData()
-  }, [activeFilter])
+  }, []) // Only fetch once on mount, not on filter change
 
-  const allItems: ComplaintOrReport[] = [
-    ...complaints.map((c) => ({ ...c, itemType: 'complaint' as const })),
-    ...reports.map((r) => ({ ...r, itemType: 'report' as const })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // Memoize allItems to prevent unnecessary recalculations
+  const allItems: ComplaintOrReport[] = useMemo(() => {
+    return [
+      ...complaints.map((c) => ({ ...c, itemType: 'complaint' as const })),
+      ...reports.map((r) => ({ ...r, itemType: 'report' as const })),
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [complaints, reports])
 
-  console.log('📋 [ComplaintsTab] Data state:', {
-    complaintsCount: complaints.length,
-    reportsCount: reports.length,
-    allItemsCount: allItems.length,
-    activeFilter,
-  })
+  // Memoize filteredItems to prevent unnecessary recalculations
+  const filteredItems = useMemo(() => {
+    return allItems.filter((item) => {
+      if (activeFilter === 'all') return true
+      if (activeFilter === 'complaint') return 'itemType' in item && item.itemType === 'complaint'
+      if (activeFilter === 'report') return 'itemType' in item && item.itemType === 'report'
+      return item.status === activeFilter
+    })
+  }, [allItems, activeFilter])
 
-  const filteredItems = allItems.filter((item) => {
-    if (activeFilter === 'all') return true
-    if (activeFilter === 'complaint') return 'itemType' in item && item.itemType === 'complaint'
-    if (activeFilter === 'report') return 'itemType' in item && item.itemType === 'report'
-    return item.status === activeFilter
-  })
-
-  console.log('📋 [ComplaintsTab] Filtered items:', {
-    count: filteredItems.length,
-    items: filteredItems.map(item => ({
-      id: item._id,
-      type: 'itemType' in item ? item.itemType : 'unknown',
-      status: item.status,
-      title: 'title' in item ? item.title : 'report',
-    })),
-  })
-
-  const filters = [
-    {
-      id: 'all',
-      label: 'Tất cả',
-      count: allItems.length,
-    },
-    {
-      id: 'complaint',
-      label: 'Khiếu nại',
-      count: complaints.length,
-    },
-    {
-      id: 'report',
-      label: 'Báo cáo',
-      count: reports.length,
-    },
-    {
-      id: 'pending',
-      label: 'Chờ xử lý',
-      count: allItems.filter((item) => item.status === 'pending').length,
-    },
-    {
-      id: 'resolved',
-      label: 'Đã xử lý',
-      count: allItems.filter((item) => item.status === 'resolved' || item.status === 'dismissed').length,
-    },
-  ]
+  // Memoize filters to prevent unnecessary recalculations
+  const filters = useMemo(() => {
+    const pendingCount = allItems.filter((item) => item.status === 'pending').length
+    const resolvedCount = allItems.filter((item) => item.status === 'resolved' || item.status === 'dismissed').length
+    
+    return [
+      {
+        id: 'all',
+        label: 'Tất cả',
+        count: allItems.length,
+      },
+      {
+        id: 'complaint',
+        label: 'Khiếu nại',
+        count: complaints.length,
+      },
+      {
+        id: 'report',
+        label: 'Báo cáo',
+        count: reports.length,
+      },
+      {
+        id: 'pending',
+        label: 'Chờ xử lý',
+        count: pendingCount,
+      },
+      {
+        id: 'resolved',
+        label: 'Đã xử lý',
+        count: resolvedCount,
+      },
+    ]
+  }, [allItems, complaints.length, reports.length])
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -340,7 +304,11 @@ export const ComplaintsTab: React.FC = () => {
                 </div>
 
                 <h4 className="font-semibold text-gray-900 mb-2">
-                  {isComplaintItem ? (item as Complaint).title : `Báo cáo ${(item as Report).reason}`}
+                  {isComplaintItem 
+                    ? (item as Complaint).type === 'map' 
+                      ? `Khiếu nại - Bản đồ: ${(item as Complaint).title}`
+                      : (item as Complaint).title
+                    : `Báo cáo ${(item as Report).reason}`}
                 </h4>
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                   {isComplaintItem ? (item as Complaint).description : (item as Report).description || 'Không có mô tả'}
@@ -454,7 +422,11 @@ export const ComplaintsTab: React.FC = () => {
               {/* Title & Description */}
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">
-                  {isComplaint(selectedItem) ? (selectedItem as Complaint).title : `Báo cáo: ${(selectedItem as Report).reason}`}
+                  {isComplaint(selectedItem) 
+                    ? (selectedItem as Complaint).type === 'map'
+                      ? `Khiếu nại - Bản đồ: ${(selectedItem as Complaint).title}`
+                      : (selectedItem as Complaint).title
+                    : `Báo cáo: ${(selectedItem as Report).reason}`}
                 </h4>
                 <p className="text-gray-700">
                   {isComplaint(selectedItem)
@@ -471,6 +443,81 @@ export const ComplaintsTab: React.FC = () => {
                   </div>
                   <div className="text-green-600 hover:text-green-700 cursor-pointer">
                     {(selectedItem as Complaint).relatedType} #{(selectedItem as Complaint).relatedId} →
+                  </div>
+                </div>
+              )}
+
+              {/* Context Data for Map complaints */}
+              {isComplaint(selectedItem) && (selectedItem as Complaint).type === 'map' && (selectedItem as any).contextData && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-gray-700 mb-2">
+                    Thông tin người dùng đã chọn:
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {(selectedItem as any).contextData?.provinceCode && (
+                      <div>
+                        <span className="font-medium">Tỉnh: </span>
+                        <span className="text-gray-700">{(selectedItem as any).contextData.provinceName || (selectedItem as any).contextData.provinceCode}</span>
+                      </div>
+                    )}
+                    {(selectedItem as any).contextData?.provinceInfo && (
+                      <div className="mt-2">
+                        <div className="font-medium mb-1">Thông tin cơ bản:</div>
+                        <div className="pl-3 space-y-1 text-xs text-gray-600">
+                          {(selectedItem as any).contextData.provinceInfo.temperature && (
+                            <div>Nhiệt độ: {(selectedItem as any).contextData.provinceInfo.temperature}°C</div>
+                          )}
+                          {(selectedItem as any).contextData.provinceInfo.weatherDescription && (
+                            <div>Thời tiết: {(selectedItem as any).contextData.provinceInfo.weatherDescription}</div>
+                          )}
+                          {(selectedItem as any).contextData.provinceInfo.soilTypes && (selectedItem as any).contextData.provinceInfo.soilTypes.length > 0 && (
+                            <div>Loại đất: {(selectedItem as any).contextData.provinceInfo.soilTypes.join(', ')}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {(selectedItem as any).contextData?.recommendation && (
+                      <div className="mt-2">
+                        <div className="font-medium mb-1">Tư vấn mùa vụ:</div>
+                        <div className="pl-3 space-y-1 text-xs text-gray-600">
+                          {(selectedItem as any).contextData.recommendation.season && (
+                            <div>Mùa vụ: {(selectedItem as any).contextData.recommendation.season.substring(0, 100)}...</div>
+                          )}
+                          {(selectedItem as any).contextData.recommendation.crops && (selectedItem as any).contextData.recommendation.crops.length > 0 && (
+                            <div>Cây trồng: {(selectedItem as any).contextData.recommendation.crops.join(', ')}</div>
+                          )}
+                          {(selectedItem as any).contextData.recommendation.weather && (
+                            <div>Thời tiết: {(selectedItem as any).contextData.recommendation.weather.substring(0, 100)}...</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Attachments */}
+              {isComplaint(selectedItem) && (selectedItem as any).attachments && (selectedItem as any).attachments.length > 0 && (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-2">
+                    Hình ảnh đính kèm:
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(selectedItem as any).attachments.map((attachment: any, index: number) => (
+                      <a
+                        key={index}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={attachment.url}
+                          alt={attachment.filename || `Attachment ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg border border-gray-200 hover:border-blue-500 transition-colors"
+                        />
+                      </a>
+                    ))}
                   </div>
                 </div>
               )}

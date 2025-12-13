@@ -176,6 +176,7 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
     // Get first message for each session to use as snippet
     const sessionsWithFirstMessage = await Promise.all(
       sessions.map(async (session) => {
+        // Try to get first user message
         const firstMessage = await ChatMessage.findOne({ 
           sessionId: session.sessionId,
           role: 'user'
@@ -186,7 +187,8 @@ export const listSessions = async ({ userId, page = CHAT_LIMITS.PAGINATION.DEFAU
         
         return {
           ...session,
-          firstMessage: firstMessage?.message || null
+          firstMessage: firstMessage?.message || null,
+          messagesCount: session.messagesCount || 0
         };
       })
     );
@@ -406,53 +408,84 @@ export const buildContextPromptFromHistory = ({ messages, session }) => {
       }
     }
     
-    // ✅ FILTER: Only use messages from latest analysis onwards
+    // ✅ FILTER: Only use messages from latest analysis onwards (or all if no analysis)
     const relevantMessages = latestAnalysisIndex >= 0 
       ? messages.slice(latestAnalysisIndex) 
       : messages;
     
     console.log(`📊 Context filtering: Total messages: ${messages.length}, Using: ${relevantMessages.length} (from index ${latestAnalysisIndex})`);
     
-    // Add context ONLY from current plant conversation
+    // Add context from conversation history
     if (relevantMessages && relevantMessages.length > 0) {
-      contextPrompt += '📋 Current Conversation Context:\n';
+      contextPrompt += '📋 LỊCH SỬ CUỘC HỘI THOẠI:\n';
       contextPrompt += '---\n';
+      
+      // Extract key topics/plants mentioned in conversation
+      const mentionedTopics = [];
+      const mentionedPlants = [];
       
       for (const msg of relevantMessages) {
         if (msg.role === 'user') {
           contextPrompt += `👤 User: ${msg.message}\n`;
           
+          // Extract plant names from user messages
+          const plantKeywords = ['lúa', 'cà chua', 'dưa hấu', 'cam', 'xoài', 'tiêu', 'điều', 'ngô', 'khoai'];
+          const lowerMsg = msg.message.toLowerCase();
+          plantKeywords.forEach(plant => {
+            if (lowerMsg.includes(plant) && !mentionedPlants.includes(plant)) {
+              mentionedPlants.push(plant);
+            }
+          });
+          
           // Add analysis context if present
           if (msg.analysis && msg.analysis.resultTop) {
             const plant = msg.analysis.resultTop.plant;
             contextPrompt += `🌱 Plant Identified: ${plant.commonName} (${plant.scientificName})\n`;
+            if (!mentionedPlants.includes(plant.commonName)) {
+              mentionedPlants.push(plant.commonName);
+            }
           }
           
           contextPrompt += '\n';
         } else if (msg.role === 'assistant') {
-          // Show first 150 chars for context
-          const preview = msg.message.substring(0, 150);
-          contextPrompt += `🤖 Assistant: ${preview}${msg.message.length > 150 ? '...' : ''}\n\n`;
+          // Show full assistant response for better context
+          contextPrompt += `🤖 Assistant: ${msg.message}\n\n`;
         }
       }
       
       contextPrompt += '---\n';
+      
+      // Add summary of mentioned topics
+      if (mentionedPlants.length > 0) {
+        contextPrompt += `\n📌 CÁC CHỦ ĐỀ ĐÃ ĐỀ CẬP: ${mentionedPlants.join(', ')}\n`;
+      }
     }
     
-    // Emphasize current plant context
+    // Emphasize current plant context (if from image analysis)
     if (session && session.lastAnalysis && session.lastAnalysis.resultTop) {
       const plant = session.lastAnalysis.resultTop.plant;
-      contextPrompt += `\n📌 CURRENT PLANT: ${plant.commonName} (${plant.scientificName})\n`;
+      contextPrompt += `\n📌 CÂY ĐANG ĐƯỢC PHÂN TÍCH: ${plant.commonName} (${plant.scientificName})\n`;
     }
     
-    // ✅ EXPLICIT INSTRUCTION to prioritize latest plant
-    contextPrompt += '\n⚠️ IMPORTANT INSTRUCTIONS:\n';
-    contextPrompt += '- When user asks "how to grow this plant" or "about this crop", refer to the CURRENT PLANT above.\n';
-    contextPrompt += '- ONLY answer about the most recent plant in the conversation.\n';
-    contextPrompt += '- Ignore any previous plant discussions from earlier in the chat history.\n';
-    contextPrompt += '- If no plant context exists, ask user to provide plant name or upload image.\n\n';
+    // ✅ EXPLICIT INSTRUCTIONS for context following
+    contextPrompt += '\n⚠️ QUY TẮC QUAN TRỌNG - ĐỌC KỸ:\n';
+    contextPrompt += '1. LUÔN ĐỌC KỸ lịch sử hội thoại ở trên để hiểu context\n';
+    contextPrompt += '2. Khi user hỏi follow-up (ví dụ: "có trồng được không", "ở đâu", "như thế nào"), BẠN PHẢI hiểu rằng họ đang hỏi về CHỦ ĐỀ/CÂY đã đề cập ở câu hỏi TRƯỚC\n';
+    contextPrompt += '3. Ví dụ:\n';
+    contextPrompt += '   - User hỏi: "cây lúa là gì" → Bạn trả lời về cây lúa\n';
+    contextPrompt += '   - User hỏi tiếp: "t sống ở đà nẵng có trồng được không" → BẠN PHẢI hiểu là hỏi về "CÂY LÚA có trồng được ở Đà Nẵng không"\n';
+    contextPrompt += '   - KHÔNG được trả lời chung chung về các loại cây khác\n';
+    contextPrompt += '4. Nếu user hỏi về cây mới (không liên quan câu trước) → Trả lời về cây mới đó\n';
+    contextPrompt += '5. Nếu không chắc user đang hỏi về gì → Hỏi lại để làm rõ\n';
+    contextPrompt += '6. LUÔN tham chiếu đến câu hỏi/câu trả lời trước khi trả lời follow-up\n\n';
     
-    contextPrompt += 'Now answer the user\'s question based on the CURRENT context:\n';
+    contextPrompt += '🚨 LƯU Ý ĐẶC BIỆT:\n';
+    contextPrompt += '- Câu hỏi follow-up thường KHÔNG nhắc lại tên cây/chủ đề, nhưng BẠN PHẢI tự hiểu từ context\n';
+    contextPrompt += '- Ví dụ: "có trồng được không" = "cây [đã đề cập trước] có trồng được không"\n';
+    contextPrompt += '- Ví dụ: "ở đâu" = "cây [đã đề cập trước] trồng ở đâu"\n';
+    contextPrompt += '- Ví dụ: "như thế nào" = "trồng cây [đã đề cập trước] như thế nào"\n\n';
+    
+    contextPrompt += 'Bây giờ hãy trả lời câu hỏi của user dựa trên context ở trên:\n';
     
     return contextPrompt;
   } catch (error) {

@@ -108,6 +108,12 @@ export interface CommunityStats {
   }
 }
 
+export interface ComplaintAttachment {
+  url: string
+  filename: string
+  mimeType: string
+}
+
 export interface Complaint {
   _id: string
   user: {
@@ -117,7 +123,7 @@ export interface Complaint {
     profileImage?: string
   }
   type: 'analysis' | 'chatbot' | 'my-plants' | 'map' | 'general'
-  category: 'error' | 'suggestion' | 'bug' | 'other'
+  category: 'error' | 'suggestion' | 'bug' | 'sai sót' | 'other'
   title: string
   description: string
   status: 'pending' | 'reviewing' | 'resolved' | 'rejected'
@@ -130,6 +136,8 @@ export interface Complaint {
     name: string
     email: string
   }
+  attachments?: ComplaintAttachment[]
+  contextData?: any
   createdAt: string
   updatedAt: string
 }

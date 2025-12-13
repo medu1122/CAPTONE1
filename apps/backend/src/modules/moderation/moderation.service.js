@@ -42,14 +42,21 @@ MỤC TIÊU DUY NHẤT: Kiểm tra xem bình luận có chứa từ ngữ TỤC 
 ✅ CÁC TRƯỜNG HỢP ĐƯỢC CHẤP NHẬN:
 - Bình luận NGẮN hoặc DÀI đều được, KHÔNG quan trọng độ dài
 - "Ok", "Cảm ơn", "Hay quá", "Đúng rồi" → ĐƯỢC CHẤP NHẬN (ngắn nhưng không xúc phạm)
-- "Hi", "Hello", "👍" → ĐƯỢC CHẤP NHẬN (ngắn nhưng không xúc phạm)
+- "Hi", "Hello", "👍", "thinh", "hi" → ĐƯỢC CHẤP NHẬN (ngắn nhưng không xúc phạm)
 - Câu hỏi ngắn: "Cây này là gì?", "Cách chữa?" → ĐƯỢC CHẤP NHẬN
 - Bình luận dài về nông nghiệp → ĐƯỢC CHẤP NHẬN
 - Spam nhẹ (nhưng không xúc phạm) → CÓ THỂ CHẤP NHẬN (chỉ từ chối nếu spam nặng + quảng cáo rõ ràng)
 
+🌍 NGÔN NGỮ ĐỊA PHƯƠNG VÀ TỪ VIẾT TẮT - HOÀN TOÀN ĐƯỢC CHẤP NHẬN:
+- Ngôn ngữ địa phương: "rứa", "mi", "tau", "mô", "tê", "chi", "răng", "mần", "chừ", "nớ", "ni", "tui", "bữa", "bữa ni", "bữa nớ", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ", "bữa nớ", "bữa ni", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ" → ĐƯỢC CHẤP NHẬN (đây là cách nói địa phương, KHÔNG phải xúc phạm)
+- Từ viết tắt: "ae", "anh em", "m.n", "mọi người", "ko", "k", "dc", "đc", "vs", "với", "đc", "được", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
+- Tiếng lóng: "hay quá", "đúng rồi", "chuẩn", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
+- Cách nói thân mật: "ae", "anh em", "m.n", "mọi người", "bạn", "bạn ơi", "bạn à", "bạn nha", "bạn nhé", "bạn nhỉ", "bạn nhì", "bạn nhì", "bạn nhì" → ĐƯỢC CHẤP NHẬN
+
 ⚠️ QUY TẮC ĐẶC BIỆT CHO BÌNH LUẬN:
 - KHÔNG từ chối vì nội dung quá ngắn
 - KHÔNG từ chối vì không liên quan đến nông nghiệp (bình luận có thể là giao tiếp xã hội)
+- KHÔNG từ chối vì sử dụng ngôn ngữ địa phương hoặc từ viết tắt
 - CHỈ từ chối nếu có từ ngữ TỤC TĨU, XÚC PHẠM, hoặc nội dung BẠO LỰC/KHIÊU DÂM
 - Spam quảng cáo rõ ràng (link mua bán, quảng cáo sản phẩm) → Từ chối
 - Spam nhẹ (emoji, ký tự lặp lại) → Có thể chấp nhận nếu không xúc phạm`;
@@ -80,10 +87,17 @@ MỤC TIÊU DUY NHẤT: Kiểm tra xem bài đăng có phù hợp với cộng �
 - ✅ Bài đăng khoe cây với title và nội dung đơn giản (ví dụ: "cây hoa hướng dương", "khoe cây lúa", "cây của tôi")
 - ✅ Nội dung liên quan đến nông nghiệp (dù cách diễn đạt đơn giản, ngắn gọn)
 
+🌍 NGÔN NGỮ ĐỊA PHƯƠNG VÀ TỪ VIẾT TẮT - HOÀN TOÀN ĐƯỢC CHẤP NHẬN:
+- ✅ Ngôn ngữ địa phương: "rứa", "mi", "tau", "mô", "tê", "chi", "răng", "mần", "chừ", "nớ", "ni", "tui", "bữa", "bữa ni", "bữa nớ", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ" → ĐƯỢC CHẤP NHẬN (đây là cách nói địa phương, KHÔNG phải xúc phạm)
+- ✅ Từ viết tắt: "ae", "anh em", "m.n", "mọi người", "ko", "k", "dc", "đc", "vs", "với", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
+- ✅ Tiếng lóng: "hay quá", "đúng rồi", "chuẩn", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
+- ✅ Cách nói thân mật: "ae", "anh em", "m.n", "mọi người", "bạn", "bạn ơi", "bạn à", "bạn nha", "bạn nhé", "bạn nhỉ" → ĐƯỢC CHẤP NHẬN
+
 ⚠️ QUY TẮC ĐẶC BIỆT:
 - KHÔNG từ chối vì nội dung ngắn nếu đó là câu hỏi hợp lệ về nông nghiệp HOẶC chia sẻ/khoe cây
 - KHÔNG từ chối vì ngôn ngữ thân thiện, không trang trọng (như "ae", "anh em")
 - KHÔNG từ chối vì thiếu thông tin chi tiết - câu hỏi đơn giản, bài khoe cây ngắn gọn cũng được chấp nhận
+- KHÔNG từ chối vì sử dụng ngôn ngữ địa phương hoặc từ viết tắt
 - CHẤP NHẬN các bài đăng chỉ có title và nội dung ngắn về cây trồng (ví dụ: "cây hoa hướng dương" + "hoa hướng dương hướng về phía mặt trời")
 - CHỈ từ chối nếu có từ ngữ XÚC PHẠM, QUẢNG CÁO RÕ RÀNG, hoặc HOÀN TOÀN không liên quan đến nông nghiệp
 - Spam nhẹ (nhưng không quảng cáo) → CÓ THỂ CHẤP NHẬN nếu liên quan đến nông nghiệp`;
@@ -131,6 +145,18 @@ Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "sug
 
 Input: "Cảm ơn bạn"
 Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
+
+Input: "thinh"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
+
+Input: "hi"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
+
+Input: "rứa mi"
+Output: {"approved": true, "reason": "Nội dung phù hợp - ngôn ngữ địa phương", "issues": [], "suggestedContent": null}
+
+Input: "ae ơi"
+Output: {"approved": true, "reason": "Nội dung phù hợp - từ viết tắt thân mật", "issues": [], "suggestedContent": null}
 
 Input: "Cây lúa bị bệnh đốm lá, ai biết cách chữa không?"
 Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}`;

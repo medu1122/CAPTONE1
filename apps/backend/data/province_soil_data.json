@@ -28,6 +28,16 @@
         "type": "Đất cát pha",
         "domsoil": "Re",
         "faosoil": "Re83-1ab"
+      },
+      {
+        "type": "Đất sét giàu dinh dưỡng phì nhiêu",
+        "domsoil": "Ge",
+        "faosoil": "Ge56-3a"
+      },
+      {
+        "type": "Đất xám bạc màu nâu đỏ",
+        "domsoil": "Af",
+        "faosoil": "Af61-1/2ab"
       }
     ]
   },
@@ -124,6 +134,11 @@
         "faosoil": "Gd29-3a"
       },
       {
+        "type": "Đất nâu đỏ trên đá bazan",
+        "domsoil": "Fr",
+        "faosoil": "Fr33-3ab"
+      },
+      {
         "type": "Đất xám bạc màu nâu đỏ",
         "domsoil": "Af",
         "faosoil": "Af61-1/2ab"
@@ -193,25 +208,20 @@
       }
     ]
   },
-  "SL": {
-    "provinceCode": "SL",
-    "provinceName": "Sơn La",
+  "LC": {
+    "provinceCode": "LC",
+    "provinceName": "Lào Cai",
     "soilTypes": [
       {
         "type": "Đất xám bạc màu trên đá trầm tích và đá biến chất",
         "domsoil": "Ao",
         "faosoil": "Ao90-2/3c"
-      },
-      {
-        "type": "Đất nâu đen phát triển trên đá bazan, núi lửa",
-        "domsoil": "Lc",
-        "faosoil": "Lc100-c"
       }
     ]
   },
-  "BN": {
-    "provinceCode": "BN",
-    "provinceName": "Bắc Ninh",
+  "TY": {
+    "provinceCode": "TY",
+    "provinceName": "Thái Nguyên",
     "soilTypes": [
       {
         "type": "Đất xám bạc màu phiến sét",
@@ -231,9 +241,9 @@
       }
     ]
   },
-  "HD": {
-    "provinceCode": "HD",
-    "provinceName": "Hải Dương",
+  "VP": {
+    "provinceCode": "VP",
+    "provinceName": "Vĩnh Phúc",
     "soilTypes": [
       {
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
@@ -242,9 +252,9 @@
       }
     ]
   },
-  "HY": {
-    "provinceCode": "HY",
-    "provinceName": "Hưng Yên",
+  "ND": {
+    "provinceCode": "ND",
+    "provinceName": "Nam Định",
     "soilTypes": [
       {
         "type": "Đất phù sa phì nhiêu",
@@ -253,9 +263,9 @@
       }
     ]
   },
-  "VP": {
-    "provinceCode": "VP",
-    "provinceName": "Vĩnh Phúc",
+  "HN": {
+    "provinceCode": "HN",
+    "provinceName": "Hà Nội",
     "soilTypes": [
       {
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
@@ -296,9 +306,9 @@
       }
     ]
   },
-  "NB": {
-    "provinceCode": "NB",
-    "provinceName": "Ninh Bình",
+  "HB": {
+    "provinceCode": "HB",
+    "provinceName": "Hòa Bình",
     "soilTypes": [
       {
         "type": "Đất núi đa",
@@ -322,11 +332,6 @@
     "provinceCode": "NA",
     "provinceName": "Nghệ An",
     "soilTypes": [
-      {
-        "type": "Đất sét giàu dinh dưỡng phì nhiêu",
-        "domsoil": "Ge",
-        "faosoil": "Ge56-3a"
-      },
       {
         "type": "Đất núi đa",
         "domsoil": "I",
@@ -488,11 +493,6 @@
         "type": "Đất xám bạc màu nâu đỏ",
         "domsoil": "Af",
         "faosoil": "Af60-1/2ab"
-      },
-      {
-        "type": "Đất xám bạc màu trên đá trầm tích và đá biến chất",
-        "domsoil": "Ao",
-        "faosoil": "Ao90-2/3c"
       }
     ]
   },
@@ -506,11 +506,6 @@
         "faosoil": "Af60-1/2ab"
       },
       {
-        "type": "Đất nâu đỏ trên đá bazan",
-        "domsoil": "Fr",
-        "faosoil": "Fr33-3ab"
-      },
-      {
         "type": "Đất nâu đỏ khô hạn",
         "domsoil": "Fa",
         "faosoil": "Fa14-3ab"
@@ -519,6 +514,11 @@
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
         "domsoil": "Ge",
         "faosoil": "Ge56-3a"
+      },
+      {
+        "type": "Đất nâu đỏ trên đá bazan",
+        "domsoil": "Fr",
+        "faosoil": "Fr33-3ab"
       },
       {
         "type": "Đất xám bạc màu trên đá trầm tích và đá biến chất",
@@ -558,15 +558,26 @@
       }
     ]
   },
+  "DG": {
+    "provinceCode": "DG",
+    "provinceName": "Đắk Nông",
+    "soilTypes": [
+      {
+        "type": "Đất nâu đỏ trên đá bazan",
+        "domsoil": "Fr",
+        "faosoil": "Fr33-3ab"
+      },
+      {
+        "type": "Đất nứt nẻ, khô hạn",
+        "domsoil": "Vp",
+        "faosoil": "Vp64-3a"
+      }
+    ]
+  },
   "LD": {
     "provinceCode": "LD",
     "provinceName": "Lâm Đồng",
     "soilTypes": [
-      {
-        "type": "Đất xám bạc màu trên đá trầm tích và đá biến chất",
-        "domsoil": "Ao",
-        "faosoil": "Ao90-2/3c"
-      },
       {
         "type": "Đất xám bạc màu nâu đỏ",
         "domsoil": "Af",
@@ -584,26 +595,10 @@
       }
     ]
   },
-  "DG": {
-    "provinceCode": "DG",
-    "provinceName": "Đắk Nông",
-    "soilTypes": [
-      {
-        "type": "Đất nâu đỏ trên đá bazan",
-        "domsoil": "Fr",
-        "faosoil": "Fr33-3ab"
-      }
-    ]
-  },
   "BP": {
     "provinceCode": "BP",
     "provinceName": "Bình Phước",
     "soilTypes": [
-      {
-        "type": "Đất nứt nẻ, khô hạn",
-        "domsoil": "Vp",
-        "faosoil": "Vp64-3a"
-      },
       {
         "type": "Đất xám bạc màu phiến sét",
         "domsoil": "Ag",
@@ -629,6 +624,11 @@
         "type": "Đất xám bạc màu phiến sét",
         "domsoil": "Ag",
         "faosoil": "Ag16-2a"
+      },
+      {
+        "type": "Đất xám bạc màu nâu đỏ",
+        "domsoil": "Af",
+        "faosoil": "Af61-1/2ab"
       }
     ]
   },
@@ -642,19 +642,9 @@
         "faosoil": "Af60-1/2ab"
       },
       {
-        "type": "Đất nứt nẻ, khô hạn",
-        "domsoil": "Vp",
-        "faosoil": "Vp64-3a"
-      },
-      {
         "type": "Đất nâu đỏ trên đá bazan",
         "domsoil": "Fr",
         "faosoil": "Fr33-3ab"
-      },
-      {
-        "type": "Đất xám bạc màu phiến sét",
-        "domsoil": "Ag",
-        "faosoil": "Ag16-2a"
       }
     ]
   },
@@ -662,6 +652,11 @@
     "provinceCode": "BU",
     "provinceName": "Bình Thuận",
     "soilTypes": [
+      {
+        "type": "Đất nứt nẻ, khô hạn",
+        "domsoil": "Vp",
+        "faosoil": "Vp64-3a"
+      },
       {
         "type": "Đất nâu đen phát triển trên đá bazan, núi lửa",
         "domsoil": "Lc",
@@ -702,6 +697,11 @@
         "type": "Đất phù sa nước lợ mặn",
         "domsoil": "Jt",
         "faosoil": "Jt14-3a"
+      },
+      {
+        "type": "Đất xám bạc màu phiến sét",
+        "domsoil": "Ag",
+        "faosoil": "Ag16-2a"
       }
     ]
   },
@@ -710,14 +710,9 @@
     "provinceName": "Đồng Tháp",
     "soilTypes": [
       {
-        "type": "Đất xám bạc màu nâu đỏ",
-        "domsoil": "Af",
-        "faosoil": "Af61-1/2ab"
-      },
-      {
-        "type": "Đất phù sa phì nhiêu",
-        "domsoil": "Je",
-        "faosoil": "Je72-2a"
+        "type": "Đất sét giàu dinh dưỡng phì nhiêu",
+        "domsoil": "Ge",
+        "faosoil": "Ge56-3a"
       },
       {
         "type": "Đất phù sa nước lợ mặn",
@@ -730,6 +725,11 @@
     "provinceCode": "AG",
     "provinceName": "An Giang",
     "soilTypes": [
+      {
+        "type": "Đất phù sa phì nhiêu",
+        "domsoil": "Je",
+        "faosoil": "Je72-2a"
+      },
       {
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
         "domsoil": "Ge",
@@ -752,17 +752,6 @@
       }
     ]
   },
-  "BT": {
-    "provinceCode": "BT",
-    "provinceName": "Bến Tre",
-    "soilTypes": [
-      {
-        "type": "Đất sét giàu dinh dưỡng phì nhiêu",
-        "domsoil": "Ge",
-        "faosoil": "Ge56-3a"
-      }
-    ]
-  },
   "KG": {
     "provinceCode": "KG",
     "provinceName": "Kiên Giang",
@@ -776,6 +765,22 @@
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
         "domsoil": "Ge",
         "faosoil": "Ge56-3a"
+      },
+      {
+        "type": "Đất hữa cơ",
+        "domsoil": "Od",
+        "faosoil": "Od21-a"
+      }
+    ]
+  },
+  "CT": {
+    "provinceCode": "CT",
+    "provinceName": "Cần Thơ",
+    "soilTypes": [
+      {
+        "type": "Đất phù sa nước lợ mặn",
+        "domsoil": "Jt",
+        "faosoil": "Jt14-3a"
       }
     ]
   },
@@ -806,11 +811,6 @@
     "provinceName": "Cà Mau",
     "soilTypes": [
       {
-        "type": "Đất hữa cơ",
-        "domsoil": "Od",
-        "faosoil": "Od21-a"
-      },
-      {
         "type": "Đất sét giàu dinh dưỡng phì nhiêu",
         "domsoil": "Ge",
         "faosoil": "Ge55-3a"
@@ -827,9 +827,9 @@
       }
     ]
   },
-  "TQ": {
-    "provinceCode": "TQ",
-    "provinceName": "Tuyên Quang",
+  "YB": {
+    "provinceCode": "YB",
+    "provinceName": "Yên Bái",
     "soilTypes": [
       {
         "type": "Đất xám bạc màu nâu đỏ",
@@ -838,9 +838,9 @@
       }
     ]
   },
-  "TY": {
-    "provinceCode": "TY",
-    "provinceName": "Thái Nguyên",
+  "BG": {
+    "provinceCode": "BG",
+    "provinceName": "Bắc Giang",
     "soilTypes": [
       {
         "type": "Đất xám bạc màu nâu đỏ",
@@ -884,6 +884,17 @@
         "type": "Đất xám bạc màu trên đá trầm tích và đá biến chất",
         "domsoil": "Ao",
         "faosoil": "Ao90-2/3c"
+      }
+    ]
+  },
+  "SL": {
+    "provinceCode": "SL",
+    "provinceName": "Sơn La",
+    "soilTypes": [
+      {
+        "type": "Đất nâu đen phát triển trên đá bazan, núi lửa",
+        "domsoil": "Lc",
+        "faosoil": "Lc100-c"
       }
     ]
   }

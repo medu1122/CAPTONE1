@@ -30,7 +30,6 @@ export const useComments = (
         setError(
           err.message || 'Không thể thêm bình luận. Vui lòng thử lại.'
         )
-        console.error(err)
         throw err // Re-throw để PostCard có thể xử lý moderation error
       } finally {
         setLoading(false)
@@ -58,7 +57,6 @@ export const useComments = (
         setError(
           err.message || 'Không thể thêm phản hồi. Vui lòng thử lại.'
         )
-        console.error(err)
         throw err // Re-throw để PostCard có thể xử lý moderation error
       } finally {
         setLoading(false)
@@ -82,7 +80,6 @@ export const useComments = (
         setError(
           err.message || 'Không thể cập nhật bình luận. Vui lòng thử lại.'
         )
-        console.error(err)
         throw err // Re-throw để PostCard có thể xử lý moderation error
       } finally {
         setLoading(false)
@@ -105,7 +102,6 @@ export const useComments = (
         setError(
           err.message || 'Không thể xóa bình luận. Vui lòng thử lại.'
         )
-        console.error(err)
         throw err
       } finally {
         setLoading(false)

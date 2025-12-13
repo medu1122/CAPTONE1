@@ -79,12 +79,61 @@ export const chat = async ({ message, userId = null, sessionId = null, context =
       });
     }
     
-    // Add recent chat history messages (last 5 for context)
-    const recentHistory = chatHistoryMessages.slice(-5);
+    // Add recent chat history messages (last 10 for better context following)
+    // Use more messages to ensure GPT can follow conversation flow
+    const recentHistory = chatHistoryMessages.slice(-10);
     for (const histMsg of recentHistory) {
       messages.push({
         role: histMsg.role,
         content: histMsg.message
+      });
+    }
+    
+    // ✅ Detect if current message is a follow-up question
+    const lowerMessage = message.toLowerCase().trim();
+    const followUpPatterns = [
+      /cách\s+trồng/i,
+      /cách\s+chăm\s+sóc/i,
+      /cách\s+chữa/i,
+      /có\s+trồng\s+được\s+không/i,
+      /trồng\s+được\s+không/i,
+      /ở\s+đâu/i,
+      /như\s+thế\s+nào/i,
+      /cần\s+gì/i,
+      /cần\s+những\s+gì/i,
+      /khi\s+nào/i,
+      /mùa\s+nào/i,
+    ];
+    
+    const isFollowUp = followUpPatterns.some(pattern => pattern.test(lowerMessage));
+    
+    // Extract mentioned topics from recent history
+    let mentionedTopics = [];
+    if (recentHistory.length > 0) {
+      const allHistoryText = recentHistory.map(m => m.message).join(' ').toLowerCase();
+      const plantKeywords = ['lúa', 'cà chua', 'dưa hấu', 'cam', 'xoài', 'tiêu', 'điều', 'ngô', 'khoai', 'cà rốt', 'rau'];
+      plantKeywords.forEach(plant => {
+        if (allHistoryText.includes(plant) && !mentionedTopics.includes(plant)) {
+          mentionedTopics.push(plant);
+        }
+      });
+    }
+    
+    // If it's a follow-up and we have context, add a reminder
+    if (isFollowUp && mentionedTopics.length > 0 && recentHistory.length > 0) {
+      const lastTopic = mentionedTopics[mentionedTopics.length - 1]; // Get most recent topic
+      const reminderMessage = `[NHẮC LẠI CONTEXT] User đang hỏi follow-up về "${lastTopic}" từ câu hỏi trước. Câu hỏi hiện tại "${message}" cần được hiểu là đang hỏi về "${lastTopic}". Hãy trả lời về "${lastTopic}" dựa trên câu hỏi follow-up này.`;
+      
+      messages.push({
+        role: 'system',
+        content: reminderMessage
+      });
+      
+      console.log('📌 [chat] Added follow-up reminder:', {
+        isFollowUp,
+        mentionedTopics,
+        lastTopic,
+        currentQuestion: message
       });
     }
     

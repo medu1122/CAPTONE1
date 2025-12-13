@@ -39,6 +39,7 @@ export interface BackendSession {
   lastMessageAt: string;
   messagesCount: number;
   firstMessage?: string;
+  title?: string;
 }
 
 interface LoadHistoryResponse {
@@ -153,6 +154,36 @@ class ChatHistoryService {
     } catch (error) {
       console.error('❌ Error loading sessions:', error);
       return [];
+    }
+  }
+
+  /**
+   * Update session title
+   */
+  async updateSessionTitle(sessionId: string, title: string): Promise<boolean> {
+    try {
+      const token = (window as any).accessToken || null;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      console.log('✏️ [UPDATE] Updating session title:', { sessionId, title });
+
+      const response = await api.put(
+        `/chat-sessions/${sessionId}/title`,
+        { title },
+        { headers }
+      );
+
+      console.log('✅ [UPDATE] Session title updated successfully:', response.data);
+      return true;
+    } catch (error) {
+      console.error('❌ Error updating session title:', error);
+      return false;
     }
   }
 

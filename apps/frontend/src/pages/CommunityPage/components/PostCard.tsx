@@ -157,8 +157,6 @@ export const PostCard: React.FC<PostCardProps> = ({
         setLocalComments((prev: typeof post.comments) => [...prev, newComment])
       }
     } catch (error: any) {
-      console.error('Error creating comment:', error)
-      
       // Check if it's a moderation error
       if (error.code === 'CONTENT_MODERATION_FAILED' && error.moderationData) {
         setCommentModerationError({
@@ -217,7 +215,6 @@ export const PostCard: React.FC<PostCardProps> = ({
       onComment(post.id)
     } catch (error: any) {
       isManuallyUpdatingComments.current = false
-      console.error('❌ [PostCard] Error in handleReply:', error)
       throw error // Re-throw để CommentItem xử lý
     }
   }
@@ -386,7 +383,6 @@ export const PostCard: React.FC<PostCardProps> = ({
                   alt={image.caption || `Image ${index + 1}`}
                   className="w-full max-h-96 object-contain rounded-lg"
                   onError={(e) => {
-                    console.error('Failed to load image:', image.url)
                     // Show placeholder instead of hiding
                     const target = e.target as HTMLImageElement
                     target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23e5e7eb" width="400" height="300"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-family="sans-serif" font-size="14"%3EKhông thể tải ảnh%3C/text%3E%3C/svg%3E'

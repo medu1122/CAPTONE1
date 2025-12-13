@@ -14,7 +14,7 @@ export const validateCreateComplaint = (req, res, next) => {
         'any.only': 'Complaint type must be one of: analysis, chatbot, my-plants, map, general',
       }),
     category: Joi.string()
-      .valid('error', 'suggestion', 'bug', 'other')
+      .valid('error', 'suggestion', 'bug', 'sai sót', 'other')
       .optional()
       .default('other'),
     title: Joi.string()
@@ -61,6 +61,9 @@ export const validateCreateComplaint = (req, res, next) => {
       )
       .optional()
       .default([]),
+    contextData: Joi.any()
+      .optional()
+      .allow(null),
   });
 
   const { error, value } = schema.validate(req.body);

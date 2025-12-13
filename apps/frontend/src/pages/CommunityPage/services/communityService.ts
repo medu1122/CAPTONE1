@@ -149,29 +149,7 @@ export const communityService = {
         API_CONFIG.ENDPOINTS.POSTS.DETAIL.replace(':id', id)
       )
       const backendData = response.data.data || response.data
-      console.log('🔍 [communityService] getPostById - Raw backend data:', backendData)
-      console.log('🔍 [communityService] getPostById - Comments:', backendData.comments)
-      if (backendData.comments && Array.isArray(backendData.comments)) {
-        backendData.comments.forEach((comment: any, index: number) => {
-          console.log(`🔍 [communityService] Comment ${index}:`, {
-            _id: comment._id,
-            content: comment.content?.substring(0, 30),
-            hasReplies: !!comment.replies,
-            repliesCount: comment.replies?.length || 0,
-            replies: comment.replies
-          })
-        })
-      }
       const transformedPost = transformPost(backendData)
-      console.log('🔍 [communityService] getPostById - Transformed post:', transformedPost)
-      console.log('🔍 [communityService] getPostById - Transformed comments:', transformedPost.comments)
-      transformedPost.comments.forEach((comment: Comment, index: number) => {
-        console.log(`🔍 [communityService] Transformed Comment ${index}:`, {
-          _id: comment._id,
-          hasReplies: !!comment.replies,
-          repliesCount: comment.replies?.length || 0
-        })
-      })
       return transformedPost
     } catch (error: any) {
       console.error('Error fetching post:', error)
@@ -263,17 +241,7 @@ export const communityService = {
         } else if (commentData.parentId) {
           // Even without images, if parentId exists, we need to ensure it's sent
           // For JSON requests, parentId should already be in the data object
-          console.log('📝 [communityService] Creating comment with parentId (no images):', commentData.parentId)
         }
-      }
-      
-      // Log the request data to debug
-      if (!isFormData && data && typeof data === 'object' && 'parentId' in data) {
-        console.log('📝 [communityService] Request data (JSON):', {
-          content: (data as any).content?.substring(0, 30),
-          parentId: (data as any).parentId,
-          hasImages: !!(data as any).images
-        })
       }
       
       const config = isFormData ? {

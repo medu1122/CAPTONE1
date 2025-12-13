@@ -9,10 +9,6 @@ interface Props {
 export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
   const { recommendation, loading, error, loadingStates } = useProvinceRecommendation(provinceCode);
 
-  if (!provinceCode) {
-    return null;
-  }
-
   const currentMonth = new Date().getMonth() + 1;
   const monthNames = [
     'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
@@ -26,17 +22,27 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
         <div className="p-2 bg-green-600 rounded-lg">
           <Bot className="text-white" size={24} />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="text-xl font-bold text-gray-900">Tư vấn mùa vụ</h3>
-          <p className="text-sm text-gray-600 flex items-center space-x-1">
-            <Calendar size={14} />
-            <span>{monthNames[currentMonth - 1]} ({currentMonth})</span>
-          </p>
+          {provinceCode ? (
+            <p className="text-sm text-gray-600 flex items-center space-x-1">
+              <Calendar size={14} />
+              <span>{monthNames[currentMonth - 1]} ({currentMonth})</span>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500">Khuyến nghị cây trồng và chăm sóc theo mùa</p>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      {loading && !recommendation ? (
+      {!provinceCode ? (
+        <div className="text-center text-gray-500 py-8">
+          <Bot className="mx-auto mb-4 text-gray-400" size={48} />
+          <p className="text-lg font-medium mb-2">Chọn một tỉnh để xem tư vấn</p>
+          <p className="text-sm">Thông tin sẽ được tải tự động khi bạn chọn địa điểm</p>
+        </div>
+      ) : loading && !recommendation ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="animate-spin text-green-600" size={32} />
           <span className="ml-3 text-gray-600">Đang tư vấn...</span>

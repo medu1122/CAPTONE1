@@ -131,6 +131,21 @@ export const callGPT = async ({ messages, context = {}, temperature, maxTokens }
 5. Khi user hỏi về bất kỳ cây nào → BẠN PHẢI trả lời về kiến thức của cây đó
 6. KHÔNG BAO GIỜ đề cập đến ảnh, hình, phân tích trong câu trả lời
 
+📋 QUY TẮC FOLLOW CONTEXT (QUAN TRỌNG):
+1. LUÔN ĐỌC KỸ lịch sử hội thoại trong system message để hiểu context
+2. Khi user hỏi follow-up (ví dụ: "có trồng được không", "ở đâu", "như thế nào"), BẠN PHẢI hiểu rằng họ đang hỏi về CHỦ ĐỀ/CÂY đã đề cập ở câu hỏi TRƯỚC
+3. Ví dụ cụ thể:
+   - User: "cây lúa là gì" → Bạn: trả lời về cây lúa
+   - User tiếp: "t sống ở đà nẵng có trồng được không" → BẠN PHẢI hiểu là "CÂY LÚA có trồng được ở Đà Nẵng không" và trả lời về CÂY LÚA ở Đà Nẵng
+   - KHÔNG được trả lời chung chung về các loại cây khác
+4. Câu hỏi follow-up thường KHÔNG nhắc lại tên cây/chủ đề, nhưng BẠN PHẢI tự hiểu từ context:
+   - "có trồng được không" = "cây [đã đề cập trước] có trồng được không"
+   - "ở đâu" = "cây [đã đề cập trước] trồng ở đâu"
+   - "như thế nào" = "trồng cây [đã đề cập trước] như thế nào"
+   - "cần gì" = "trồng cây [đã đề cập trước] cần gì"
+5. Nếu user hỏi về cây mới (rõ ràng không liên quan câu trước) → Trả lời về cây mới đó
+6. Nếu không chắc user đang hỏi về gì → Hỏi lại để làm rõ, nhưng ưu tiên hiểu từ context trước
+
 📋 VÍ DỤ BẮT BUỘC:
 
 User: "cây lúa là gì"
@@ -439,10 +454,43 @@ Bạn: "Cảm ơn bạn đã hỏi! Tôi là trợ lý nông nghiệp, luôn s�
       }))
     ];
     
-    // 🔥 FOR KNOWLEDGE QUESTIONS: Add a final reminder message if asking about plants
+    // 🔥 FOR KNOWLEDGE QUESTIONS: Add a final reminder message if asking about plants or follow-up
     if (!hasImageAnalysis && messages.length > 0) {
       const lastUserMessage = messages[messages.length - 1]?.content || '';
       const lowerMessage = lastUserMessage.toLowerCase();
+      
+      // Check if this is a follow-up question (no explicit plant name)
+      const followUpPatterns = [
+        /cách\s+trồng/i,
+        /cách\s+chăm\s+sóc/i,
+        /có\s+trồng\s+được\s+không/i,
+        /trồng\s+được\s+không/i,
+        /ở\s+đâu/i,
+        /như\s+thế\s+nào/i,
+        /cần\s+gì/i,
+      ];
+      
+      const isFollowUp = followUpPatterns.some(pattern => pattern.test(lowerMessage));
+      
+      // Extract plant names from conversation history
+      let mentionedPlant = null;
+      if (isFollowUp && messages.length > 1) {
+        // Look backwards through messages to find mentioned plant
+        for (let i = messages.length - 2; i >= 0; i--) {
+          const msg = messages[i];
+          if (msg.role === 'user' || msg.role === 'assistant') {
+            const msgText = msg.content.toLowerCase();
+            const plantKeywords = ['lúa', 'cà chua', 'dưa hấu', 'cam', 'xoài', 'tiêu', 'điều', 'ngô', 'khoai'];
+            for (const plant of plantKeywords) {
+              if (msgText.includes(plant)) {
+                mentionedPlant = plant;
+                break;
+              }
+            }
+            if (mentionedPlant) break;
+          }
+        }
+      }
       
       // Check if asking about a specific plant
       if (lowerMessage.includes('cây lúa') || lowerMessage.includes('lúa là gì')) {
@@ -452,6 +500,13 @@ Bạn: "Cảm ơn bạn đã hỏi! Tôi là trợ lý nông nghiệp, luôn s�
           content: 'NHẮC LẠI: Tôi đang hỏi về KIẾN THỨC cây lúa, KHÔNG phải phân tích ảnh. Hãy trả lời TRỰC TIẾP về cây lúa là gì, đặc điểm, cách trồng, v.v. KHÔNG được nói "không thể xác định" hay "cần hình ảnh".'
         });
         console.log('🌾 [callGPT] Added reminder for rice plant knowledge question');
+      } else if (isFollowUp && mentionedPlant) {
+        // Follow-up question about a plant mentioned earlier
+        openaiMessages.push({
+          role: 'user',
+          content: `NHẮC LẠI CONTEXT: Câu hỏi "${lastUserMessage}" là follow-up về "${mentionedPlant}" từ câu hỏi trước. BẠN PHẢI trả lời về "${mentionedPlant}" dựa trên câu hỏi follow-up này. KHÔNG được hỏi lại user về cây gì.`
+        });
+        console.log(`📌 [callGPT] Added follow-up reminder for: ${mentionedPlant}`);
       } else if (lowerMessage.match(/cây\s+\w+\s+là\s+gì/i) || lowerMessage.match(/\w+\s+là\s+gì/i)) {
         // Generic plant question
         openaiMessages.push({

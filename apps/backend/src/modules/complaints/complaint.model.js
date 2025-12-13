@@ -15,7 +15,7 @@ const complaintSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['error', 'suggestion', 'bug', 'other'],
+      enum: ['error', 'suggestion', 'bug', 'sai sót', 'other'],
       default: 'other',
     },
     title: {
@@ -72,6 +72,10 @@ const complaintSchema = new mongoose.Schema(
         required: true,
       },
     }],
+    contextData: {
+      type: mongoose.Schema.Types.Mixed, // Store context data (province info, recommendation, etc.)
+      default: null,
+    },
   },
   {
     timestamps: true,

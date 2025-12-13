@@ -652,12 +652,8 @@ ${candidates.harvesting.length > 0 ? '4' : '3'}. **Đánh giá điều kiện th
 
 ${candidates.harvesting.length > 0 ? '5' : '4'}. **Lưu ý và khuyến nghị:**
    [CHỈ 1-2 lưu ý nghiêm trọng nhất]
-   - [Nếu có alerts → mô tả cụ thể hành động. Nếu không có alerts → "Không thấy cảnh báo thiên tai, thời tiết [mô tả ngắn] → có thể [1 hành động cụ thể]"]`;
-
-    if (articleEvidence.length > 0) {
-      systemPrompt += `
-   - [Nếu có bài báo liên quan → trích dẫn cụ thể với URL]`;
-    }
+   - [Nếu có alerts → mô tả cụ thể hành động. Nếu không có alerts → "Không thấy cảnh báo thiên tai, thời tiết [mô tả ngắn] → có thể [1 hành động cụ thể]"]
+   - [KHÔNG đề cập bài báo hay links - đã có phần riêng để hiển thị bài báo]`;
 
     systemPrompt += `
 
@@ -700,7 +696,7 @@ YÊU CẦU:
 2. CHỈ đề xuất cây trong candidates.plant_now và candidates.harvest_now.
 3. Về thiên tai: CHỈ dựa trên alerts. Nếu alerts rỗng → "Không thấy cảnh báo".
 4. Nếu weather = null → nói "Chưa có dữ liệu thời tiết".
-5. Nếu evidence rỗng → không đề cập bài báo.`;
+5. KHÔNG đề cập bài báo hay links trong phần "Lưu ý và khuyến nghị" - đã có phần riêng để hiển thị bài báo.`;
 
     // 6. Call GPT with lower temperature for accuracy
     const messages = [

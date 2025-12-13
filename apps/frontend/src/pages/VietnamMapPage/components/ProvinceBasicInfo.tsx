@@ -24,9 +24,19 @@ export const ProvinceBasicInfo: React.FC<Props> = ({ info, loading }) => {
   if (!info) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
-        <div className="text-center text-gray-500 py-12">
+        {/* Title for empty state */}
+        <div className="mb-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center space-x-3">
+            <MapPin className="text-blue-600" size={24} />
+            <h3 className="text-xl font-bold text-gray-900">Thông tin cơ bản</h3>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Thông tin về đất đai, thời tiết và điều kiện canh tác</p>
+        </div>
+        
+        <div className="text-center text-gray-500 py-8">
           <MapPin className="mx-auto mb-4 text-gray-400" size={48} />
-          <p className="text-lg">Chọn một tỉnh trên bản đồ để xem thông tin</p>
+          <p className="text-lg font-medium mb-2">Chọn một tỉnh trên bản đồ</p>
+          <p className="text-sm">Thông tin sẽ được hiển thị tự động khi bạn chọn địa điểm</p>
         </div>
       </div>
     );
@@ -34,9 +44,13 @@ export const ProvinceBasicInfo: React.FC<Props> = ({ info, loading }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
-      {/* Header */}
+      {/* Header - Compact when has data */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{info.provinceName}</h2>
+        <div className="flex items-center space-x-2 mb-1">
+          <MapPin className="text-blue-600" size={20} />
+          <h3 className="text-sm font-medium text-gray-500">Thông tin cơ bản</h3>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">{info.provinceName}</h2>
       </div>
 
       {/* Temperature */}

@@ -94,9 +94,13 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
     }
   }
 
-  const handleRename = (id: string, e: React.FocusEvent<HTMLSpanElement>) => {
+  const handleRename = async (id: string, e: React.FocusEvent<HTMLSpanElement>) => {
     const newTitle = e.target.textContent?.trim() || 'Cuộc chat mới'
-    onRename(id, newTitle)
+    // Only rename if title actually changed
+    const item = items.find(i => i.id === id)
+    if (item && item.title !== newTitle) {
+      await onRename(id, newTitle)
+    }
   }
 
   return (

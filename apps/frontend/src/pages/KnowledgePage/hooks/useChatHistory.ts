@@ -36,15 +36,37 @@ export const useChatHistory = () => {
     try {
       const backendSessions = await chatHistoryService.loadSessions(50)
       
-      const convertedConversations: Conversation[] = backendSessions.map((session) => ({
-        id: session.sessionId,
-        sessionId: session.sessionId,
-        title: session.firstMessage?.substring(0, 50) || 'Chat cũ',
-        messages: [],
-        createdAt: session.lastMessageAt,
-        updatedAt: session.lastMessageAt,
-        snippet: session.firstMessage?.substring(0, 100) || ''
-      }))
+      // Load first message for each session to get snippet
+      const convertedConversations: Conversation[] = await Promise.all(
+        backendSessions.map(async (session) => {
+          let firstMessage = session.firstMessage || ''
+          let snippet = ''
+          
+          // If no firstMessage from backend, try to load it from messages
+          if (!firstMessage && session.messagesCount > 0) {
+            try {
+              const messages = await chatHistoryService.loadHistory(session.sessionId, 1, 1)
+              if (messages.length > 0 && messages[0].role === 'user') {
+                firstMessage = messages[0].message || ''
+              }
+            } catch (error) {
+              console.warn('Failed to load first message for session:', session.sessionId, error)
+            }
+          }
+          
+          snippet = firstMessage.substring(0, 100) || ''
+          
+          return {
+            id: session.sessionId,
+            sessionId: session.sessionId,
+            title: session.title || firstMessage.substring(0, 50) || 'Chat cũ',
+            messages: [],
+            createdAt: session.lastMessageAt,
+            updatedAt: session.lastMessageAt,
+            snippet: snippet || (session.messagesCount > 0 ? 'Có tin nhắn' : 'Không có tin nhắn')
+          }
+        })
+      )
 
       setConversations(convertedConversations)
       
@@ -125,11 +147,25 @@ export const useChatHistory = () => {
   }, [])
 
   // Rename conversation
-  const renameConversation = useCallback((id: string, title: string) => {
-    setConversations((prev) =>
-      prev.map((conv) => (conv.id === id ? { ...conv, title } : conv))
-    )
-  }, [])
+  const renameConversation = useCallback(async (id: string, title: string) => {
+    try {
+      const conversation = conversations.find((c) => c.id === id)
+      if (conversation?.sessionId && !conversation.sessionId.startsWith('temp_')) {
+        // Update on backend
+        await chatHistoryService.updateSessionTitle(conversation.sessionId, title)
+      }
+      // Update local state
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === id ? { ...conv, title } : conv))
+      )
+    } catch (error) {
+      console.error('Failed to rename conversation:', error)
+      // Still update local state even if backend fails
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === id ? { ...conv, title } : conv))
+      )
+    }
+  }, [conversations])
 
   // Delete conversation
   const deleteConversation = useCallback(async (id: string) => {

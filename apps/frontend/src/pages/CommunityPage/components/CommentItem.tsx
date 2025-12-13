@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EditIcon, TrashIcon, ImageIcon, XIcon, CornerDownRightIcon, FlagIcon, MoreVerticalIcon } from 'lucide-react'
 import type { Comment, UpdateCommentData } from '../types/community.types'
@@ -48,6 +48,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const replyFileInputRef = useRef<HTMLInputElement>(null)
 
   const isAuthor = user && comment.author._id === user.id
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString)
@@ -148,8 +164,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       setModerationError(null)
       if (onRefresh) onRefresh()
     } catch (error: any) {
-      console.error('Error updating comment:', error)
-      
       if (error.code === 'CONTENT_MODERATION_FAILED' && error.moderationData) {
         setModerationError({
           reason: error.moderationData.reason || 'Nội dung bình luận không phù hợp với cộng đồng',
@@ -169,7 +183,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       setShowDeleteConfirm(false)
       if (onRefresh) onRefresh()
     } catch (error: any) {
-      console.error('Error deleting comment:', error)
       alert(error.message || 'Không thể xóa bình luận. Vui lòng thử lại!')
     }
   }
@@ -185,8 +198,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       setReplyImagePreviews([])
       if (onRefresh) onRefresh()
     } catch (error: any) {
-      console.error('Error replying:', error)
-      
       if (error.code === 'CONTENT_MODERATION_FAILED' && error.moderationData) {
         setModerationError({
           reason: error.moderationData.reason || 'Nội dung bình luận không phù hợp với cộng đồng',
@@ -311,28 +322,46 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             {!isEditing && user && (
               <>
                 {isAuthor && (
-                  <>
-                    <button
-                      onClick={handleEdit}
-                      className="text-xs text-gray-600 hover:text-green-600 font-medium"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="text-xs text-gray-600 hover:text-red-600 font-medium"
-                    >
-                      Xóa
-                    </button>
-                  </>
-                )}
-                {!isAuthor && (
-                  <div className="relative">
+                  <div className="relative" ref={menuRef}>
                     <button
                       onClick={() => setShowMenu(!showMenu)}
-                      className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                      className="text-xs text-gray-500 hover:text-gray-700 transition-colors p-1"
                     >
-                      <MoreVerticalIcon size={14} />
+                      <MoreVerticalIcon size={16} />
+                    </button>
+                    {showMenu && (
+                      <div className="absolute left-0 mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[100]">
+                        <button
+                          onClick={() => {
+                            setShowMenu(false)
+                            handleEdit()
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <EditIcon size={14} />
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowMenu(false)
+                            setShowDeleteConfirm(true)
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                          <TrashIcon size={14} />
+                          Xóa
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!isAuthor && (
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="text-xs text-gray-600 hover:text-gray-800 font-medium p-1"
+                    >
+                      <MoreVerticalIcon size={16} />
                     </button>
                     {showMenu && (
                       <div className="absolute left-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-[100]">

@@ -6,6 +6,7 @@ import { ProvinceBasicInfo } from './components/ProvinceBasicInfo';
 import { ProvinceRecommendations } from './components/ProvinceRecommendations';
 import { ProvinceArticles } from './components/ProvinceArticles';
 import { useProvinceInfo } from './hooks/useProvinceInfo';
+import { useProvinceRecommendation } from './hooks/useProvinceRecommendation';
 import { Map, AlertCircleIcon } from 'lucide-react';
 import { ComplaintModal } from '../../components/ComplaintModal';
 
@@ -13,6 +14,7 @@ export const VietnamMapPage: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const { data: provinceInfo, loading, error } = useProvinceInfo(selectedProvince);
+  const { recommendation } = useProvinceRecommendation(selectedProvince);
 
   const handleProvinceSelect = (code: string) => {
     setSelectedProvince(code);
@@ -29,13 +31,15 @@ export const VietnamMapPage: React.FC = () => {
               <Map className="text-green-600" size={32} />
               <h1 className="text-3xl font-bold text-gray-900">Bản đồ Nông vụ</h1>
             </div>
-            <button
-              onClick={() => setShowComplaintModal(true)}
-              className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
-            >
-              <AlertCircleIcon size={18} />
-              <span>Khiếu nại</span>
-            </button>
+            {selectedProvince && (
+              <button
+                onClick={() => setShowComplaintModal(true)}
+                className="px-4 py-2 border border-orange-300 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors flex items-center gap-2"
+              >
+                <AlertCircleIcon size={18} />
+                <span>Khiếu nại</span>
+              </button>
+            )}
           </div>
           <p className="text-gray-600">
             Chọn một tỉnh trên bản đồ hoặc từ danh sách để xem thông tin về loại đất, cây trồng theo mùa và các bài báo liên quan
@@ -71,20 +75,18 @@ export const VietnamMapPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Section - Recommendations and Articles */}
-        {selectedProvince && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recommendations */}
-            <div>
-              <ProvinceRecommendations provinceCode={selectedProvince} />
-            </div>
-
-            {/* Articles */}
-            <div key={selectedProvince}>
-              <ProvinceArticles info={provinceInfo} loading={loading} />
-            </div>
+        {/* Bottom Section - Recommendations and Articles - Always visible */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recommendations */}
+          <div>
+            <ProvinceRecommendations provinceCode={selectedProvince} />
           </div>
-        )}
+
+          {/* Articles */}
+          <div key={selectedProvince || 'empty'}>
+            <ProvinceArticles info={provinceInfo} loading={loading} />
+          </div>
+        </div>
       </div>
 
       {/* Complaint Modal */}
@@ -94,6 +96,24 @@ export const VietnamMapPage: React.FC = () => {
         type="map"
         relatedId={selectedProvince || undefined}
         relatedType={selectedProvince ? 'map' : undefined}
+        contextData={selectedProvince ? {
+          provinceCode: selectedProvince,
+          provinceName: provinceInfo?.provinceName,
+          provinceInfo: provinceInfo ? {
+            temperature: provinceInfo.temperature,
+            weatherDescription: provinceInfo.weatherDescription,
+            soilTypes: provinceInfo.soilTypes,
+            soilDetails: provinceInfo.soilDetails,
+            currentMonth: provinceInfo.currentMonth?.month || (typeof provinceInfo.currentMonth === 'number' ? provinceInfo.currentMonth : new Date().getMonth() + 1),
+          } : null,
+          recommendation: recommendation ? {
+            season: recommendation.season,
+            crops: recommendation.crops,
+            harvesting: recommendation.harvesting,
+            weather: recommendation.weather,
+            notes: recommendation.notes,
+          } : null,
+        } : undefined}
         onSuccess={() => {
           alert('Cảm ơn bạn đã gửi khiếu nại. Chúng tôi sẽ xem xét và cải thiện tính năng bản đồ!')
         }}
