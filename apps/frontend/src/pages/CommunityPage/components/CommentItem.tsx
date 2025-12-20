@@ -225,7 +225,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         </button>
         <div className="flex-1 min-w-0">
           {isEditing ? (
-            <div className="bg-white rounded-lg px-3 py-2 border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -258,7 +258,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                     <img
                       src={preview}
                       alt="Preview"
-                      className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                      className="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                     />
                     <button
                       type="button"
@@ -287,7 +287,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg px-3 py-2 border border-gray-200">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => navigate(`/users/${comment.author._id}`)}
                 className="font-medium text-sm text-gray-900 hover:text-green-600 transition-colors cursor-pointer"
@@ -432,7 +432,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                       <img
                         src={preview}
                         alt="Preview"
-                        className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                        className="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                       />
                       <button
                         type="button"
@@ -471,7 +471,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
           {/* Replies */}
           {Array.isArray(comment.replies) && comment.replies.length > 0 && (
-            <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200">
+            <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
               {comment.replies.map((reply: Comment) => (
                 <CommentItem
                   key={reply._id}
@@ -491,7 +491,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Xác nhận xóa bình luận
             </h3>

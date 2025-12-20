@@ -4,6 +4,7 @@ import LoginForm from './LoginFrom'
 import RegisterForm from './RegisterFrom'
 import VerificationScreen from './VerificationScreen'
 import ForgotPasswordForm from './ForgotPasswordForm'
+import iconHeader from '../../../assets/icons/iconHeader_GreenGrow.png'
 interface AuthCardProps {
   isDarkMode: boolean
   showToast: (message: string, type: 'success' | 'error' | 'info') => void
@@ -51,25 +52,40 @@ export const AuthCard: React.FC<AuthCardProps> = ({
   }
   return (
     <div
-      className={`w-full max-w-md rounded-xl overflow-hidden ${cardClasses}`}
+      className={`w-full max-w-md rounded-xl ${cardClasses} relative overflow-visible`}
     >
       {/* Logo */}
-      <div className="flex justify-center py-6">
-        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-7 h-7"
-          >
-            <path d="M6.8 22c-1.3 0-1.7-.1-2.2-.5-.5-.3-.8-.8-1.1-1.8L2 14.3c-.3-1.3 0-1.7.3-2.2.4-.5 1-.8 2.1-1.1L12.4 9c1.3-.3 1.7 0 2.2.3.5.4.8 1 1.1 2.1l1.6 5.4c.3 1.3 0 1.7-.3 2.2-.4.5-1 .8-2.1 1.1L6.8 22z" />
-            <path d="M2 14.3l10.4-2" />
-            <path d="M15.7 11.3L20 8.1c1.3-.8 1.9-.7 2.5-.3.7.4 1 1.1 1 2.5V16c0 1.4-.3 2.1-1 2.5-.7.4-1.2.5-2.5-.3L15.7 15" />
-          </svg>
+      <div className="flex justify-center py-8 overflow-visible relative z-50">
+        <div className="relative w-12 h-12 bg-green-500 rounded-full flex items-center justify-center overflow-visible">
+          {/* Mũ Santa */}
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-[9999]" style={{ pointerEvents: 'none' }}>
+            <svg
+              width="55"
+              height="44"
+              viewBox="0 0 40 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="animate-bounce drop-shadow-lg"
+              style={{ animationDuration: '2s' }}
+            >
+              {/* Phần đỏ của mũ */}
+              <path
+                d="M20 2 L8 16 L32 16 Z"
+                fill="#DC2626"
+                stroke="#1F2937"
+                strokeWidth="1.5"
+              />
+              {/* Viền trắng dưới mũ */}
+              <ellipse cx="20" cy="16" rx="14" ry="3" fill="white" stroke="#1F2937" strokeWidth="1" />
+              {/* Quả bông trắng trên đỉnh mũ */}
+              <circle cx="20" cy="2" r="3" fill="white" stroke="#1F2937" strokeWidth="1" />
+            </svg>
+          </div>
+          <img 
+            src={iconHeader} 
+            alt="GreenGrow Icon" 
+            className="w-8 h-8"
+          />
         </div>
         <div className="ml-2 flex flex-col justify-center">
           <h1
@@ -85,14 +101,16 @@ export const AuthCard: React.FC<AuthCardProps> = ({
         </div>
       </div>
       {view === 'verification' ? (
-        <VerificationScreen
-          email={email}
-          isDarkMode={isDarkMode}
-          onResendEmail={handleResendEmail}
-          onBackToLogin={() => setView('login')}
-        />
+        <div className="overflow-hidden">
+          <VerificationScreen
+            email={email}
+            isDarkMode={isDarkMode}
+            onResendEmail={handleResendEmail}
+            onBackToLogin={() => setView('login')}
+          />
+        </div>
       ) : view === 'forgot-password' ? (
-        <div className="p-6">
+        <div className="p-6 overflow-hidden">
           <ForgotPasswordForm
             isDarkMode={isDarkMode}
             showToast={showToast}
@@ -103,7 +121,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
           />
         </div>
       ) : (
-        <>
+        <div className="overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b border-gray-200 dark:border-gray-700">
             <button
@@ -131,7 +149,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
               />
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )

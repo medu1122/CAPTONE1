@@ -40,6 +40,16 @@ const userSchema = new mongoose.Schema(
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    blockedUntil: {
+      type: Date,
+      default: null,
+    },
+    blockReason: {
+      type: String,
+      maxlength: 500,
+      default: null,
+      trim: true,
+    },
     mutedUntil: {
       type: Date,
       default: null,
@@ -55,6 +65,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
       trim: true,
+    },
+    phoneVerified: {
+      type: Boolean,
+      default: false,
     },
     bio: {
       type: String,
@@ -73,7 +87,7 @@ const userSchema = new mongoose.Schema(
     },
     settings: {
       emailNotifications: { type: Boolean, default: true },
-      smsNotifications: { type: Boolean, default: false },
+      smsNotifications: { type: Boolean, default: false }, // Only enabled if phoneVerified = true
       language: { type: String, default: 'vi', enum: ['vi', 'en'] },
       theme: { type: String, default: 'light', enum: ['light', 'dark'] },
       privacy: {

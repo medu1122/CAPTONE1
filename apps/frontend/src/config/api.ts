@@ -160,7 +160,8 @@ export const API_CONFIG = {
       REFRESH_STRATEGY: '/plant-boxes/:id/refresh-strategy',
       CHAT: '/plant-boxes/:id/chat',
       ADD_NOTE: '/plant-boxes/:id/notes',
-      ADD_IMAGE: '/plant-boxes/:id/images'
+      ADD_IMAGE: '/plant-boxes/:id/images',
+      COMPLETE_TASK: '/plant-boxes/complete-task'
     },
     TREATMENTS: {
       SEARCH_DISEASES: '/treatments/search-diseases'

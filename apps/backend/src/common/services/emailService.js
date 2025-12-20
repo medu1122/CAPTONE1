@@ -594,6 +594,39 @@ Email này được gửi tự động, vui lòng không trả lời.
   }
 
   /**
+   * Gửi email thông báo task reminder cho plant box
+   * @param {string} to - Email người nhận
+   * @param {string} name - Tên người dùng
+   * @param {string} htmlContent - HTML content của email
+   * @param {string} textContent - Text content của email
+   * @param {string} subject - Email subject
+   * @returns {Promise<object>} Kết quả gửi email
+   */
+  async sendCustomEmail(to, name, htmlContent, textContent, subject) {
+    try {
+      const mailOptions = {
+        from: process.env.FROM_EMAIL || 'GreenGrow <noreply@greengrow.com>',
+        to: to,
+        subject: subject,
+        html: htmlContent,
+        text: textContent,
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      
+      console.log(`✅ Custom email sent to ${to}`);
+      return {
+        success: true,
+        messageId: result.messageId,
+        to: to,
+      };
+    } catch (error) {
+      console.error('❌ Failed to send custom email:', error.message);
+      throw httpError(500, 'Failed to send email');
+    }
+  }
+
+  /**
    * Text template cho password change notification
    */
   getPasswordChangeEmailText(name, timestamp, ipAddress, userAgent) {

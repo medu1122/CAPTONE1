@@ -5,6 +5,7 @@ import { emailVerificationService } from '../../services/emailVerificationServic
 import { useAuth } from '../../contexts/AuthContext'
 import { authService } from '../../services/authService'
 import { Toast } from '../../components/ui/Toast'
+import { SnowEffect } from '../AuthPage/components/SnowEffect'
 
 type VerificationStatus = 'loading' | 'success' | 'error' | 'pending'
 
@@ -17,6 +18,7 @@ export const EmailVerificationPage: React.FC = () => {
   const [message, setMessage] = useState('')
   const [email, setEmail] = useState('')
   const [isResending, setIsResending] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const [toast, setToast] = useState<{
     message: string
     type: 'success' | 'error' | 'info'
@@ -29,6 +31,21 @@ export const EmailVerificationPage: React.FC = () => {
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  // Check system preference for dark mode
+  useEffect(() => {
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    setIsDarkMode(darkModeMediaQuery.matches)
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches)
+    }
+    darkModeMediaQuery.addEventListener('change', handleChange)
+    return () => darkModeMediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => !prev)
   }
 
   // Check if user is already verified and redirect
@@ -208,14 +225,63 @@ export const EmailVerificationPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <SnowEffect isDarkMode={isDarkMode} />
+      
+      {/* Dark mode toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800 text-yellow-300' : 'bg-white text-gray-700'}`}
+          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className={`max-w-md w-full rounded-lg shadow-lg p-8 relative z-10 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto flex items-center justify-center mb-4">
             {getStatusIcon()}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             Xác thực Email
           </h1>
           <p className={`text-sm ${getStatusColor()}`}>
@@ -236,7 +302,7 @@ export const EmailVerificationPage: React.FC = () => {
                 </p>
               )}
             </div>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className={`text-sm mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Bạn sẽ được chuyển hướng đến trang đăng nhập trong giây lát...
             </p>
             <button
@@ -258,7 +324,7 @@ export const EmailVerificationPage: React.FC = () => {
             
             {/* Resend email form */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 Email để gửi lại xác thực:
               </label>
               <input
@@ -266,7 +332,7 @@ export const EmailVerificationPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your.email@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
               />
             </div>
             
@@ -326,7 +392,7 @@ export const EmailVerificationPage: React.FC = () => {
 
         {status === 'loading' && (
           <div className="text-center">
-            <p className="text-gray-600 text-sm">
+            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               Đang xác thực email của bạn...
             </p>
           </div>
@@ -336,7 +402,7 @@ export const EmailVerificationPage: React.FC = () => {
         <div className="mt-6 text-center">
           <button
             onClick={handleBackToLogin}
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            className={`inline-flex items-center text-sm transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800'}`}
           >
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Quay lại trang chủ

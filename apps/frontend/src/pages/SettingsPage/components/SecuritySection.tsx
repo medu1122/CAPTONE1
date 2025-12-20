@@ -10,13 +10,13 @@ export const SecuritySection: React.FC<SecuritySectionProps> = () => {
   const navigate = useNavigate()
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Bảo mật</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Bảo mật</h2>
       </div>
 
       <div>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 dark:text-gray-300 mb-4">
           Đảm bảo tài khoản của bạn an toàn bằng cách thay đổi mật khẩu thường xuyên.
         </p>
         <button

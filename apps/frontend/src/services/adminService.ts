@@ -50,9 +50,42 @@ export interface User {
   isVerified: boolean
   role: 'user' | 'admin'
   createdAt: string
+  updatedAt: string
   online?: boolean
+  phone?: string | null
+  bio?: string | null
+  location?: {
+    address?: string | null
+    province?: string | null
+    city?: string | null
+    coordinates?: {
+      lat?: number | null
+      lng?: number | null
+    }
+  }
+  settings?: {
+    emailNotifications?: boolean
+    smsNotifications?: boolean
+    language?: 'vi' | 'en'
+    theme?: 'light' | 'dark'
+    privacy?: {
+      profileVisibility?: 'public' | 'private' | 'friends'
+      showEmail?: boolean
+      showPhone?: boolean
+    }
+  }
+  stats?: {
+    totalPosts?: number
+    totalComments?: number
+    totalLikes?: number
+    totalPlants?: number
+    joinDate?: string | null
+    lastActiveAt?: string | null
+  }
   mutedUntil?: string | null
   muteReason?: string | null
+  blockedUntil?: string | null
+  blockReason?: string | null
 }
 
 export interface UserStats {
@@ -265,8 +298,8 @@ export const adminService = {
     return response.data.data
   },
 
-  async blockUser(userId: string, reason?: string): Promise<User> {
-    const response = await api.put(`/admin/users/${userId}/block`, { reason })
+  async blockUser(userId: string, data: { reason?: string; duration?: number }): Promise<User> {
+    const response = await api.put(`/admin/users/${userId}/block`, data)
     return response.data.data
   },
 

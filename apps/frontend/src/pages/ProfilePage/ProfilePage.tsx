@@ -155,12 +155,7 @@ export const ProfilePage: React.FC = () => {
         {/* Tab Content */}
         <div>
           {activeTab === 'basic' && (
-            <BasicInfoSection
-              profile={profile}
-              onUpdate={handleUpdateProfile}
-              onUploadImage={handleUploadImage}
-              showToast={showToast}
-            />
+            <BasicInfoSection profile={profile} />
           )}
           {activeTab === 'address' && (
             <AddressSection

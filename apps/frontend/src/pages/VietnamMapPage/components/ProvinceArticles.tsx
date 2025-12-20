@@ -26,14 +26,14 @@ export const ProvinceArticles: React.FC<Props> = ({ info, loading }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         {/* Header */}
-        <div className="flex items-center space-x-2 mb-4 pb-4 border-b border-gray-200">
+        <div className="flex items-center space-x-2 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
           <div className="p-2 bg-blue-100 rounded-lg">
             <Newspaper className="text-blue-600" size={20} />
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900">Bài báo liên quan</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Bài báo liên quan</h3>
             <p className="text-sm text-gray-500">Tin tức về thời tiết, thiên tai và nông nghiệp</p>
           </div>
           <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
@@ -63,13 +63,13 @@ export const ProvinceArticles: React.FC<Props> = ({ info, loading }) => {
 
   if (!info || !info.articles || info.articles.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         {/* Title for empty state */}
-        <div className="mb-6 pb-4 border-b border-gray-200">
+        <div className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             <Newspaper className="text-blue-600" size={24} />
             <div>
-              <h3 className="text-xl font-bold text-gray-900">Bài báo liên quan</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Bài báo liên quan</h3>
               <p className="text-sm text-gray-500 mt-1">Tin tức về thời tiết, thiên tai và nông nghiệp</p>
             </div>
           </div>
@@ -117,10 +117,10 @@ export const ProvinceArticles: React.FC<Props> = ({ info, loading }) => {
   
   if (validArticles.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="text-center text-gray-500 py-8">
           <Newspaper className="mx-auto mb-3 text-gray-400" size={40} />
-          <p className="text-gray-600">Chưa có bài báo liên quan</p>
+          <p className="text-gray-600 dark:text-gray-300">Chưa có bài báo liên quan</p>
           <p className="text-sm text-gray-500 mt-2">
             Các bài báo hiện tại không có đủ thông tin để hiển thị
           </p>
@@ -130,14 +130,14 @@ export const ProvinceArticles: React.FC<Props> = ({ info, loading }) => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       {/* Header - Compact when has data */}
       <div className="flex items-center space-x-2 mb-4">
         <div className="p-2 bg-blue-100 rounded-lg">
           <Newspaper className="text-blue-600" size={20} />
         </div>
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900">Bài báo liên quan</h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Bài báo liên quan</h3>
         </div>
         <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
           {validArticles.length} bài

@@ -15,6 +15,7 @@ import {
   addDiseaseController,
   updateDiseaseTreatmentsController,
   toggleActionCompletedController,
+  completeTaskViaTokenController,
 } from './plantBox.controller.js';
 import {
   validateCreatePlantBox,
@@ -181,6 +182,16 @@ router.put(
   '/:id/actions/toggle',
   authMiddleware,
   toggleActionCompletedController
+);
+
+/**
+ * @route GET /api/v1/plant-boxes/complete-task
+ * @desc Complete task via token (public, no auth required)
+ * @access Public
+ */
+router.get(
+  '/complete-task',
+  completeTaskViaTokenController
 );
 
 export default router;

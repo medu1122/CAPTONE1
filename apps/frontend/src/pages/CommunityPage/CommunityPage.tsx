@@ -107,9 +107,9 @@ export const CommunityPage: React.FC = () => {
   }, [postIdFromUrl, commentIdFromUrl, posts, loading, setSearchParams])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -208,8 +208,8 @@ export const CommunityPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cộng đồng</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cộng đồng</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               Chia sẻ kinh nghiệm và học hỏi từ cộng đồng nông dân
             </p>
           </div>
@@ -248,7 +248,7 @@ export const CommunityPage: React.FC = () => {
                 <LoadingSpinner />
               </div>
             ) : error ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 p-6">
                 <p className="text-red-600 mb-4">{error}</p>
                 <button
                   onClick={() => {
@@ -261,7 +261,7 @@ export const CommunityPage: React.FC = () => {
                 </button>
               </div>
             ) : posts.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 p-12 text-center">
                 <p className="text-gray-500 text-lg">
                   Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!
                 </p>
@@ -300,7 +300,7 @@ export const CommunityPage: React.FC = () => {
                     >
                       Trước
                     </button>
-                    <span className="px-4 py-2 text-gray-700">
+                    <span className="px-4 py-2 text-gray-700 dark:text-gray-200">
                       Trang {pagination.page} / {pagination.totalPages}
                     </span>
                     <button

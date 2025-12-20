@@ -33,7 +33,7 @@ export const DangerSection: React.FC<DangerSectionProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-red-200">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2 border-red-200 dark:border-red-900">
       <div className="flex items-center gap-2 mb-6">
         <AlertTriangleIcon className="text-red-600" size={24} />
         <h2 className="text-xl font-semibold text-red-600">Vùng nguy hiểm</h2>
@@ -41,8 +41,8 @@ export const DangerSection: React.FC<DangerSectionProps> = ({
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Xóa tài khoản</h3>
-          <p className="text-sm text-gray-600 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Xóa tài khoản</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
             Khi bạn xóa tài khoản, tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn và không thể khôi phục.
             Hãy chắc chắn trước khi thực hiện hành động này.
           </p>
@@ -56,13 +56,13 @@ export const DangerSection: React.FC<DangerSectionProps> = ({
               Xóa tài khoản
             </button>
           ) : (
-            <div className="space-y-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center gap-2 text-red-800">
+            <div className="space-y-4 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg">
+              <div className="flex items-center gap-2 text-red-800 dark:text-red-400">
                 <AlertTriangleIcon size={20} />
                 <span className="font-medium">Cảnh báo: Hành động này không thể hoàn tác!</span>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nhập mật khẩu để xác nhận
                 </label>
                 <input
@@ -70,7 +70,7 @@ export const DangerSection: React.FC<DangerSectionProps> = ({
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="Nhập mật khẩu của bạn"
-                  className="w-full px-4 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-red-300 dark:border-red-800 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                 />
               </div>
               <div className="flex gap-2">
@@ -87,7 +87,7 @@ export const DangerSection: React.FC<DangerSectionProps> = ({
                     setDeletePassword('')
                   }}
                   disabled={loading}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Hủy
                 </button>

@@ -10,7 +10,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['reply', 'like', 'mention', 'comment'],
+      enum: ['reply', 'like', 'mention', 'comment', 'task_completed'],
       required: true,
     },
     read: {

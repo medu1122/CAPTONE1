@@ -277,6 +277,7 @@ const getUserProfile = async (userId) => {
     isVerified: user.isVerified,
     // Profile fields
     phone: user.phone,
+    phoneVerified: user.phoneVerified || false,
     bio: user.bio,
     location: user.location,
     // Settings
@@ -502,7 +503,7 @@ const updateProfile = async (userId, profileData) => {
         };
       } else if (field === 'settings' && typeof profileData[field] === 'object') {
         // Merge settings object
-        user.settings = {
+        const newSettings = {
           ...user.settings,
           ...profileData[field],
           privacy: {
@@ -510,6 +511,18 @@ const updateProfile = async (userId, profileData) => {
             ...profileData[field]?.privacy,
           },
         };
+        
+        // Validate SMS notifications: only allow if phone is verified
+        if (newSettings.smsNotifications === true && !user.phoneVerified) {
+          throw httpError(400, 'Không thể bật thông báo SMS. Vui lòng xác thực số điện thoại trước.');
+        }
+        
+        // If phone is not verified, force SMS notifications to false
+        if (!user.phoneVerified) {
+          newSettings.smsNotifications = false;
+        }
+        
+        user.settings = newSettings;
       } else {
         user[field] = profileData[field];
       }

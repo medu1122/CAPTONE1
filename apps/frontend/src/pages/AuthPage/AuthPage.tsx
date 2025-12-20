@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { AuthCard } from './components/AuthCard'
 import { Toast } from '../../components/ui/Toast'
+import { SnowEffect } from './components/SnowEffect'
 export const AuthPage: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [toast, setToast] = useState<{
@@ -36,6 +37,7 @@ export const AuthPage: React.FC = () => {
     <div
       className={`min-h-screen w-full flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}
     >
+      <SnowEffect isDarkMode={isDarkMode} />
       <div className="absolute top-4 right-4">
         <button
           onClick={toggleTheme}

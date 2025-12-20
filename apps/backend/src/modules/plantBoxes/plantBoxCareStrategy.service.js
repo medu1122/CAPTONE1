@@ -190,16 +190,19 @@ export const generateCareStrategy = async ({ plantBox, weather }) => {
             } else if (severityScore >= 7) {
               info += `\n⚠️⚠️⚠️ HÀNH ĐỘNG CẦN THIẾT (Điểm ${severityScore}/10 - NẶNG):\n`;
               info += `   - PHẢI có 3-4 hành động điều trị trong 4 ngày đầu (ngày 1, 2, 3, 4)\n`;
+              info += `   - Phun thuốc 1 lần/ngày (sáng hoặc chiều)\n`;
               info += `   - KẾT HỢP: thuốc hóa học + sinh học + canh tác (mỗi cái là ACTION RIÊNG)\n`;
             } else if (severityScore >= 5) {
               info += `\n⚠️ HÀNH ĐỘNG CẦN THIẾT (Điểm ${severityScore}/10 - TRUNG BÌNH):\n`;
               info += `   - PHẢI có 2-3 hành động điều trị trong 3 ngày đầu (ngày 1, 2, 3)\n`;
+              info += `   - Phun thuốc cách ngày (ngày 1, 3) hoặc 1 lần/ngày trong 2 ngày đầu\n`;
               info += `   - KẾT HỢP: thuốc hóa học + sinh học (mỗi cái là ACTION RIÊNG)\n`;
             } else if (severityScore >= 3) {
               info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Điểm ${severityScore}/10 - ĐỠ HƠN):\n`;
-              info += `   - CHỈ có 1 hành động điều trị trong ngày đầu (ngày 1)\n`;
-              info += `   - CHUYỂN SANG phương pháp sinh học và canh tác (KHÔNG dùng thuốc hóa học)\n`;
-              info += `   - Mỗi phương pháp là ACTION RIÊNG BIỆT\n`;
+              info += `   - GIẢM TẦN SUẤT: chỉ phun thuốc 1 lần trong 2-3 ngày đầu (ví dụ: ngày 1 hoặc ngày 2)\n`;
+              info += `   - KHÔNG BỎ THUỐC HOÀN TOÀN, chỉ giảm tần suất (từ mỗi ngày → cách ngày → 1 lần/3 ngày)\n`;
+              info += `   - Tăng cường phương pháp sinh học và canh tác (mỗi cái là ACTION RIÊNG)\n`;
+              info += `   - Ưu tiên sinh học và canh tác, nhưng vẫn cần thuốc để củng cố điều trị\n`;
             } else {
               info += `\n✅ HÀNH ĐỘNG CẦN THIẾT (Điểm ${severityScore}/10 - ĐÃ KHỎI/PHỤC HỒI):\n`;
               info += `   - KHÔNG có hành động điều trị tích cực (KHÔNG phun thuốc)\n`;
@@ -281,10 +284,16 @@ ${plantBox.plantedDate ? (() => {
 ${plantBox.location.soilType && plantBox.location.soilType.length > 0 
   ? `- Đất: ${Array.isArray(plantBox.location.soilType) ? plantBox.location.soilType.join(', ') : plantBox.location.soilType}` 
   : ''}
-${plantBox.location.sunlight ? `- Ánh sáng: ${plantBox.location.sunlight}` : ''}
-${plantBox.growthStage ? `- Giai đoạn: ${plantBox.growthStage}` : ''}
-${plantBox.currentHealth ? `- Sức khỏe: ${plantBox.currentHealth}` : ''}
-${plantBox.careLevel ? `- Chăm sóc: ${plantBox.careLevel}` : ''}
+${plantBox.location.sunlight ? `- Ánh sáng: ${plantBox.location.sunlight === 'full' ? 'Đầy đủ' : plantBox.location.sunlight === 'partial' ? 'Một phần' : 'Bóng râm'}` : ''}
+${plantBox.location.area ? `- Diện tích: ${plantBox.location.area}m²` : ''}
+${plantBox.quantity ? `- Số lượng: ${plantBox.quantity} cây` : ''}
+${plantBox.growthStage ? `- Giai đoạn: ${plantBox.growthStage === 'seed' ? 'Hạt giống' : plantBox.growthStage === 'seedling' ? 'Cây con' : plantBox.growthStage === 'vegetative' ? 'Sinh trưởng' : plantBox.growthStage === 'flowering' ? 'Ra hoa' : 'Đậu quả'}` : ''}
+${plantBox.currentHealth ? `- Sức khỏe: ${plantBox.currentHealth === 'excellent' ? 'Tuyệt vời' : plantBox.currentHealth === 'good' ? 'Tốt' : plantBox.currentHealth === 'fair' ? 'Bình thường' : 'Yếu'}` : ''}
+${plantBox.careLevel ? `- Mức độ chăm sóc: ${plantBox.careLevel === 'low' ? 'Thấp' : plantBox.careLevel === 'medium' ? 'Trung bình' : 'Cao'}` : ''}
+${plantBox.wateringMethod ? `- Phương pháp tưới: ${plantBox.wateringMethod === 'manual' ? 'Tưới tay' : plantBox.wateringMethod === 'drip' ? 'Tưới nhỏ giọt' : 'Tưới phun'}` : ''}
+${plantBox.fertilizerType ? `- Loại phân bón: ${plantBox.fertilizerType}` : ''}
+${plantBox.specialRequirements ? `- Yêu cầu đặc biệt: ${plantBox.specialRequirements}` : ''}
+${plantBox.companionPlants && plantBox.companionPlants.length > 0 ? `- Cây trồng kèm: ${plantBox.companionPlants.join(', ')}` : ''}
 ${fruitingInfo.isFruitingSeason ? `- ⚠️ Đang mùa ra trái` : ''}
 ${activeDiseases.length > 0 ? `
 🦠 BỆNH CẦN ĐIỀU TRỊ:
@@ -332,9 +341,9 @@ YÊU CẦU:
 ${activeDiseases.length > 0 ? `
 🚨 ƯU TIÊN: Điều trị bệnh dựa trên ĐIỂM SỐ (xem phần 📊 Điểm số ở trên):
 - Điểm 9-10: 4 hành động/4 ngày đầu, phun 2 lần/ngày, kết hợp thuốc+sinh học+canh tác (mỗi cái ACTION RIÊNG)
-- Điểm 7-8: 3-4 hành động/4 ngày đầu, kết hợp thuốc+sinh học+canh tác (mỗi cái ACTION RIÊNG)
-- Điểm 5-6: 2-3 hành động/3 ngày đầu, kết hợp thuốc+sinh học (mỗi cái ACTION RIÊNG)
-- Điểm 3-4: 1 hành động/ngày đầu, CHỈ dùng sinh học+canh tác (KHÔNG thuốc hóa học, mỗi cái ACTION RIÊNG)
+- Điểm 7-8: 3-4 hành động/4 ngày đầu, phun 1 lần/ngày, kết hợp thuốc+sinh học+canh tác (mỗi cái ACTION RIÊNG)
+- Điểm 5-6: 2-3 hành động/3 ngày đầu, phun thuốc cách ngày (ngày 1, 3) hoặc 1 lần/ngày trong 2 ngày đầu, kết hợp thuốc+sinh học (mỗi cái ACTION RIÊNG)
+- Điểm 3-4: GIẢM TẦN SUẤT (KHÔNG BỎ THUỐC): chỉ phun thuốc 1 lần trong 2-3 ngày đầu (ví dụ: ngày 1 hoặc ngày 2), tăng cường sinh học+canh tác (mỗi cái ACTION RIÊNG)
 - Điểm 0-2: KHÔNG phun thuốc, CHỈ 1-2 hành động phòng ngừa (canh tác/sinh học nhẹ, mỗi cái ACTION RIÊNG)
 
 BẮT BUỘC:
@@ -349,7 +358,18 @@ ${plantBox.plantedDate ? (() => {
     : ''
 })() : ''}
 ` : ''}
-- Tưới nước: CHỈ khi nhãn thời tiết yêu cầu (xem phần "Nhu cầu tưới" ở trên)
+- Tưới nước: 
+  * PHẢI dựa trên TẦN SUẤT TƯỚI CỤ THỂ cho từng loại cây:
+    - Cà chua: 3-7 lần/tuần (thời tiết mát: 2-3 lần/tuần, nắng nóng: 4-7 lần/tuần)
+    - Cây con mới trồng (1-2 tuần đầu): tưới nhẹ nhưng đều, thường mỗi ngày hoặc cách ngày
+    - Đang ra hoa - đậu quả: cần nước ổn định, thường 3-5 lần/tuần
+    - Mẹo: chọc tay xuống đất 2-3 cm — nếu khô thì tưới, nếu ẩm thì chưa cần
+  * Kết hợp với "Nhu cầu tưới" từ thời tiết (nếu thời tiết báo cần tưới thì ưu tiên)
+  * Tưới buổi sáng sớm (07:00-08:00), tránh tưới lên lá (dễ bệnh)
+  * Nếu mưa > 5mm trong ngày thì KHÔNG cần tưới
+  * ${plantBox.quantity ? `Lưu ý: ${plantBox.quantity} cây - cần đủ nước cho tất cả` : ''}
+  * ${plantBox.location.area ? `Diện tích ${plantBox.location.area}m² - tính lượng nước phù hợp` : ''}
+  * ${plantBox.wateringMethod ? `Phương pháp ${plantBox.wateringMethod === 'drip' ? 'nhỏ giọt' : plantBox.wateringMethod === 'sprinkler' ? 'phun' : 'tay'} - ${plantBox.wateringMethod === 'drip' ? 'tần suất có thể thấp hơn' : plantBox.wateringMethod === 'sprinkler' ? 'tần suất trung bình' : 'tần suất cao hơn'}` : ''}
 - Mỗi hành động: time cụ thể (07:00, 17:00), description CỤ THỂ, reason dựa trên thời tiết/tình trạng
 ${fruitingInfo.isFruitingSeason ? '- ⚠️ Đang mùa ra trái, cần chăm sóc đặc biệt' : ''}
 
@@ -694,38 +714,83 @@ const createFallbackStrategy = (plantBox, weather) => {
         
         // Determine treatment days based on score
         let shouldTreat = false;
-        if (score >= 9 && index < 4) shouldTreat = true; // 4 days for critical
-        else if (score >= 7 && index < 4) shouldTreat = true; // 4 days for severe
-        else if (score >= 5 && index < 3) shouldTreat = true; // 3 days for moderate
-        else if (score >= 3 && index < 1) shouldTreat = true; // 1 day for improving
+        let treatmentFrequency = 'daily'; // daily, every-other-day, once-per-3days
+        if (score >= 9 && index < 4) {
+          shouldTreat = true;
+          treatmentFrequency = 'twice-daily'; // 2 lần/ngày
+        } else if (score >= 7 && index < 4) {
+          shouldTreat = true;
+          treatmentFrequency = 'daily'; // 1 lần/ngày
+        } else if (score >= 5 && index < 3) {
+          shouldTreat = true;
+          treatmentFrequency = 'every-other-day'; // Cách ngày
+        } else if (score >= 3 && index < 3) {
+          shouldTreat = true;
+          treatmentFrequency = 'once-per-3days'; // 1 lần trong 2-3 ngày đầu (GIẢM TẦN SUẤT, KHÔNG BỎ)
+        }
         // score 0-2: no treatment (resolved)
         
         if (shouldTreat && score >= 3) {
-          // Only use chemical if score >= 5, otherwise use biological/cultural
-          if (score >= 5 && selectedChemical) {
-            actions.push({
-              _id: `action_${index}_${dIdx}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              type: 'protect',
-              time: index === 0 ? '07:00' : '17:00',
-              description: `Phun thuốc ${productName}${dosage ? ` (${dosage})` : ''}`,
-              reason: `Điều trị bệnh ${disease.name} (điểm ${score}/10). Sử dụng ${productName} theo hướng dẫn.`,
-              products: [productName],
-              completed: false,
-            });
-          }
-          
-          // Add biological/cultural as separate actions for lower scores or as supplement
-          if (score < 5 || (score >= 5 && index % 2 === 1)) {
-            // Add biological method as separate action
-            actions.push({
-              _id: `action_${index}_${dIdx}_bio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              type: 'protect',
-              time: '17:00',
-              description: `Áp dụng phương pháp sinh học để điều trị bệnh ${disease.name}`,
-              reason: `Kết hợp phương pháp sinh học với thuốc hóa học để tăng hiệu quả điều trị bệnh ${disease.name} (điểm ${score}/10).`,
-              products: [],
-              completed: false,
-            });
+          // For score 3-4: GIẢM TẦN SUẤT (chỉ 1 lần trong 2-3 ngày đầu), KHÔNG BỎ THUỐC
+          if (score >= 3 && score < 5) {
+            // Chỉ phun thuốc 1 lần trong ngày đầu hoặc ngày 2
+            if (index === 0 || (index === 1 && selectedChemical)) {
+              if (selectedChemical) {
+                actions.push({
+                  _id: `action_${index}_${dIdx}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  type: 'protect',
+                  time: index === 0 ? '07:00' : '17:00',
+                  description: `Phun thuốc ${productName}${dosage ? ` (${dosage})` : ''} - Giảm tần suất do bệnh đã đỡ hơn`,
+                  reason: `Điều trị bệnh ${disease.name} (điểm ${score}/10 - đỡ hơn). Giảm tần suất sử dụng thuốc, tăng cường phương pháp sinh học và canh tác.`,
+                  products: [productName],
+                  completed: false,
+                });
+              }
+            }
+            // Luôn thêm sinh học và canh tác cho score 3-4
+            if (index < 2) {
+              actions.push({
+                _id: `action_${index}_${dIdx}_bio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'protect',
+                time: '17:00',
+                description: `Áp dụng phương pháp sinh học để điều trị bệnh ${disease.name}`,
+                reason: `Tăng cường phương pháp sinh học do bệnh ${disease.name} đã đỡ hơn (điểm ${score}/10). Kết hợp với thuốc hóa học để củng cố điều trị.`,
+                products: [],
+                completed: false,
+              });
+            }
+          } else if (score >= 5 && selectedChemical) {
+            // Score >= 5: sử dụng thuốc theo tần suất
+            const shouldSpray = treatmentFrequency === 'twice-daily' ? true :
+                               treatmentFrequency === 'daily' ? true :
+                               treatmentFrequency === 'every-other-day' ? (index % 2 === 0) : false;
+            
+            if (shouldSpray) {
+              actions.push({
+                _id: `action_${index}_${dIdx}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'protect',
+                time: treatmentFrequency === 'twice-daily' && index === 0 ? '07:00' : 
+                      treatmentFrequency === 'twice-daily' ? '17:00' :
+                      index === 0 ? '07:00' : '17:00',
+                description: `Phun thuốc ${productName}${dosage ? ` (${dosage})` : ''}`,
+                reason: `Điều trị bệnh ${disease.name} (điểm ${score}/10). Sử dụng ${productName} theo hướng dẫn.`,
+                products: [productName],
+                completed: false,
+              });
+            }
+            
+            // Add biological/cultural as separate actions
+            if (index % 2 === 1 || treatmentFrequency === 'twice-daily') {
+              actions.push({
+                _id: `action_${index}_${dIdx}_bio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'protect',
+                time: '17:00',
+                description: `Áp dụng phương pháp sinh học để điều trị bệnh ${disease.name}`,
+                reason: `Kết hợp phương pháp sinh học với thuốc hóa học để tăng hiệu quả điều trị bệnh ${disease.name} (điểm ${score}/10).`,
+                products: [],
+                completed: false,
+              });
+            }
           }
         } else if (score >= 1 && score <= 2 && index < 2) {
           // Prevention only for resolved/almost resolved

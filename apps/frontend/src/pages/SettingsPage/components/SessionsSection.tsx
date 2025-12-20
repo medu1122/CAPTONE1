@@ -45,15 +45,15 @@ export const SessionsSection: React.FC<SessionsSectionProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
       <div className="flex items-center gap-2 mb-6">
         <LogOutIcon className="text-green-600" size={24} />
-        <h2 className="text-xl font-semibold text-gray-900">Phiên đăng nhập</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Phiên đăng nhập</h2>
       </div>
 
       <div className="space-y-4">
         <div>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Quản lý các phiên đăng nhập của bạn trên các thiết bị khác nhau.
           </p>
         </div>
@@ -93,7 +93,7 @@ export const SessionsSection: React.FC<SessionsSectionProps> = ({
               <button
                 onClick={() => setShowLogoutAllConfirm(false)}
                 disabled={loading}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 Hủy
               </button>

@@ -350,10 +350,10 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
   if (!isOpen) return null
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Tạo Plant Box mới</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tạo Plant Box mới</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -363,7 +363,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
           {[
             {
               id: 'basic',
@@ -565,7 +565,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                   {boxImage.preview && (
                     <div className="relative flex items-center gap-2">
                       <img src={boxImage.preview} alt="Preview" className="h-16 w-16 object-cover rounded-md" />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         {boxImage.file?.name}
                       </span>
                       <button
@@ -576,7 +576,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                             imageInputRef.current.value = ''
                           }
                         }}
-                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"
+                        className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 dark:text-gray-300"
                       >
                         <XCircle size={14} />
                       </button>
@@ -975,7 +975,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     placeholder="1"
                   />
-                  <span className="text-gray-600">cây</span>
+                  <span className="text-gray-600 dark:text-gray-300">cây</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   💡 Giai đoạn sẽ tự động tính từ ngày trồng
@@ -1004,7 +1004,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
               <div className="border-t border-gray-200 pt-4 mt-4">
                 <div className="flex items-center gap-2 mb-4">
                   <AlertCircleIcon size={20} className="text-orange-600" />
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                     Tình trạng sức khỏe cây
                   </label>
                 </div>
@@ -1022,7 +1022,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                       }}
                       className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-sm text-gray-700 dark:text-gray-200">
                       Cây đang có vấn đề về sức khỏe / bệnh
                     </span>
                   </label>
@@ -1031,9 +1031,9 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
                 {hasHealthIssue && (
                   <div className="space-y-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
                     {diseases.map((disease, index) => (
-                      <div key={index} className="bg-white border border-orange-300 rounded-lg p-4">
+                      <div key={index} className="bg-white dark:bg-gray-800 border border-orange-300 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold text-gray-900">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
                             Bệnh #{index + 1}
                           </h4>
                           <button
@@ -1250,7 +1250,7 @@ export const CreateBoxModal: React.FC<CreateBoxModalProps> = ({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}

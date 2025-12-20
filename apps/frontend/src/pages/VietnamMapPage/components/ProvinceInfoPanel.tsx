@@ -10,7 +10,7 @@ interface Props {
 export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-3/4"></div>
           <div className="h-4 bg-gray-200 rounded"></div>
@@ -22,7 +22,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
 
   if (!info) {
     return (
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="text-center text-gray-500 py-12">
           <MapPin className="mx-auto mb-4 text-gray-400" size={48} />
           <p className="text-lg">Chọn một tỉnh trên bản đồ để xem thông tin</p>
@@ -38,7 +38,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">{info.provinceName}</h2>
@@ -49,7 +49,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
         <div className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg">
           <Thermometer className="text-blue-600" size={24} />
           <div>
-            <p className="text-sm text-gray-600">Nhiệt độ hiện tại</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Nhiệt độ hiện tại</p>
             <p className="text-2xl font-bold text-blue-600">{info.temperature}°C</p>
             {info.weatherDescription && (
               <p className="text-xs text-gray-500 mt-1">{info.weatherDescription}</p>
@@ -63,7 +63,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
         <div>
           <div className="flex items-center space-x-2 mb-3">
             <Droplets className="text-green-600" size={20} />
-            <h3 className="font-semibold text-gray-900">Loại đất chính</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Loại đất chính</h3>
           </div>
           <div className="space-y-3">
             {info.soilDetails.map((soil, idx) => (
@@ -96,7 +96,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
         <div>
           <div className="flex items-center space-x-2 mb-3">
             <Droplets className="text-green-600" size={20} />
-            <h3 className="font-semibold text-gray-900">Loại đất chính</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Loại đất chính</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             {info.soilTypes.map((soil, idx) => (
@@ -165,7 +165,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
         <div>
           <div className="flex items-center space-x-2 mb-3">
             <Newspaper className="text-blue-600" size={20} />
-            <h3 className="font-semibold text-gray-900">Bài báo liên quan</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Bài báo liên quan</h3>
           </div>
           <ul className="space-y-2">
             {info.articles.map((article, idx) => (
@@ -189,7 +189,7 @@ export const ProvinceInfoPanel: React.FC<Props> = ({ info, loading }) => {
       )}
 
       {/* Source */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
         <p className="text-xs text-gray-500">
           Nguồn: {info.source}
         </p>

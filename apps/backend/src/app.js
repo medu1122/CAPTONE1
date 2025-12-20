@@ -7,12 +7,16 @@ import morgan from 'morgan';
 import routes from './routes.js';
 import { errorMiddleware } from './common/middleware/error.js';
 import { connectDB } from './config/db.js';
+import { schedulePlantBoxNotificationCron } from './modules/plantBoxes/plantBoxNotification.cron.js';
 
 // Initialize express app
 const app = express();
 
 // Connect to database
 connectDB();
+
+// Schedule cron jobs
+schedulePlantBoxNotificationCron();
 
 // Apply middleware
 app.use(helmet());

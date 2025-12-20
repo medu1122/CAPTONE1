@@ -31,6 +31,52 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
   plantBox,
 }) => {
   const [expandedDays, setExpandedDays] = useState<number[]>([0])
+  
+  // Helper to get today's date (normalized to start of day)
+  const getTodayDate = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }
+  
+  // Helper to normalize a date string to start of day for comparison
+  const normalizeDate = (dateString: string) => {
+    const date = new Date(dateString)
+    date.setHours(0, 0, 0, 0)
+    return date
+  }
+  
+  // Find today's index in the strategy
+  const getTodayIndex = () => {
+    if (!strategy) return 0
+    const today = getTodayDate()
+    const todayIndex = strategy.next7Days.findIndex((day) => {
+      const dayDate = normalizeDate(day.date)
+      return dayDate.getTime() === today.getTime()
+    })
+    return todayIndex >= 0 ? todayIndex : 0 // Default to 0 if not found
+  }
+  
+  // Initialize expandedDays with today's index when strategy changes
+  useEffect(() => {
+    if (strategy && strategy.next7Days.length > 0) {
+      const today = getTodayDate()
+      // Check if all days in strategy are in the past
+      const allDaysPast = strategy.next7Days.every((day) => {
+        const dayDate = normalizeDate(day.date)
+        return dayDate.getTime() < today.getTime()
+      })
+      
+      // Only auto-expand today if not all days are past
+      if (!allDaysPast) {
+        const todayIdx = getTodayIndex()
+        setExpandedDays([todayIdx])
+      } else {
+        // If all days are past, don't expand any day
+        setExpandedDays([])
+      }
+    }
+  }, [strategy?.lastUpdated]) // Only reset when strategy is regenerated
   const [selectedTask, setSelectedTask] = useState<{
     action: any
     dayIndex: number
@@ -167,8 +213,20 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
     )
   }
   const formatDate = (dateString: string, dayIndex: number) => {
-    if (dayIndex === 0) return 'Hôm nay'
-    if (dayIndex === 1) return 'Ngày mai'
+    if (!strategy) {
+      if (dayIndex === 0) return 'Hôm nay'
+      if (dayIndex === 1) return 'Ngày mai'
+    }
+    
+    // Compare with actual today
+    const today = getTodayDate()
+    const dayDate = normalizeDate(dateString)
+    const diffDays = Math.floor((dayDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Hôm nay'
+    if (diffDays === 1) return 'Ngày mai'
+    if (diffDays === -1) return 'Hôm qua'
+    
     const date = new Date(dateString)
     return date.toLocaleDateString('vi-VN', {
       weekday: 'short',
@@ -245,7 +303,19 @@ export const StrategyTab: React.FC<StrategyTabProps> = ({
       {/* Days */}
       {strategy.next7Days.map((day, dayIndex) => {
         const isExpanded = expandedDays.includes(dayIndex)
-        const isToday = dayIndex === 0
+        // Calculate if this day is actually today based on date comparison
+        const today = getTodayDate()
+        const dayDate = normalizeDate(day.date)
+        
+        // Check if all days in strategy are in the past
+        const allDaysPast = strategy.next7Days.every((d) => {
+          const dDate = normalizeDate(d.date)
+          return dDate.getTime() < today.getTime()
+        })
+        
+        // Only highlight today if not all days are past
+        const isToday = !allDaysPast && dayDate.getTime() === today.getTime()
+        
         return (
           <div
             key={dayIndex}

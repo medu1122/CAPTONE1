@@ -1,19 +1,29 @@
 import React, { useState, useRef } from 'react'
-import { MapPinIcon, CalendarIcon, SproutIcon, InfoIcon, UploadIcon, XIcon } from 'lucide-react'
+import { MapPinIcon, CalendarIcon, SproutIcon, InfoIcon, UploadIcon, XIcon, MailIcon } from 'lucide-react'
 import type { PlantBox } from '../../MyPlantsPage/types/plantBox.types'
 import { imageUploadService } from '../../../services/imageUploadService'
-import { addImageToPlantBox } from '../../../services/plantBoxService'
+import { addImageToPlantBox, updatePlantBox } from '../../../services/plantBoxService'
 interface PlantOverviewCardProps {
   plantBox: PlantBox
   onImageUpload?: () => void
+  onUpdate?: (plantBox: PlantBox) => void
 }
 export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
   plantBox,
   onImageUpload,
+  onUpdate,
 }) => {
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [updatingNotifications, setUpdatingNotifications] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Get notifications settings with defaults
+  const notifications = plantBox.notifications || {
+    enabled: true,
+    email: true,
+    sms: false,
+  }
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Chưa xác định'
     const date = new Date(dateString)
@@ -163,6 +173,57 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
     fileInputRef.current?.click()
   }
 
+  const handleToggleEmailNotifications = async () => {
+    setUpdatingNotifications(true)
+    try {
+      const newEmailValue = !notifications.email
+      const updatedNotifications = {
+        ...notifications,
+        email: newEmailValue,
+        // Nếu cả email và sms đều tắt thì tắt enabled
+        enabled: newEmailValue || notifications.sms,
+      }
+      
+      const response = await updatePlantBox(plantBox._id, {
+        notifications: updatedNotifications,
+      })
+      
+      if (response.success && onUpdate) {
+        // Call onUpdate to trigger refresh in parent component
+        onUpdate(plantBox)
+      }
+    } catch (error: any) {
+      console.error('Error updating notifications:', error)
+      alert('Không thể cập nhật cài đặt thông báo: ' + (error.message || 'Lỗi không xác định'))
+    } finally {
+      setUpdatingNotifications(false)
+    }
+  }
+
+  const ToggleSwitch = ({
+    checked,
+    onChange,
+    disabled,
+  }: {
+    checked: boolean
+    onChange: () => void
+    disabled?: boolean
+  }) => (
+    <button
+      onClick={onChange}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        checked ? 'bg-green-600' : 'bg-gray-300'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  )
+
   const currentImageUrl = previewUrl || (plantBox.images && plantBox.images.length > 0 ? plantBox.images[0].url : null)
 
   return (
@@ -279,6 +340,28 @@ export const PlantOverviewCard: React.FC<PlantOverviewCardProps> = ({
               {plantBox.specialRequirements}
             </p>
           )}
+
+          {/* Email Notifications Toggle */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MailIcon size={20} className="text-gray-600" />
+                <div>
+                  <label className="text-sm font-medium text-gray-900">
+                    Thông báo qua Email
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Nhận email nhắc nhở khi đến giờ làm task
+                  </p>
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={notifications.email && notifications.enabled}
+                onChange={handleToggleEmailNotifications}
+                disabled={updatingNotifications}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -118,14 +118,14 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
           <button
             ref={toggleButtonRef}
             onClick={onOpen}
-            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 flex items-center justify-center"
             aria-label="Mở lịch sử chat"
           >
             <MenuIcon size={20} />
           </button>
           <button
             onClick={onClear}
-            className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center mt-auto"
+            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 flex items-center justify-center mt-auto"
             aria-label="Xóa tất cả lịch sử"
           >
             <TrashIcon size={20} />

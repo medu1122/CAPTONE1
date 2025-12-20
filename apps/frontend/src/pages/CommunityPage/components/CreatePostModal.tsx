@@ -238,10 +238,10 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Tạo bài viết mới</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tạo bài viết mới</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -256,7 +256,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           {/* Category Selection */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                 Danh mục
               </label>
               {suggestedCategory && suggestedCategory !== category && (
@@ -403,7 +403,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="w-full max-h-96 object-contain rounded-lg bg-gray-50 border border-gray-200"
+                        className="w-full max-h-96 object-contain rounded-lg bg-gray-50 border border-gray-200 dark:border-gray-700"
                       />
                       <button
                         type="button"
@@ -417,7 +417,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}

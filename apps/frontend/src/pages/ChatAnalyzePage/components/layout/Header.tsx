@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { UserIcon, Menu, X } from 'lucide-react'
 import { useAuth } from '../../../../contexts/AuthContext'
 import { UserMenu } from '../../../../components/UserMenu'
+import { ThemeToggle } from '../../../../components/common/ThemeToggle'
 
 export const Header: React.FC = () => {
   const { isAuthenticated } = useAuth()
@@ -13,7 +14,7 @@ export const Header: React.FC = () => {
   }
 
   return (
-    <header className="bg-white border-b py-3 px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
+    <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 py-3 px-4 md:px-6 flex items-center justify-between sticky top-0 z-50">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <img
@@ -26,7 +27,7 @@ export const Header: React.FC = () => {
 
       {/* Mobile menu button */}
       <button
-        className="md:hidden flex items-center justify-center p-2"
+        className="md:hidden flex items-center justify-center p-2 text-gray-700 dark:text-gray-200"
         onClick={toggleMobileMenu}
         aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
       >
@@ -37,63 +38,64 @@ export const Header: React.FC = () => {
       <nav className="hidden md:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
         <Link 
           to="/analyze" 
-          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
         >
           <span className="text-xl">🔬</span>
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">Phân Tích</span>
-            <span className="text-xs text-gray-500 group-hover:text-green-500">Nhận diện & bệnh</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-green-500">Nhận diện & bệnh</span>
           </div>
         </Link>
         <Link 
           to="/knowledge" 
-          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
         >
           <span className="text-xl">📚</span>
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">Kiến Thức</span>
-            <span className="text-xs text-gray-500 group-hover:text-green-500">Hỏi đáp AI</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-green-500">Hỏi đáp AI</span>
           </div>
         </Link>
         <Link 
           to="/community" 
-          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
         >
           <span className="text-xl">👥</span>
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">Cộng Đồng</span>
-            <span className="text-xs text-gray-500 group-hover:text-green-500">Chia sẻ kinh nghiệm</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-green-500">Chia sẻ kinh nghiệm</span>
           </div>
         </Link>
         <Link 
           to="/my-plants" 
-          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
         >
           <span className="text-xl">🌿</span>
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">Vườn Của Tôi</span>
-            <span className="text-xs text-gray-500 group-hover:text-green-500">Quản lý cây trồng</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-green-500">Quản lý cây trồng</span>
           </div>
         </Link>
         <Link 
           to="/map" 
-          className="flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors group"
+          className="flex items-center gap-2 text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
         >
           <span className="text-xl">🗺️</span>
           <div className="flex flex-col items-start">
             <span className="text-sm font-medium">Bản đồ Nông vụ</span>
-            <span className="text-xs text-gray-500 group-hover:text-green-500">Đất đai & cây trồng</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 group-hover:text-green-500">Đất đai & cây trồng</span>
           </div>
         </Link>
       </nav>
 
       {/* Desktop Auth buttons */}
       <div className="hidden md:flex items-center gap-3">
+        <ThemeToggle />
         {isAuthenticated ? (
           <UserMenu />
         ) : (
           <>
-            <Link to="/auth" className="text-gray-700 hover:text-green-600">
+            <Link to="/auth" className="text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400">
               Đăng nhập
             </Link>
             <Link
@@ -109,73 +111,76 @@ export const Header: React.FC = () => {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b shadow-md z-50">
+        <div className="md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-md z-50">
           <div className="flex flex-col p-4">
             <nav className="flex flex-col space-y-3 mb-4">
               <Link 
                 to="/analyze" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-2xl">🔬</span>
                 <div>
-                  <div className="font-medium text-gray-900">Phân Tích</div>
-                  <div className="text-xs text-gray-500">Nhận diện cây & phát hiện bệnh</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Phân Tích</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Nhận diện cây & phát hiện bệnh</div>
                 </div>
               </Link>
               <Link 
                 to="/knowledge" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-2xl">📚</span>
                 <div>
-                  <div className="font-medium text-gray-900">Kiến Thức</div>
-                  <div className="text-xs text-gray-500">Hỏi đáp với AI</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Kiến Thức</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Hỏi đáp với AI</div>
                 </div>
               </Link>
               <Link 
                 to="/community" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-2xl">👥</span>
                 <div>
-                  <div className="font-medium text-gray-900">Cộng Đồng</div>
-                  <div className="text-xs text-gray-500">Chia sẻ kinh nghiệm</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Cộng Đồng</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Chia sẻ kinh nghiệm</div>
                 </div>
               </Link>
               <Link 
                 to="/my-plants" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-2xl">🌿</span>
                 <div>
-                  <div className="font-medium text-gray-900">Vườn Của Tôi</div>
-                  <div className="text-xs text-gray-500">Quản lý cây trồng</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Vườn Của Tôi</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Quản lý cây trồng</div>
                 </div>
               </Link>
               <Link 
                 to="/map" 
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 transition-colors"
+                className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="text-2xl">🗺️</span>
                 <div>
-                  <div className="font-medium text-gray-900">Bản đồ Nông vụ</div>
-                  <div className="text-xs text-gray-500">Đất đai & cây trồng</div>
+                  <div className="font-medium text-gray-900 dark:text-white">Bản đồ Nông vụ</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Đất đai & cây trồng</div>
                 </div>
               </Link>
             </nav>
-            <div className="flex flex-col space-y-3">
+            <div className="flex flex-col space-y-3 border-t dark:border-gray-700 pt-3">
+              <div className="flex justify-center py-2">
+                <ThemeToggle />
+              </div>
               {isAuthenticated ? (
                 <div className="py-2" onClick={() => setMobileMenuOpen(false)}>
                   <UserMenu />
                 </div>
               ) : (
                 <>
-                  <Link to="/auth" className="text-gray-700 hover:text-green-600 py-2" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/auth" className="text-gray-700 dark:text-gray-200 hover:text-green-600 dark:hover:text-green-400 py-2" onClick={() => setMobileMenuOpen(false)}>
                     Đăng nhập
                   </Link>
                   <Link

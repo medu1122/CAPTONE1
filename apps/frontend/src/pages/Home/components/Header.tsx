@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 export function Header() {
   const { isAuthenticated } = useAuth();
@@ -73,6 +74,7 @@ export function Header() {
         
         {/* CTA Buttons - Chỉ hiển thị khi chưa đăng nhập */}
         <div className="flex items-center gap-3">
+          <ThemeToggle className="shadow-lg" />
           {isAuthenticated ? (
             <div className="[&_button]:text-white [&_button]:hover:bg-white/10 [&_span]:text-white [&_img]:ring-white/30">
               <UserMenu />

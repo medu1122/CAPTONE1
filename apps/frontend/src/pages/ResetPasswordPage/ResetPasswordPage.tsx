@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { authService } from '../../services/authService'
 import { Toast } from '../../components/ui/Toast'
+import { SnowEffect } from '../AuthPage/components/SnowEffect'
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate()
@@ -15,10 +16,26 @@ export const ResetPasswordPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(true)
   const [tokenValid, setTokenValid] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const [toast, setToast] = useState<{
     message: string
     type: 'success' | 'error'
   } | null>(null)
+
+  // Check system preference for dark mode
+  useEffect(() => {
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    setIsDarkMode(darkModeMediaQuery.matches)
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches)
+    }
+    darkModeMediaQuery.addEventListener('change', handleChange)
+    return () => darkModeMediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => !prev)
+  }
 
   useEffect(() => {
     const tokenParam = searchParams.get('token')
@@ -88,10 +105,11 @@ export const ResetPasswordPage: React.FC = () => {
 
   if (validating) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <SnowEffect isDarkMode={isDarkMode} />
+        <div className="text-center relative z-10">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang xác thực token...</p>
+          <p className={`mt-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Đang xác thực token...</p>
         </div>
       </div>
     )
@@ -99,10 +117,39 @@ export const ResetPasswordPage: React.FC = () => {
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Token không hợp lệ</h2>
-          <p className="text-gray-600 mb-6">
+      <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <SnowEffect isDarkMode={isDarkMode} />
+        
+        {/* Dark mode toggle */}
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800 text-yellow-300' : 'bg-white text-gray-700'}`}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDarkMode ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            )}
+          </button>
+        </div>
+
+        <div className={`rounded-xl shadow-lg p-8 max-w-md w-full text-center relative z-10 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
+          <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Token không hợp lệ</h2>
+          <p className={`mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu liên kết mới.
           </p>
           <button
@@ -117,16 +164,45 @@ export const ResetPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+    <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <SnowEffect isDarkMode={isDarkMode} />
+      
+      {/* Dark mode toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={toggleTheme}
+          className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800 text-yellow-300' : 'bg-white text-gray-700'}`}
+          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className={`rounded-xl shadow-lg p-8 max-w-md w-full relative z-10 ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Đặt lại mật khẩu</h2>
-          <p className="text-gray-600">Nhập mật khẩu mới của bạn</p>
+          <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Đặt lại mật khẩu</h2>
+          <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>Nhập mật khẩu mới của bạn</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="new-password" className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Mật khẩu mới
             </label>
             <div className="relative">
@@ -135,7 +211,7 @@ export const ResetPasswordPage: React.FC = () => {
                 id="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
                 placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự)"
                 autoComplete="new-password"
                 required
@@ -159,13 +235,13 @@ export const ResetPasswordPage: React.FC = () => {
                 )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số
             </p>
           </div>
 
           <div>
-            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="confirm-password" className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               Xác nhận mật khẩu mới
             </label>
             <div className="relative">
@@ -174,7 +250,7 @@ export const ResetPasswordPage: React.FC = () => {
                 id="confirm-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-gray-300 text-gray-900'}`}
                 placeholder="Nhập lại mật khẩu mới"
                 autoComplete="new-password"
                 required

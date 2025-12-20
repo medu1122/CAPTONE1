@@ -32,6 +32,13 @@ export interface PlantBox {
     notes?: PlantNote[]
     specialRequirements?: string
     careStrategy?: CareStrategy | null // AI-generated care strategy
+    notifications?: {
+      enabled: boolean
+      email: boolean
+      sms: boolean
+      frequency?: 'daily' | 'weekly' | 'custom'
+      customSchedule?: string[]
+    }
     createdAt: string
     updatedAt: string
   }

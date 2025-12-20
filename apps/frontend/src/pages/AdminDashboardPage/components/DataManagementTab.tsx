@@ -115,32 +115,35 @@ export const DataManagementTab: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
+      // Remove MongoDB metadata fields from formData before sending to backend
+      const { _id, __v, createdAt, updatedAt, ...dataToSend } = formData
+      
       if (activeType === 'products') {
         if (editingItem) {
-          await adminService.updateProduct(editingItem._id, formData)
-          setProducts(products.map((p) => (p._id === editingItem._id ? { ...p, ...formData } : p)))
+          await adminService.updateProduct(editingItem._id, dataToSend)
+          setProducts(products.map((p) => (p._id === editingItem._id ? { ...p, ...dataToSend } : p)))
         } else {
-          const newProduct = await adminService.createProduct(formData)
+          const newProduct = await adminService.createProduct(dataToSend)
           setProducts([newProduct, ...products])
         }
       } else if (activeType === 'biological') {
         if (editingItem) {
-          await adminService.updateBiologicalMethod(editingItem._id, formData)
+          await adminService.updateBiologicalMethod(editingItem._id, dataToSend)
           setBiologicalMethods(
-            biologicalMethods.map((m) => (m._id === editingItem._id ? { ...m, ...formData } : m))
+            biologicalMethods.map((m) => (m._id === editingItem._id ? { ...m, ...dataToSend } : m))
           )
         } else {
-          const newMethod = await adminService.createBiologicalMethod(formData)
+          const newMethod = await adminService.createBiologicalMethod(dataToSend)
           setBiologicalMethods([newMethod, ...biologicalMethods])
         }
       } else if (activeType === 'cultural') {
         if (editingItem) {
-          await adminService.updateCulturalPractice(editingItem._id, formData)
+          await adminService.updateCulturalPractice(editingItem._id, dataToSend)
           setCulturalPractices(
-            culturalPractices.map((p) => (p._id === editingItem._id ? { ...p, ...formData } : p))
+            culturalPractices.map((p) => (p._id === editingItem._id ? { ...p, ...dataToSend } : p))
           )
         } else {
-          const newPractice = await adminService.createCulturalPractice(formData)
+          const newPractice = await adminService.createCulturalPractice(dataToSend)
           setCulturalPractices([newPractice, ...culturalPractices])
         }
       }

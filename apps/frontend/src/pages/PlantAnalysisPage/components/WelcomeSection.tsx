@@ -19,7 +19,7 @@ export const WelcomeSection: React.FC = () => {
         </div>
 
         {/* How it works */}
-        <div className="bg-white rounded-lg p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <LightbulbIcon size={20} className="text-yellow-500" />
             Cách sử dụng
@@ -30,7 +30,7 @@ export const WelcomeSection: React.FC = () => {
                 <UploadIcon size={24} className="text-green-600" />
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Bước 1: Upload ảnh</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Chọn 1 ảnh cây trồng của bạn (PNG, JPG, WEBP, tối đa 10MB)
               </p>
             </div>
@@ -39,7 +39,7 @@ export const WelcomeSection: React.FC = () => {
                 <SearchIcon size={24} className="text-blue-600" />
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Bước 2: Phân tích</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Hệ thống sẽ tự động nhận diện cây và kiểm tra bệnh (mất khoảng 10-30 giây)
               </p>
             </div>
@@ -48,7 +48,7 @@ export const WelcomeSection: React.FC = () => {
                 <CheckCircleIcon size={24} className="text-purple-600" />
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Bước 3: Xem kết quả</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Nhận thông tin về cây, bệnh (nếu có) và các phương pháp điều trị phù hợp
               </p>
             </div>
@@ -56,7 +56,7 @@ export const WelcomeSection: React.FC = () => {
         </div>
 
         {/* Example Result Preview */}
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <span>📊</span>
             Ví dụ kết quả phân tích
@@ -74,7 +74,7 @@ export const WelcomeSection: React.FC = () => {
               <AlertCircleIcon size={20} className="text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <div className="font-semibold text-gray-900 mb-1">🦠 Bệnh phát hiện: Bệnh đốm lá sớm</div>
-                <div className="text-sm text-gray-600">Mức độ: Trung bình (75% tin cậy)</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">Mức độ: Trung bình (75% tin cậy)</div>
               </div>
             </div>
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -90,7 +90,7 @@ export const WelcomeSection: React.FC = () => {
       </div>
 
       {/* Tips & Best Practices */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <span>💡</span>
           Mẹo để có kết quả tốt nhất
@@ -102,7 +102,7 @@ export const WelcomeSection: React.FC = () => {
             </div>
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Chụp ảnh rõ ràng</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Đảm bảo ảnh có độ sáng tốt, cây chiếm phần lớn khung hình
               </p>
             </div>
@@ -113,7 +113,7 @@ export const WelcomeSection: React.FC = () => {
             </div>
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Chụp phần bị bệnh</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Nếu cây có dấu hiệu bệnh, hãy chụp phần lá/cành/thân bị ảnh hưởng
               </p>
             </div>
@@ -124,7 +124,7 @@ export const WelcomeSection: React.FC = () => {
             </div>
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Chỉ upload 1 ảnh</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Hệ thống chỉ phân tích 1 ảnh mỗi lần để đảm bảo độ chính xác
               </p>
             </div>
@@ -135,7 +135,7 @@ export const WelcomeSection: React.FC = () => {
             </div>
             <div>
               <h4 className="font-medium text-gray-900 mb-1">Chờ phân tích hoàn tất</h4>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 Quá trình phân tích mất khoảng 10-30 giây, vui lòng kiên nhẫn
               </p>
             </div>

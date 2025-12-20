@@ -80,6 +80,17 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
       date: note.date ? new Date(note.date).toISOString() : new Date().toISOString(),
     })),
     specialRequirements: backendBox.specialRequirements,
+    notifications: backendBox.notifications ? {
+      enabled: backendBox.notifications.enabled ?? true,
+      email: backendBox.notifications.email ?? true,
+      sms: backendBox.notifications.sms ?? false,
+      frequency: backendBox.notifications.frequency,
+      customSchedule: backendBox.notifications.customSchedule,
+    } : {
+      enabled: true,
+      email: true,
+      sms: false,
+    },
     createdAt: backendBox.createdAt
       ? new Date(backendBox.createdAt).toISOString()
       : new Date().toISOString(),

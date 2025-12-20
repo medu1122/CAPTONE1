@@ -41,7 +41,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 sticky top-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 sticky top-4">
       <h2 className="text-lg font-bold text-gray-900 mb-4">📸 Upload Ảnh</h2>
 
       <div
@@ -50,7 +50,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
       >
         <CameraIcon size={48} className="text-gray-400 mx-auto mb-3" />
         <p className="text-sm font-medium text-gray-700 mb-1">Click để upload</p>
-        <p className="text-xs text-gray-500">PNG, JPG, WEBP (max 10MB)</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, WEBP (max 10MB)</p>
         <input
           ref={fileInputRef}
           type="file"

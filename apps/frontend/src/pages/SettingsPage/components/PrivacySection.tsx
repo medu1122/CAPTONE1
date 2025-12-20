@@ -30,7 +30,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
   }) => (
     <button
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-green-600' : 'bg-gray-300'}`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-green-600' : 'bg-gray-300 dark:bg-gray-600'}`}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`}
@@ -76,9 +76,9 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <EyeIcon className="text-green-600" size={24} />
           Quyền riêng tư
         </h2>
@@ -86,7 +86,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
           <div className="flex gap-2">
             <button
               onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <XIcon size={16} />
               Hủy
@@ -105,7 +105,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Hiển thị hồ sơ
           </label>
           <select
@@ -117,7 +117,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
                 privacy: e.target.value as 'public' | 'friends' | 'private',
               })
             }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700"
           >
             <option value="public">Công khai - Mọi người có thể xem</option>
             <option value="friends">Bạn bè - Chỉ bạn bè có thể xem</option>
@@ -125,10 +125,10 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-gray-200">
+        <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700">
           <div>
-            <label className="text-gray-900 font-medium">Hiển thị email</label>
-            <p className="text-sm text-gray-500 mt-1">
+            <label className="text-gray-900 dark:text-white font-medium">Hiển thị email</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Cho phép người khác xem email của bạn
             </p>
           </div>
@@ -138,10 +138,10 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-between py-3 border-t border-gray-200">
+        <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700">
           <div>
-            <label className="text-gray-900 font-medium">Hiển thị số điện thoại</label>
-            <p className="text-sm text-gray-500 mt-1">
+            <label className="text-gray-900 dark:text-white font-medium">Hiển thị số điện thoại</label>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Cho phép người khác xem số điện thoại của bạn
             </p>
           </div>

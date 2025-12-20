@@ -136,7 +136,7 @@ export const KnowledgePage: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       <Header />
 
       {/* Context Banner */}
@@ -162,13 +162,13 @@ export const KnowledgePage: React.FC = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Fixed Header */}
-          <div className="bg-white border-b shadow-sm flex-shrink-0">
+          <div className="bg-white dark:bg-gray-800 border-b shadow-sm flex-shrink-0">
             <div className="px-4 py-4 max-w-4xl mx-auto">
               <div className="flex items-center gap-3">
                 <span className="text-2xl">📚</span>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Kiến Thức Nông Nghiệp</h1>
-                  <p className="text-sm text-gray-600">Hỏi đáp về cây trồng, bệnh hại, và cách chăm sóc</p>
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">Kiến Thức Nông Nghiệp</h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Hỏi đáp về cây trồng, bệnh hại, và cách chăm sóc</p>
                 </div>
               </div>
             </div>

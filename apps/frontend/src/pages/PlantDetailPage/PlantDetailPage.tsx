@@ -21,7 +21,7 @@ export const PlantDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('strategy')
-  const { plantBox, loading, error, addNote, refreshPlantBox } = usePlantDetail(id || '')
+  const { plantBox, loading, error, addNote, refreshPlantBox, updatePlantBox } = usePlantDetail(id || '')
   const {
     strategy,
     loading: strategyLoading,
@@ -105,7 +105,14 @@ export const PlantDetailPage: React.FC = () => {
       />
 
       <div className="max-w-7xl mx-auto px-8 py-6">
-        <PlantOverviewCard plantBox={plantBox} onImageUpload={refreshPlantBox} />
+        <PlantOverviewCard 
+          plantBox={plantBox} 
+          onImageUpload={refreshPlantBox}
+          onUpdate={async (updatedBox) => {
+            // Refresh to get latest data
+            await refreshPlantBox()
+          }}
+        />
 
         {/* Disease Management Section (includes feedback) */}
         <DiseaseManagement

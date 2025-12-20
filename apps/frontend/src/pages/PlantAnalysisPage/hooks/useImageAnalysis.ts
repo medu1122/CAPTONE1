@@ -66,7 +66,7 @@ export const useImageAnalysis = () => {
           isValid: true,
           isPlant: true,
           confidence: 1,
-          message: 'Kết quả đã lưu từ phiên trước',
+          message: '',
           validating: false,
         },
       }

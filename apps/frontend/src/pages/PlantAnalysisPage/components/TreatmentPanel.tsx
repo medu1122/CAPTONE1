@@ -25,12 +25,12 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
 
   if (!result.diseases || result.diseases.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <span>💊</span>
           Gợi ý Điều trị & Khắc phục
         </h2>
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           Không phát hiện bệnh. Cây đang khỏe mạnh!
         </div>
       </div>
@@ -38,7 +38,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
         <span>💊</span>
         Gợi ý Điều trị & Khắc phục
@@ -74,7 +74,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                 className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 group ${
                   selectedDisease === disease.name
                     ? 'bg-green-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 <span>{getIcon(disease.name)}</span>
@@ -132,20 +132,20 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                         <img
                           src={product.imageUrl}
                           alt={product.name}
-                          className="w-16 h-16 object-cover rounded border border-gray-200"
+                          className="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/images/products/placeholder.png'
                           }}
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center border border-gray-200 dark:border-gray-700">
                           <span className="text-2xl">📦</span>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h4>
                         <p className="text-xs text-gray-600 mb-2">{product.activeIngredient}</p>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <InfoIcon size={14} />
                           <span>Click để xem chi tiết</span>
                         </div>
@@ -156,7 +156,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
               </div>
             ) : (
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 text-center">
-                <p className="text-gray-600">Chưa tìm được thuốc phù hợp</p>
+                <p className="text-gray-600 dark:text-gray-300">Chưa tìm được thuốc phù hợp</p>
               </div>
             )}
           </div>
@@ -194,7 +194,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                       </p>
                     )}
                     {method.effectiveness && (
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
                         <strong>Hiệu quả:</strong> {method.effectiveness}
                       </p>
                     )}
@@ -203,7 +203,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
               </div>
             ) : (
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 text-center">
-                <p className="text-gray-600">Chưa tìm được phương pháp sinh học phù hợp</p>
+                <p className="text-gray-600 dark:text-gray-300">Chưa tìm được phương pháp sinh học phù hợp</p>
               </div>
             )}
           </div>
@@ -228,20 +228,20 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                   >
                     <h4 className="font-semibold text-gray-900 mb-2">{practice.name}</h4>
                     {practice.description && (
-                      <p className="text-sm text-gray-700">{practice.description}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200">{practice.description}</p>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 text-center">
-                <p className="text-gray-600">Chưa tìm được biện pháp canh tác phù hợp</p>
+                <p className="text-gray-600 dark:text-gray-300">Chưa tìm được biện pháp canh tác phù hợp</p>
               </div>
             )}
           </div>
         </div>
       ) : selectedTreatment ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           Chưa có thông tin điều trị cho bệnh này
         </div>
       ) : null}
@@ -249,9 +249,9 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
       {/* Product Detail Modal */}
       {showModal && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">Chi Tiết Sản Phẩm</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Chi Tiết Sản Phẩm</h3>
               <button
                 onClick={() => setShowModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -265,20 +265,20 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                   <img
                     src={selectedProduct.imageUrl}
                     alt={selectedProduct.name}
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/images/products/placeholder.png'
                     }}
                   />
                 ) : (
-                  <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                  <div className="w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-200 dark:border-gray-700">
                     <span className="text-4xl">📦</span>
                   </div>
                 )}
                 <div className="flex-1">
                   <h4 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h4>
                   <p className="text-gray-600 mb-4">{selectedProduct.activeIngredient}</p>
-                  <p className="text-sm text-gray-500">Nhà sản xuất: {selectedProduct.manufacturer}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Nhà sản xuất: {selectedProduct.manufacturer}</p>
                 </div>
               </div>
 
@@ -308,7 +308,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                 {selectedProduct.dosage && (
                   <div>
                     <h5 className="font-semibold text-gray-900 mb-2">💊 Liều lượng:</h5>
-                    <p className="text-gray-700">{selectedProduct.dosage}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{selectedProduct.dosage}</p>
                   </div>
                 )}
 
@@ -322,21 +322,21 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                 {selectedProduct.frequency && (
                   <div>
                     <h5 className="font-semibold text-gray-900 mb-2">⏰ Tần suất:</h5>
-                    <p className="text-gray-700">{selectedProduct.frequency}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{selectedProduct.frequency}</p>
                   </div>
                 )}
 
                 {selectedProduct.isolationPeriod && (
                   <div>
                     <h5 className="font-semibold text-gray-900 mb-2">⏳ Thời gian cách ly:</h5>
-                    <p className="text-gray-700">{selectedProduct.isolationPeriod}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{selectedProduct.isolationPeriod}</p>
                   </div>
                 )}
 
                 {selectedProduct.precautions && selectedProduct.precautions.length > 0 && (
                   <div>
                     <h5 className="font-semibold text-gray-900 mb-2">⚠️ Lưu ý:</h5>
-                    <ul className="list-disc list-inside space-y-1 text-gray-700">
+                    <ul className="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-200">
                       {selectedProduct.precautions.map((precaution: string, idx: number) => (
                         <li key={idx}>{precaution}</li>
                       ))}
@@ -347,13 +347,13 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
                 {selectedProduct.price && (
                   <div>
                     <h5 className="font-semibold text-gray-900 mb-2">💰 Giá tham khảo:</h5>
-                    <p className="text-gray-700">{selectedProduct.price}</p>
+                    <p className="text-gray-700 dark:text-gray-200">{selectedProduct.price}</p>
                   </div>
                 )}
 
                 {selectedProduct.source && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500">Nguồn: {selectedProduct.source}</p>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Nguồn: {selectedProduct.source}</p>
                   </div>
                 )}
               </div>
@@ -364,7 +364,7 @@ export const TreatmentPanel: React.FC<TreatmentPanelProps> = ({ result }) => {
 
       {/* Report Issue Button */}
       {result.analysisId && (
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setShowComplaintModal(true)}
             className="w-full px-4 py-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"

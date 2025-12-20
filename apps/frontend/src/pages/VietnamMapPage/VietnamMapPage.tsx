@@ -21,7 +21,7 @@ export const VietnamMapPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
@@ -29,7 +29,7 @@ export const VietnamMapPage: React.FC = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-3">
               <Map className="text-green-600" size={32} />
-              <h1 className="text-3xl font-bold text-gray-900">Bản đồ Nông vụ</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Bản đồ Nông vụ</h1>
             </div>
             {selectedProvince && (
               <button
@@ -41,7 +41,7 @@ export const VietnamMapPage: React.FC = () => {
               </button>
             )}
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Chọn một tỉnh trên bản đồ hoặc từ danh sách để xem thông tin về loại đất, cây trồng theo mùa và các bài báo liên quan
           </p>
         </div>

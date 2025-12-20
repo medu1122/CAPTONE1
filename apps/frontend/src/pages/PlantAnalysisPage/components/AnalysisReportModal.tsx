@@ -167,7 +167,7 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <FlagIcon className="text-red-600" size={24} />
@@ -175,7 +175,7 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded-lg transition-colors"
           >
             <XIcon size={24} />
           </button>
@@ -269,7 +269,7 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
                         <img
                           src={imageUrl}
                           alt={`Error evidence ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                          className="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                         />
                         <button
                           type="button"
@@ -306,12 +306,12 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
                   {uploadingImages.length > 0 ? (
                     <>
                       <Loader2Icon className="animate-spin text-green-600" size={20} />
-                      <span className="text-sm text-gray-600">Đang upload...</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Đang upload...</span>
                     </>
                   ) : (
                     <>
                       <UploadIcon size={20} className="text-gray-400" />
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         {images.length === 0
                           ? 'Click để upload hình ảnh'
                           : `Thêm hình ảnh (${images.length}/10)`}
@@ -320,14 +320,14 @@ export const AnalysisReportModal: React.FC<AnalysisReportModalProps> = ({
                   )}
                 </label>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Upload hình ảnh để minh chứng lỗi hoặc vấn đề bạn gặp phải. Tối đa 10 hình ảnh. PNG, JPG, WEBP (max 10MB mỗi ảnh)
               </p>
             </div>
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}

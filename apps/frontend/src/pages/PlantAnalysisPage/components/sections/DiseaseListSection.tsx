@@ -51,7 +51,7 @@ export const DiseaseListSection: React.FC<DiseaseListSectionProps> = ({
 
   // Show diseases with fade-in animation
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]">
       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
         <span>🦠</span>
         Bệnh phát hiện ({diseases.length})

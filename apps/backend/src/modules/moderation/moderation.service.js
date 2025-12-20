@@ -26,81 +26,47 @@ const callOpenAIForModeration = async (content, type = 'post') => {
     let systemPrompt;
     
     if (type === 'comment') {
-      // Comment moderation: ONLY check for offensive language, ignore length/spam
-      systemPrompt = `Bạn là HỆ THỐNG KIỂM DUYỆT BÌNH LUẬN chuyên dụng cho cộng đồng nông nghiệp GreenGrow.
+      // Comment moderation: ONLY check for offensive language
+      systemPrompt = `Bạn là HỆ THỐNG KIỂM DUYỆT BÌNH LUẬN đơn giản.
 
-⚠️ QUAN TRỌNG: Đây là hệ thống moderation riêng biệt, KHÔNG phải chatbot AI. Bạn CHỈ có nhiệm vụ kiểm duyệt bình luận, KHÔNG trả lời câu hỏi hay tư vấn nông nghiệp.
+⚠️ QUAN TRỌNG: CHỈ kiểm duyệt bình luận, KHÔNG trả lời câu hỏi hay tư vấn.
 
-MỤC TIÊU DUY NHẤT: Kiểm tra xem bình luận có chứa từ ngữ TỤC TĨU, XÚC PHẠM hay không.
+🚫 CHỈ CHẶN 2 TRƯỜNG HỢP SAU:
+1. **Từ ngữ công kích, xúc phạm**: "ngu", "dốt", "đần", "độn", "ngu dốt", "đần độn", "khùng", "điên", "chó", "lợn", "súc vật", "đồ ngu", "thằng ngu", "con chó", "đồ khùng", "mất dạy", "vô học"
+2. **Từ tục tĩu**: Các từ ngữ tục tĩu, chửi thề, khiêu dâm
 
-🚫 CHỈ CHẶN CÁC HÀNH VI SAU:
-1. **Xúc phạm, lăng mạ**: Từ ngữ thô tục, chửi bới, xúc phạm người khác (ví dụ: "đồ ngu", "thằng ngu", "con chó", "đồ khùng", "điên", "ngu xuẩn", "dốt"...)
-2. **Phân biệt đối xử**: Phân biệt giới tính, dân tộc, tôn giáo, vùng miền
-3. **Phá hoại**: Cố ý gây rối, tấn công cá nhân, đe dọa
-4. **Bạo lực, khiêu dâm**: Nội dung bạo lực hoặc khiêu dâm
+✅ TẤT CẢ CÁC TRƯỜNG HỢP KHÁC ĐỀU ĐƯỢC CHẤP NHẬN:
+- Bình luận ngắn, dài, bất kỳ độ dài nào → OK
+- Bất kỳ nội dung nào (nông nghiệp, không liên quan, spam nhẹ) → OK  
+- Bất kỳ ngôn ngữ nào (địa phương, viết tắt, tiếng lóng) → OK
+- "Hi", "Ok", "👍", "Cảm ơn", bất kỳ từ ngắn nào → OK
+- Link, quảng cáo nhẹ → OK (chỉ chặn nếu có từ xúc phạm)
 
-✅ CÁC TRƯỜNG HỢP ĐƯỢC CHẤP NHẬN:
-- Bình luận NGẮN hoặc DÀI đều được, KHÔNG quan trọng độ dài
-- "Ok", "Cảm ơn", "Hay quá", "Đúng rồi" → ĐƯỢC CHẤP NHẬN (ngắn nhưng không xúc phạm)
-- "Hi", "Hello", "👍", "thinh", "hi" → ĐƯỢC CHẤP NHẬN (ngắn nhưng không xúc phạm)
-- Câu hỏi ngắn: "Cây này là gì?", "Cách chữa?" → ĐƯỢC CHẤP NHẬN
-- Bình luận dài về nông nghiệp → ĐƯỢC CHẤP NHẬN
-- Spam nhẹ (nhưng không xúc phạm) → CÓ THỂ CHẤP NHẬN (chỉ từ chối nếu spam nặng + quảng cáo rõ ràng)
-
-🌍 NGÔN NGỮ ĐỊA PHƯƠNG VÀ TỪ VIẾT TẮT - HOÀN TOÀN ĐƯỢC CHẤP NHẬN:
-- Ngôn ngữ địa phương: "rứa", "mi", "tau", "mô", "tê", "chi", "răng", "mần", "chừ", "nớ", "ni", "tui", "bữa", "bữa ni", "bữa nớ", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ", "bữa nớ", "bữa ni", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ" → ĐƯỢC CHẤP NHẬN (đây là cách nói địa phương, KHÔNG phải xúc phạm)
-- Từ viết tắt: "ae", "anh em", "m.n", "mọi người", "ko", "k", "dc", "đc", "vs", "với", "đc", "được", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
-- Tiếng lóng: "hay quá", "đúng rồi", "chuẩn", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
-- Cách nói thân mật: "ae", "anh em", "m.n", "mọi người", "bạn", "bạn ơi", "bạn à", "bạn nha", "bạn nhé", "bạn nhỉ", "bạn nhì", "bạn nhì", "bạn nhì" → ĐƯỢC CHẤP NHẬN
-
-⚠️ QUY TẮC ĐẶC BIỆT CHO BÌNH LUẬN:
-- KHÔNG từ chối vì nội dung quá ngắn
-- KHÔNG từ chối vì không liên quan đến nông nghiệp (bình luận có thể là giao tiếp xã hội)
-- KHÔNG từ chối vì sử dụng ngôn ngữ địa phương hoặc từ viết tắt
-- CHỈ từ chối nếu có từ ngữ TỤC TĨU, XÚC PHẠM, hoặc nội dung BẠO LỰC/KHIÊU DÂM
-- Spam quảng cáo rõ ràng (link mua bán, quảng cáo sản phẩm) → Từ chối
-- Spam nhẹ (emoji, ký tự lặp lại) → Có thể chấp nhận nếu không xúc phạm`;
+⚠️ QUY TẮC TUYỆT ĐỐI:
+- CHỈ từ chối nếu có TỪ XÚC PHẠM/TỤC TĨU trong danh sách trên
+- MỌI thứ khác → approved: true`;
     } else {
-      // Post moderation: Full check including length, spam, relevance
-      systemPrompt = `Bạn là HỆ THỐNG KIỂM DUYỆT BÀI ĐĂNG chuyên dụng cho cộng đồng nông nghiệp GreenGrow.
+      // Post moderation: Only check offensive language and very short content
+      systemPrompt = `Bạn là HỆ THỐNG KIỂM DUYỆT BÀI ĐĂNG đơn giản.
 
-⚠️ QUAN TRỌNG: Đây là hệ thống moderation riêng biệt, KHÔNG phải chatbot AI. Bạn CHỈ có nhiệm vụ kiểm duyệt bài đăng, KHÔNG trả lời câu hỏi hay tư vấn nông nghiệp.
+⚠️ QUAN TRỌNG: CHỈ kiểm duyệt bài đăng, KHÔNG trả lời câu hỏi hay tư vấn.
 
-MỤC TIÊU DUY NHẤT: Kiểm tra xem bài đăng có phù hợp với cộng đồng nông nghiệp hay không, và đưa ra phản hồi chi tiết nếu không phù hợp.
+🚫 CHỈ CHẶN 3 TRƯỜNG HỢP SAU:
+1. **Từ ngữ công kích, xúc phạm**: "ngu", "dốt", "đần", "độn", "ngu dốt", "đần độn", "khùng", "điên", "chó", "lợn", "súc vật", "đồ ngu", "thằng ngu", "con chó", "đồ khùng", "mất dạy", "vô học"
+2. **Từ tục tĩu**: Các từ ngữ tục tĩu, chửi thề, khiêu dâm
+3. **Bài đăng quá ngắn**: Title + Content cộng lại chỉ có 1-2 ký tự (ví dụ: "a", "ab", "1", "12")
 
-🚫 CÁC HÀNH VI CẦN CHẶN (CHỈ CHẶN CÁC TRƯỜNG HỢP NÀY):
-1. **Xúc phạm, lăng mạ**: Từ ngữ thô tục, chửi bới, xúc phạm người khác (ví dụ: "đồ ngu", "thằng ngu", "con chó", "đồ khùng", "điên", "ngu xuẩn", "dốt"...)
-2. **Phân biệt đối xử**: Phân biệt giới tính, dân tộc, tôn giáo, vùng miền
-3. **Spam QUẢNG CÁO**: Link mua bán, quảng cáo sản phẩm rõ ràng, số điện thoại bán hàng, giá cả, khuyến mãi
-4. **Phá hoại**: Cố ý gây rối, tấn công cá nhân, đe dọa
-5. **Nội dung không phù hợp**: Bạo lực, khiêu dâm, chính trị nhạy cảm
-6. **Nội dung HOÀN TOÀN không liên quan**: Nội dung về game, phim ảnh, thể thao, giải trí (KHÔNG liên quan đến nông nghiệp)
+✅ TẤT CẢ CÁC TRƯỜNG HỢP KHÁC ĐỀU ĐƯỢC CHẤP NHẬN:
+- Bất kỳ nội dung nào (nông nghiệp, game, phim, thể thao, giải trí, bất kỳ chủ đề gì) → OK
+- Bất kỳ độ dài nào (từ 3 ký tự trở lên) → OK
+- Bất kỳ ngôn ngữ nào (địa phương, viết tắt, tiếng lóng, emoji) → OK
+- Link, quảng cáo, spam → OK (chỉ chặn nếu có từ xúc phạm)
+- Nội dung không liên quan đến nông nghiệp → OK
+- "Hi", "Ok", "👍", "abc", bất kỳ từ 3 ký tự trở lên → OK
 
-✅ NỘI DUNG PHÙ HỢP (CHẤP NHẬN CÁC TRƯỜNG HỢP SAU):
-- ✅ Câu hỏi về nông nghiệp, cây trồng, bệnh cây (DÙ NGẮN hay DÀI)
-- ✅ Câu hỏi ngắn gọn: "cách trồng lúa sao vậy ae", "cây này là gì?", "cách chữa bệnh này?"
-- ✅ Ngôn ngữ thân thiện, không trang trọng: "ae", "anh em", "bạn", "mọi người", "ai biết không?"
-- ✅ Chia sẻ kinh nghiệm, mẹo hay
-- ✅ Thảo luận về kỹ thuật trồng trọt
-- ✅ Hỏi đáp về thuốc, phân bón
-- ✅ Khoe cây, chia sẻ hình ảnh cây trồng, thành quả trồng trọt
-- ✅ Bài đăng khoe cây với title và nội dung đơn giản (ví dụ: "cây hoa hướng dương", "khoe cây lúa", "cây của tôi")
-- ✅ Nội dung liên quan đến nông nghiệp (dù cách diễn đạt đơn giản, ngắn gọn)
-
-🌍 NGÔN NGỮ ĐỊA PHƯƠNG VÀ TỪ VIẾT TẮT - HOÀN TOÀN ĐƯỢC CHẤP NHẬN:
-- ✅ Ngôn ngữ địa phương: "rứa", "mi", "tau", "mô", "tê", "chi", "răng", "mần", "chừ", "nớ", "ni", "tui", "bữa", "bữa ni", "bữa nớ", "bữa tê", "bữa mô", "bữa răng", "bữa chi", "bữa mần", "bữa chừ" → ĐƯỢC CHẤP NHẬN (đây là cách nói địa phương, KHÔNG phải xúc phạm)
-- ✅ Từ viết tắt: "ae", "anh em", "m.n", "mọi người", "ko", "k", "dc", "đc", "vs", "với", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
-- ✅ Tiếng lóng: "hay quá", "đúng rồi", "chuẩn", "ok", "okie", "oki", "thx", "thanks", "tks", "cảm ơn", "cảm ơn bạn", "cảm ơn m.n", "cảm ơn ae" → ĐƯỢC CHẤP NHẬN
-- ✅ Cách nói thân mật: "ae", "anh em", "m.n", "mọi người", "bạn", "bạn ơi", "bạn à", "bạn nha", "bạn nhé", "bạn nhỉ" → ĐƯỢC CHẤP NHẬN
-
-⚠️ QUY TẮC ĐẶC BIỆT:
-- KHÔNG từ chối vì nội dung ngắn nếu đó là câu hỏi hợp lệ về nông nghiệp HOẶC chia sẻ/khoe cây
-- KHÔNG từ chối vì ngôn ngữ thân thiện, không trang trọng (như "ae", "anh em")
-- KHÔNG từ chối vì thiếu thông tin chi tiết - câu hỏi đơn giản, bài khoe cây ngắn gọn cũng được chấp nhận
-- KHÔNG từ chối vì sử dụng ngôn ngữ địa phương hoặc từ viết tắt
-- CHẤP NHẬN các bài đăng chỉ có title và nội dung ngắn về cây trồng (ví dụ: "cây hoa hướng dương" + "hoa hướng dương hướng về phía mặt trời")
-- CHỈ từ chối nếu có từ ngữ XÚC PHẠM, QUẢNG CÁO RÕ RÀNG, hoặc HOÀN TOÀN không liên quan đến nông nghiệp
-- Spam nhẹ (nhưng không quảng cáo) → CÓ THỂ CHẤP NHẬN nếu liên quan đến nông nghiệp`;
+⚠️ QUY TẮC TUYỆT ĐỐI:
+- CHỈ từ chối nếu: (1) có TỪ XÚC PHẠM/TỤC TĨU trong danh sách, HOẶC (2) tổng độ dài title + content ≤ 2 ký tự
+- MỌI thứ khác → approved: true`;
     }
     
     // Common format and rules
@@ -129,13 +95,25 @@ MỤC TIÊU DUY NHẤT: Kiểm tra xem bài đăng có phù hợp với cộng �
 - Luôn đưa ra gợi ý sửa đổi cụ thể trong "suggestion"
 - Nếu có thể, cung cấp "suggestedContent" với nội dung đã được sửa đổi
 
+📝 QUY TẮC TẠO "suggestedContent":
+- CHỈ loại bỏ/thay thế phần VÀN VẤN ĐỀ (từ xúc phạm, spam, link)
+- GIỮ NGUYÊN ý nghĩa và nội dung CHÍNH của bài viết/bình luận
+- GIỮ NGUYÊN phong cách thân thiện (ae, bạn, mọi người)
+- KHÔNG thêm thông tin mới, KHÔNG thay đổi ý nghĩa
+- KHÔNG thêm lời chào dài dòng, chỉ cần sửa phần có vấn đề
+- suggestedContent phải HOÀN TOÀN sạch sẽ, không chứa bất kỳ từ ngữ không phù hợp nào
+- Nếu KHÔNG thể sửa được (quá nhiều vấn đề), đặt "suggestedContent": null
+
 VÍ DỤ CHO ${type === 'comment' ? 'BÌNH LUẬN' : 'BÀI ĐĂNG'}:`;
 
     // Add examples based on type
     if (type === 'comment') {
       systemPrompt += `
-Input: "Đồ ngu, cây này trồng như thế nào?"
-Output: {"approved": false, "reason": "Nội dung chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Đồ ngu'", "suggestion": "Thay thế bằng: 'Xin chào, cây này trồng như thế nào?'"}], "suggestedContent": "Xin chào, cây này trồng như thế nào?"}
+Input: "Thằng ngu, cây này trồng thế nào?"
+Output: {"approved": false, "reason": "Bình luận chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Thằng ngu'", "suggestion": "Loại bỏ từ xúc phạm"}], "suggestedContent": "Cây này trồng thế nào?"}
+
+Input: "Đồ khùng à, tôi hỏi cách chăm sóc cây lúa đây"
+Output: {"approved": false, "reason": "Bình luận chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Đồ khùng'", "suggestion": "Loại bỏ từ xúc phạm"}], "suggestedContent": "Tôi hỏi cách chăm sóc cây lúa đây"}
 
 Input: "Ok"
 Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
@@ -143,54 +121,42 @@ Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "sug
 Input: "Hi"
 Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
-Input: "Cảm ơn bạn"
+Input: "Xem phim chưa?"
 Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
-Input: "thinh"
+Input: "Link mua hàng: https://example.com"
 Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
-
-Input: "hi"
-Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
-
-Input: "rứa mi"
-Output: {"approved": true, "reason": "Nội dung phù hợp - ngôn ngữ địa phương", "issues": [], "suggestedContent": null}
-
-Input: "ae ơi"
-Output: {"approved": true, "reason": "Nội dung phù hợp - từ viết tắt thân mật", "issues": [], "suggestedContent": null}
 
 Input: "Cây lúa bị bệnh đốm lá, ai biết cách chữa không?"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}`;
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}`;
     } else {
       systemPrompt += `
-Input: "Đồ ngu, cây này trồng như thế nào?"
-Output: {"approved": false, "reason": "Nội dung chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Đồ ngu'", "suggestion": "Thay thế bằng: 'Xin chào, cây này trồng như thế nào?'"}], "suggestedContent": "Xin chào, cây này trồng như thế nào?"}
+Input: Title: "Thằng ngu", Content: "Cách trồng lúa đúng như thế nào ae?"
+Output: {"approved": false, "reason": "Tiêu đề chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "tiêu đề", "suggestion": "Đổi tiêu đề phù hợp"}], "suggestedContent": "Hỏi về cách trồng lúa\n\nCách trồng lúa đúng như thế nào ae?"}
 
-Input: "cách trồng lúa sao vậy ae"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về kỹ thuật trồng lúa", "issues": [], "suggestedContent": null}
+Input: Title: "Hỏi về cây", Content: "Đồ khùng, ai biết cách trồng cây này không?"
+Output: {"approved": false, "reason": "Nội dung chứa từ ngữ xúc phạm", "issues": [{"type": "offensive_language", "severity": "high", "location": "từ 'Đồ khùng'", "suggestion": "Loại bỏ từ xúc phạm"}], "suggestedContent": "Hỏi về cây\n\nAi biết cách trồng cây này không?"}
 
-Input: "cây này là gì?"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về cây trồng", "issues": [], "suggestedContent": null}
+Input: Title: "a", Content: "b"
+Output: {"approved": false, "reason": "Nội dung quá ngắn (chỉ có 2 ký tự)", "issues": [{"type": "inappropriate", "severity": "medium", "location": "toàn bộ", "suggestion": "Vui lòng viết ít nhất 3 ký tự"}], "suggestedContent": null}
 
-Input: "cách chữa bệnh này ae?"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - câu hỏi về bệnh cây", "issues": [], "suggestedContent": null}
+Input: Title: "hi", Content: ""
+Output: {"approved": false, "reason": "Nội dung quá ngắn (chỉ có 2 ký tự)", "issues": [{"type": "inappropriate", "severity": "medium", "location": "toàn bộ", "suggestion": "Vui lòng viết ít nhất 3 ký tự"}], "suggestedContent": null}
 
-Input: "hi"
-Output: {"approved": false, "reason": "Nội dung quá ngắn và không liên quan đến nông nghiệp", "issues": [{"type": "spam", "severity": "low", "location": "toàn bộ nội dung", "suggestion": "Cung cấp thêm thông tin hoặc câu hỏi liên quan đến nông nghiệp"}], "suggestedContent": "Xin chào, tôi muốn hỏi về kỹ thuật trồng cây nào đó."}
+Input: Title: "abc", Content: "Bất kỳ nội dung gì"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
-Input: "Mua phân bón giá rẻ tại đây: https://example.com"
-Output: {"approved": false, "reason": "Nội dung có dấu hiệu quảng cáo rõ ràng", "issues": [{"type": "spam", "severity": "high", "location": "toàn bộ nội dung", "suggestion": "Vui lòng chia sẻ kinh nghiệm thay vì quảng cáo sản phẩm"}], "suggestedContent": null}
+Input: Title: "Xem phim Marvel", Content: "Ai xem phim mới chưa?"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
-Input: "Cây lúa bị bệnh đốm lá, ai biết cách chữa không?"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp", "issues": [], "suggestedContent": null}
+Input: Title: "Mua bán", Content: "Link: https://example.com, giá rẻ, khuyến mãi"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
-Input: Title: "cây hoa hướng dương", Content: "hoa hướng dương hướng về phía mặt trời"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ về cây trồng", "issues": [], "suggestedContent": null}
-
-Input: Title: "khoe cây lúa", Content: "cây lúa của tôi"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ thành quả trồng trọt", "issues": [], "suggestedContent": null}
+Input: Title: "cách trồng lúa sao vậy ae", Content: "Ai biết chỉ tôi với"
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}
 
 Input: Title: "cây của tôi", Content: "cây này đẹp quá"
-Output: {"approved": true, "reason": "Nội dung phù hợp với cộng đồng nông nghiệp - chia sẻ về cây trồng", "issues": [], "suggestedContent": null}`;
+Output: {"approved": true, "reason": "Nội dung phù hợp", "issues": [], "suggestedContent": null}`;
     }
     
     systemPrompt = systemPrompt + commonRules;
@@ -252,9 +218,10 @@ Trả về CHỈ JSON theo format đã định nghĩa. KHÔNG có markdown, KHÔ
  * @param {object} params - Parameters
  * @param {string} params.content - Content to check (title + content for posts, or just content for comments)
  * @param {string} params.type - Type of content: 'post' or 'comment'
+ * @param {boolean} params.skipSuggestedValidation - Skip validation of suggestedContent (to prevent infinite recursion)
  * @returns {Promise<object>} Moderation result
  */
-export const moderateContent = async ({ content, type = 'post' }) => {
+export const moderateContent = async ({ content, type = 'post', skipSuggestedValidation = false }) => {
   try {
     console.log(`🔍 [moderation] Checking ${type} content...`);
     console.log(`   Content preview: ${content.substring(0, 100)}...`);
@@ -266,40 +233,45 @@ export const moderateContent = async ({ content, type = 'post' }) => {
       console.log(`🤖 [moderation] OpenAI response received`);
     } catch (error) {
       console.warn('⚠️ [moderation] OpenAI API failed, using fallback:', error.message);
-      // Fallback: check if response contains keywords
-      const hasOffensiveKeywords = /đồ ngu|thằng ngu|con chó|đồ khùng|điên|ngu xuẩn|dốt/i.test(content);
+      // Fallback: simple keyword check for offensive language
+      const hasOffensiveKeywords = /\b(ngu|dốt|đần|độn|ngu dốt|đần độn|khùng|điên|chó|lợn|súc vật|đồ ngu|thằng ngu|con chó|đồ khùng|mất dạy|vô học)\b/i.test(content);
       
       if (type === 'comment') {
-        // For comments: ONLY check offensive language, ignore spam/length
+        // For comments: ONLY check offensive language
         moderationResult = {
           approved: !hasOffensiveKeywords,
           reason: hasOffensiveKeywords 
-            ? 'Nội dung chứa từ ngữ không phù hợp'
+            ? 'Nội dung chứa từ ngữ xúc phạm'
             : 'Nội dung phù hợp',
           issues: hasOffensiveKeywords ? [{
             type: 'offensive_language',
             severity: 'high',
             location: 'toàn bộ nội dung',
-            suggestion: 'Vui lòng sử dụng ngôn từ lịch sự, tôn trọng'
+            suggestion: 'Vui lòng loại bỏ từ ngữ xúc phạm'
           }] : [],
           suggestedContent: null
         };
       } else {
-        // For posts: check both offensive language and spam
-        const hasSpam = /http:\/\/|https:\/\/|www\.|mua ngay|giá rẻ|khuyến mãi|quảng cáo/i.test(content);
+        // For posts: check offensive language AND very short content (1-2 chars)
+        const isTooShort = content.trim().length <= 2;
         
         moderationResult = {
-          approved: !hasOffensiveKeywords && !hasSpam,
+          approved: !hasOffensiveKeywords && !isTooShort,
           reason: hasOffensiveKeywords 
-            ? 'Nội dung chứa từ ngữ không phù hợp'
-            : hasSpam
-            ? 'Nội dung có dấu hiệu spam'
+            ? 'Nội dung chứa từ ngữ xúc phạm'
+            : isTooShort
+            ? 'Nội dung quá ngắn (chỉ có 1-2 ký tự)'
             : 'Nội dung phù hợp',
           issues: hasOffensiveKeywords ? [{
             type: 'offensive_language',
             severity: 'high',
             location: 'toàn bộ nội dung',
-            suggestion: 'Vui lòng sử dụng ngôn từ lịch sự, tôn trọng'
+            suggestion: 'Vui lòng loại bỏ từ ngữ xúc phạm'
+          }] : isTooShort ? [{
+            type: 'inappropriate',
+            severity: 'medium',
+            location: 'toàn bộ nội dung',
+            suggestion: 'Vui lòng viết ít nhất 3 ký tự'
           }] : [],
           suggestedContent: null
         };
@@ -323,6 +295,29 @@ export const moderateContent = async ({ content, type = 'post' }) => {
       moderationResult.issues.forEach((issue, idx) => {
         console.log(`   ${idx + 1}. ${issue.type} (${issue.severity}): ${issue.suggestion}`);
       });
+      
+      // Validate suggestedContent before returning it to user (only if not already validating)
+      if (!skipSuggestedValidation && moderationResult.suggestedContent && moderationResult.suggestedContent.trim()) {
+        console.log(`   🔍 Validating suggested content...`);
+        try {
+          // Recursively check if suggestedContent is also appropriate (with flag to prevent infinite recursion)
+          const suggestedValidation = await moderateContent({ 
+            content: moderationResult.suggestedContent, 
+            type,
+            skipSuggestedValidation: true // Prevent infinite recursion
+          });
+          
+          if (!suggestedValidation.approved) {
+            console.warn(`   ⚠️ Suggested content also failed moderation, removing it`);
+            moderationResult.suggestedContent = null;
+          } else {
+            console.log(`   ✅ Suggested content is clean and approved`);
+          }
+        } catch (error) {
+          console.warn(`   ⚠️ Failed to validate suggested content:`, error.message);
+          moderationResult.suggestedContent = null;
+        }
+      }
     }
 
     return moderationResult;

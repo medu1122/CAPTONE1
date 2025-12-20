@@ -55,7 +55,7 @@ export const AdminDashboardPage: React.FC = () => {
     },
     {
       id: 'analysis' as TabType,
-      label: 'Thống kê Phân tích',
+      label: 'Thống kê Tính Năng Phân Tích',
       icon: '📊',
     },
     {

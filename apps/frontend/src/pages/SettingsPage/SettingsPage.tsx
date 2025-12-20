@@ -23,6 +23,18 @@ export const SettingsPage: React.FC = () => {
     type: 'success' | 'error'
   } | null>(null)
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('userTheme')
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+      document.body.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      document.body.classList.remove('dark')
+    }
+  }, [])
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/auth')
@@ -83,10 +95,10 @@ export const SettingsPage: React.FC = () => {
 
   if (!isAuthenticated || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Đang tải...</p>
         </div>
       </div>
     )
@@ -94,9 +106,9 @@ export const SettingsPage: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Không thể tải thông tin</p>
+          <p className="text-gray-600 dark:text-gray-300">Không thể tải thông tin</p>
           <button
             onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -109,13 +121,13 @@ export const SettingsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Cài đặt</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Cài đặt</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
             Quản lý cài đặt tài khoản và tùy chọn của bạn
           </p>
         </div>

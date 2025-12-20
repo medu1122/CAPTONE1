@@ -3,6 +3,7 @@ export interface UserProfile {
   username: string
   email: string
   phone?: string
+  phoneVerified?: boolean
   avatar?: string
   bio?: string
   isVerified?: boolean

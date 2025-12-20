@@ -71,6 +71,17 @@ const mapBackendToFrontend = (backendBox: any): PlantBox => {
     })),
     specialRequirements: backendBox.specialRequirements,
     careStrategy: backendBox.careStrategy || undefined, // Include careStrategy from backend
+    notifications: backendBox.notifications ? {
+      enabled: backendBox.notifications.enabled ?? true,
+      email: backendBox.notifications.email ?? true,
+      sms: backendBox.notifications.sms ?? false,
+      frequency: backendBox.notifications.frequency,
+      customSchedule: backendBox.notifications.customSchedule,
+    } : {
+      enabled: true,
+      email: true,
+      sms: false,
+    },
     createdAt: backendBox.createdAt
       ? new Date(backendBox.createdAt).toISOString()
       : new Date().toISOString(),
@@ -145,6 +156,7 @@ export const usePlantDetail = (plantBoxId: string) => {
       if (data.specialRequirements !== undefined) backendData.specialRequirements = data.specialRequirements
       if (data.plantedDate) backendData.plantedDate = new Date(data.plantedDate)
       if (data.plannedDate) backendData.plannedDate = new Date(data.plannedDate)
+      if (data.notifications !== undefined) backendData.notifications = data.notifications
 
       const response = await updatePlantBoxAPI(plantBoxId, backendData)
 

@@ -80,7 +80,7 @@ export const PlantBoxCard: React.FC<PlantBoxCardProps> = ({ box }) => {
   return (
     <div
       onClick={() => navigate(`/my-plants/${box._id}`)}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
     >
       {/* Image */}
       <div className="relative h-40 bg-gray-100">

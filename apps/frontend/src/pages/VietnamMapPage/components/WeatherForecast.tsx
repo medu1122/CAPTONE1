@@ -47,7 +47,7 @@ export const WeatherForecast: React.FC<Props> = ({ forecast }) => {
     <div className="mt-6">
       <div className="flex items-center space-x-2 mb-4">
         <Calendar className="text-blue-600" size={20} />
-        <h3 className="font-semibold text-gray-900">Dự báo thời tiết</h3>
+        <h3 className="font-semibold text-gray-900 dark:text-white">Dự báo thời tiết</h3>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

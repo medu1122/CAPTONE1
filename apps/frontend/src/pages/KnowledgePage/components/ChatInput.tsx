@@ -40,7 +40,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled = false }
 
   return (
     <>
-      <div className="bg-white border-t shadow-lg">
+      <div className="bg-white dark:bg-gray-800 border-t shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-end gap-3">
             <div className="flex-1">
@@ -51,7 +51,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, disabled = false }
                 onKeyDown={handleKeyDown}
                 placeholder="Nhập câu hỏi của bạn..."
                 disabled={disabled}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 dark:bg-gray-700 disabled:cursor-not-allowed"
                 rows={1}
                 style={{ maxHeight: '120px' }}
               />

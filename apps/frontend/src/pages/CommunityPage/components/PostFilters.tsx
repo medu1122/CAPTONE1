@@ -50,7 +50,7 @@ export const PostFilters: React.FC<PostFiltersProps> = ({
     },
   ]
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 p-4">
       {/* Search */}
       <div className="relative mb-4">
         <SearchIcon

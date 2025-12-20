@@ -15,16 +15,19 @@ import { PlantDetailPage } from './pages/PlantDetailPage/PlantDetailPage'
 import { PublicProfilePage } from './pages/PublicProfilePage'
 import { VietnamMapPage } from './pages/VietnamMapPage/VietnamMapPage'
 import { AuthProvider } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import VerifiedRoute from './components/VerifiedRoute'
 import AdminRoute from './components/AdminRoute'
 import { AdminDashboardPage } from './pages/AdminDashboardPage/AdminDashboardPage'
+import { TaskCompletedPage } from './pages/TaskCompletedPage/TaskCompletedPage'
 import './App.css'
 
 function App() {
   return (
-    <AuthProvider>
-      <div className="App">
+    <ThemeProvider>
+      <AuthProvider>
+        <div className="App">
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="/home" element={<Home />} />
@@ -34,6 +37,7 @@ function App() {
           <Route path="/logout" element={<LogoutPage />} />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/task-completed" element={<TaskCompletedPage />} />
           {/* Public Profile Page - View other users' profiles */}
           <Route path="/users/:userId" element={<PublicProfilePage />} />
           {/* Plant Analysis Page - Image analysis only - Requires verification */}
@@ -134,7 +138,8 @@ function App() {
           <Route path="*" element={<div style={{ padding: 24 }}>Not Found</div>} />
         </Routes>
       </div>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

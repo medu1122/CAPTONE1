@@ -150,6 +150,27 @@ const groupCommentsLegacy = (comments) => {
  */
 const createPost = async (req, res, next) => {
   try {
+    // Check if user is muted
+    const user = await User.findById(req.user.id);
+    if (user.mutedUntil && new Date(user.mutedUntil) > new Date()) {
+      return next(httpError(403, 'Bạn đã bị mute và không thể đăng bài. Vui lòng liên hệ admin.'));
+    }
+    
+    // Check if user is blocked
+    if (user.status === 'blocked') {
+      // Check if block is temporary and expired
+      if (user.blockedUntil && new Date(user.blockedUntil) <= new Date()) {
+        // Auto-unblock user
+        await User.findByIdAndUpdate(req.user.id, {
+          status: 'active',
+          blockedUntil: null,
+          blockReason: null,
+        });
+      } else {
+        return next(httpError(403, 'Tài khoản của bạn đã bị chặn. Vui lòng liên hệ admin.'));
+      }
+    }
+    
     // Handle image uploads if any
     let images = [];
     if (req.files && req.files.length > 0) {
@@ -595,6 +616,27 @@ const deletePost = async (req, res, next) => {
  */
 const addComment = async (req, res, next) => {
   try {
+    // Check if user is muted
+    const user = await User.findById(req.user.id);
+    if (user.mutedUntil && new Date(user.mutedUntil) > new Date()) {
+      return next(httpError(403, 'Bạn đã bị mute và không thể bình luận. Vui lòng liên hệ admin.'));
+    }
+    
+    // Check if user is blocked
+    if (user.status === 'blocked') {
+      // Check if block is temporary and expired
+      if (user.blockedUntil && new Date(user.blockedUntil) <= new Date()) {
+        // Auto-unblock user
+        await User.findByIdAndUpdate(req.user.id, {
+          status: 'active',
+          blockedUntil: null,
+          blockReason: null,
+        });
+      } else {
+        return next(httpError(403, 'Tài khoản của bạn đã bị chặn. Vui lòng liên hệ admin.'));
+      }
+    }
+    
     const post = await Post.findById(req.params.id);
     
     if (!post) {

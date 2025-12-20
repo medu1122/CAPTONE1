@@ -63,13 +63,13 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }
                     components={{
                       // Headings
                       h1: ({ node, ...props }) => (
-                        <h1 className="text-lg font-bold mb-3 mt-2 text-gray-900" {...props} />
+                        <h1 className="text-lg font-bold mb-3 mt-2 text-gray-900 dark:text-white" {...props} />
                       ),
                       h2: ({ node, ...props }) => (
-                        <h2 className="text-base font-bold mb-2 mt-3 text-gray-900" {...props} />
+                        <h2 className="text-base font-bold mb-2 mt-3 text-gray-900 dark:text-white" {...props} />
                       ),
                       h3: ({ node, ...props }) => (
-                        <h3 className="text-sm font-semibold mb-1.5 mt-2 text-gray-900" {...props} />
+                        <h3 className="text-sm font-semibold mb-1.5 mt-2 text-gray-900 dark:text-white" {...props} />
                       ),
                       // Paragraphs
                       p: ({ node, ...props }) => (
@@ -87,7 +87,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }
                       ),
                       // Text formatting
                       strong: ({ node, ...props }) => (
-                        <strong className="font-semibold text-gray-900" {...props} />
+                        <strong className="font-semibold text-gray-900 dark:text-white" {...props} />
                       ),
                       em: ({ node, ...props }) => (
                         <em className="italic" {...props} />
@@ -97,25 +97,25 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }
                         if (inline) {
                           return (
                             <code
-                              className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800"
+                              className="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800"
                               {...props}
                             />
                           )
                         }
                         return (
                           <code
-                            className="block bg-gray-100 p-2 rounded text-xs font-mono text-gray-800 overflow-x-auto"
+                            className="block bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono text-gray-800 overflow-x-auto"
                             {...props}
                           />
                         )
                       },
                       pre: ({ node, ...props }) => (
-                        <pre className="bg-gray-100 p-3 rounded-lg mt-2 mb-2 overflow-x-auto text-xs" {...props} />
+                        <pre className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mt-2 mb-2 overflow-x-auto text-xs" {...props} />
                       ),
                       // Blockquote
                       blockquote: ({ node, ...props }) => (
                         <blockquote
-                          className="border-l-4 border-green-500 pl-3 italic my-2 text-gray-700"
+                          className="border-l-4 border-green-500 pl-3 italic my-2 text-gray-700 dark:text-gray-200"
                           {...props}
                         />
                       ),
@@ -152,7 +152,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isTyping }
 
       {isTyping && (
         <div className="flex justify-start">
-          <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 rounded-2xl px-4 py-3 shadow-sm">
             <div className="flex items-center gap-1">
               <div
                 className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"

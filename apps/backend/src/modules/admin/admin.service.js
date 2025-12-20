@@ -188,19 +188,32 @@ export const getUsersList = async (query = {}) => {
  */
 export const blockUser = async (userId, data = {}) => {
   try {
-    const { reason } = data;
+    const { reason, duration } = data; // duration in hours
+
+    // Check if user is admin
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      throw httpError(404, 'User not found');
+    }
+    if (existingUser.role === 'admin') {
+      throw httpError(403, 'Cannot block an admin user');
+    }
+
+    let blockedUntil = null;
+    if (duration) {
+      blockedUntil = new Date();
+      blockedUntil.setHours(blockedUntil.getHours() + parseInt(duration));
+    }
     
     const user = await User.findByIdAndUpdate(
       userId,
       {
         status: 'blocked',
+        blockedUntil,
+        blockReason: reason || null,
       },
       { new: true }
     ).select('-passwordHash');
-
-    if (!user) {
-      throw httpError(404, 'User not found');
-    }
 
     return user;
   } catch (error) {
@@ -268,6 +281,15 @@ export const muteUser = async (userId, data = {}) => {
   try {
     const { reason, duration } = data; // duration in hours
 
+    // Check if user is admin
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+      throw httpError(404, 'User not found');
+    }
+    if (existingUser.role === 'admin') {
+      throw httpError(403, 'Cannot mute an admin user');
+    }
+
     let mutedUntil = null;
     if (duration) {
       mutedUntil = new Date();
@@ -282,10 +304,6 @@ export const muteUser = async (userId, data = {}) => {
       },
       { new: true }
     ).select('-passwordHash');
-
-    if (!user) {
-      throw httpError(404, 'User not found');
-    }
 
     return user;
   } catch (error) {

@@ -29,12 +29,12 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ state }) => 
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 space-y-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 space-y-6">
       {/* Progress Bar */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">Đang phân tích...</h3>
-          <span className="text-sm font-medium text-gray-600">{progress}%</span>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Đang phân tích...</h3>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{progress}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
           <div
@@ -73,9 +73,9 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ state }) => 
               <h4 className="font-semibold text-gray-900 mb-2">🦠 Bệnh phát hiện ({diseases.length})</h4>
               <div className="space-y-2">
                 {diseases.map((disease, index) => (
-                  <div key={index} className="bg-white rounded p-2 border border-amber-100">
+                  <div key={index} className="bg-white dark:bg-gray-800 rounded p-2 border border-amber-100">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-900">{disease.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{disease.name}</span>
                       <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
                         {Math.round(disease.confidence * 100)}%
                       </span>
@@ -102,7 +102,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ state }) => 
                     {treatmentList.map((t: any, idx: number) => (
                       <span
                         key={idx}
-                        className="px-2 py-1 bg-white border border-blue-200 rounded text-xs text-gray-700"
+                        className="px-2 py-1 bg-white border border-blue-200 rounded text-xs text-gray-700 dark:text-gray-200"
                       >
                         {t.title || t.type}
                         {t.count && ` (${t.count})`}
@@ -123,7 +123,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ state }) => 
             <CheckCircleIcon className="text-purple-600 mt-0.5" size={20} />
             <div className="flex-1">
               <h4 className="font-semibold text-gray-900 mb-1">🌿 Thông tin chăm sóc</h4>
-              <p className="text-sm text-gray-700">Đã tải thông tin chăm sóc cây</p>
+              <p className="text-sm text-gray-700 dark:text-gray-200">Đã tải thông tin chăm sóc cây</p>
             </div>
           </div>
         </div>
@@ -131,7 +131,7 @@ export const AnalysisProgress: React.FC<AnalysisProgressProps> = ({ state }) => 
 
       {/* Loading Indicator */}
       {status !== 'complete' && (
-        <div className="flex items-center justify-center gap-2 text-gray-600">
+        <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-300">
           <Loader2Icon className="animate-spin" size={20} />
           <span className="text-sm">Đang xử lý...</span>
         </div>

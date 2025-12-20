@@ -101,14 +101,14 @@ export const PlantAnalysisPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header isLoggedIn={!!user} onLogout={handleLogout} />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🌿 Phân Tích Cây & Bệnh</h1>
-          <p className="text-gray-600">Upload ảnh cây để nhận diện và phát hiện bệnh</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">🌿 Phân Tích Cây & Bệnh</h1>
+          <p className="text-gray-600 dark:text-gray-300">Upload ảnh cây để nhận diện và phát hiện bệnh</p>
         </div>
 
         {/* Two Column Layout */}
@@ -142,7 +142,7 @@ export const PlantAnalysisPage: React.FC = () => {
                         <h2 className="text-xl font-bold text-gray-900 mb-2">
                           Ảnh đã sẵn sàng!
                         </h2>
-                        <p className="text-gray-700">
+                        <p className="text-gray-700 dark:text-gray-200">
                           Click nút bên dưới để bắt đầu phân tích cây và phát hiện bệnh
                         </p>
                       </div>
@@ -152,7 +152,7 @@ export const PlantAnalysisPage: React.FC = () => {
                 
                 {/* Show analyze button if image is uploaded */}
                 {selectedImage && (
-                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
                     <button
                       onClick={handleAnalyze}
                       disabled={selectedImage.analyzing}
@@ -177,26 +177,24 @@ export const PlantAnalysisPage: React.FC = () => {
               </div>
             ) : (
               <>
-                {/* Report Button - Only show after analysis is complete */}
-                {selectedImage.result && !selectedImage.analyzing && (
-                  <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                    <button
-                      onClick={() => setShowReportModal(true)}
-                      className="w-full px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <span>🚩</span>
-                      <span>Báo cáo lỗi hoặc kết quả sai</span>
-                    </button>
-                  </div>
-                )}
+                {/* Report Button - Always available, no need to wait for analysis */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="w-full px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>🚩</span>
+                    <span>Báo cáo lỗi hoặc kết quả sai</span>
+                  </button>
+                </div>
 
                 {/* Analysis Interface - Show when analyzing or has result */}
                 {/* Small Progress Indicator - Only show progress bar, not full component */}
                 {selectedImage.analyzing && streamingState.status !== 'idle' && streamingState.status !== 'complete' && (
-                  <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">{streamingState.currentStep}</span>
-                      <span className="text-sm text-gray-500">{streamingState.progress}%</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{streamingState.currentStep}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{streamingState.progress}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -261,7 +259,7 @@ export const PlantAnalysisPage: React.FC = () => {
 
                 {/* Reset button when analysis complete */}
                 {selectedImage.result && !selectedImage.analyzing && (
-                  <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
                     <button
                       onClick={handleReset}
                       className="w-full px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"

@@ -11,7 +11,7 @@ export const PlantInfoCard: React.FC<PlantInfoCardProps> = ({ result }) => {
   const topDisease = diseases[0]
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
         <span>🌱</span>
         Phân tích tổng quan
@@ -28,7 +28,7 @@ export const PlantInfoCard: React.FC<PlantInfoCardProps> = ({ result }) => {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-gray-900 dark:text-white">
                 {isHealthy
                   ? 'Không phát hiện bệnh rõ ràng'
                   : topDisease
@@ -45,8 +45,8 @@ export const PlantInfoCard: React.FC<PlantInfoCardProps> = ({ result }) => {
             
             {/* Confidence */}
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-600">Độ tin cậy:</span>
-              <span className="font-semibold text-gray-900">{Math.round(plant.confidence * 100)}%</span>
+              <span className="text-gray-600 dark:text-gray-300">Độ tin cậy:</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{Math.round(plant.confidence * 100)}%</span>
               {!plant.reliable && (
                 <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">Độ tin cậy thấp</span>
               )}
@@ -56,7 +56,7 @@ export const PlantInfoCard: React.FC<PlantInfoCardProps> = ({ result }) => {
 
         {!isHealthy && topDisease && topDisease.description && (
           <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
-            <p className="text-sm text-gray-700">{topDisease.description}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-200">{topDisease.description}</p>
           </div>
         )}
       </div>

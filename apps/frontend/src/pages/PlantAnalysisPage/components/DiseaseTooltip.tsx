@@ -127,7 +127,7 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
             }}
           >
             {/* Header */}
-            <div className="flex items-start gap-3 mb-4 pb-4 border-b border-gray-200">
+            <div className="flex items-start gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <InfoIcon className="text-blue-600" size={24} />
@@ -138,7 +138,7 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
                   <h3 className="text-xl font-bold text-gray-900 leading-tight">{diseaseName}</h3>
                   <button
                     onClick={() => setIsVisible(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100 flex-shrink-0"
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100 dark:bg-gray-700 flex-shrink-0"
                     aria-label="Đóng"
                   >
                     <XIcon size={20} />
@@ -152,7 +152,7 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
               {loading[diseaseName] ? (
                 <div className="flex items-center justify-center gap-3 py-8">
                   <Loader2Icon className="animate-spin text-blue-600" size={20} />
-                  <span className="text-gray-600">Đang tải giải thích...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải giải thích...</span>
                 </div>
               ) : explanation ? (
                 <div className="bg-blue-50 rounded-lg p-5 border border-blue-200">
@@ -160,13 +160,13 @@ export const DiseaseTooltip: React.FC<DiseaseTooltipProps> = ({
                 </div>
               ) : (
                 <div className="bg-gray-50 rounded-lg p-5 border border-gray-200 text-center">
-                  <p className="text-gray-500">Không thể tải giải thích về bệnh này.</p>
+                  <p className="text-gray-500 dark:text-gray-400">Không thể tải giải thích về bệnh này.</p>
                 </div>
               )}
             </div>
 
             {/* Close Button */}
-            <div className="flex justify-end pt-4 border-t border-gray-200">
+            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setIsVisible(false)}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md"

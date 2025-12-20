@@ -6,7 +6,7 @@ import { Loader2Icon } from 'lucide-react'
  */
 export const PlantInfoCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>
         <div className="h-6 bg-gray-200 rounded w-40 animate-pulse"></div>
@@ -24,7 +24,7 @@ export const PlantInfoCardSkeleton: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+      <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         <Loader2Icon className="animate-spin" size={16} />
         <span>Đang nhận diện cây...</span>
       </div>
@@ -37,20 +37,20 @@ export const PlantInfoCardSkeleton: React.FC = () => {
  */
 export const DiseaseDetectionSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>
         <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Loader2Icon className="animate-spin" size={16} />
           <span>Đang kiểm tra bệnh...</span>
         </div>
         <div className="space-y-2">
           {[1, 2].map((i) => (
-            <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -63,7 +63,7 @@ export const DiseaseDetectionSkeleton: React.FC = () => {
  */
 export const TreatmentPanelSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-6 h-6 bg-gray-200 rounded animate-pulse"></div>
         <div className="h-6 bg-gray-200 rounded w-56 animate-pulse"></div>
@@ -83,13 +83,13 @@ export const TreatmentPanelSkeleton: React.FC = () => {
             <div className="h-5 bg-gray-200 rounded w-40 mb-3 animate-pulse"></div>
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse"></div>
+                <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse"></div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Loader2Icon className="animate-spin" size={16} />
           <span>Đang tìm phương pháp điều trị...</span>
         </div>

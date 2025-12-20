@@ -14,6 +14,7 @@ import {
   updateDiseaseTreatments,
   toggleActionCompleted,
 } from './plantBox.service.js';
+import { completeTaskViaToken } from './plantBoxTaskCompletion.service.js';
 import { generatePlantBoxChatResponse } from './plantBoxChat.service.js';
 import { getWeatherData } from '../weather/weather.service.js';
 import { httpError } from '../../common/utils/http.js';
@@ -757,6 +758,54 @@ export const toggleActionCompletedController = async (req, res) => {
       return res.status(error.statusCode).json({ success: false, message: error.message });
     }
     res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
+/**
+ * Complete task via token (public endpoint)
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const completeTaskViaTokenController = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is required',
+      });
+    }
+
+    const result = await completeTaskViaToken(token);
+
+    // Redirect to success page or return JSON
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      // If browser request, redirect to success page with token
+      const appUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${appUrl}/task-completed?token=${token}`);
+    }
+
+    // API request, return JSON
+    res.json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (error) {
+    console.error('❌ [completeTaskViaTokenController] Error:', error);
+    
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
   }
 };
 

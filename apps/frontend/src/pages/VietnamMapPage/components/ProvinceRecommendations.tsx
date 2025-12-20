@@ -23,7 +23,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
           <Bot className="text-white" size={24} />
         </div>
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900">Tư vấn mùa vụ</h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Tư vấn mùa vụ</h3>
           {provinceCode ? (
             <p className="text-sm text-gray-600 flex items-center space-x-1">
               <Calendar size={14} />
@@ -45,7 +45,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
       ) : loading && !recommendation ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="animate-spin text-green-600" size={32} />
-          <span className="ml-3 text-gray-600">Đang tư vấn...</span>
+          <span className="ml-3 text-gray-600 dark:text-gray-300">Đang tư vấn...</span>
         </div>
       ) : error ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -59,7 +59,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
               {loadingStates.season ? (
                 <div className="flex items-center space-x-3">
                   <Loader2 className="animate-spin text-blue-600" size={20} />
-                  <span className="text-gray-600">Đang tải...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải...</span>
                 </div>
               ) : (
                 <div className="flex items-start space-x-3">
@@ -83,7 +83,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
               {loadingStates.crops ? (
                 <div className="flex items-center space-x-3">
                   <Loader2 className="animate-spin text-green-600" size={20} />
-                  <span className="text-gray-600">Đang tải...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải...</span>
                 </div>
               ) : (
                 <div className="flex items-start space-x-3">
@@ -125,7 +125,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
               {loadingStates.harvesting ? (
                 <div className="flex items-center space-x-3">
                   <Loader2 className="animate-spin text-purple-600" size={20} />
-                  <span className="text-gray-600">Đang tải...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải...</span>
                 </div>
               ) : (
                 <div className="flex items-start space-x-3">
@@ -156,7 +156,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
               {loadingStates.weather ? (
                 <div className="flex items-center space-x-3">
                   <Loader2 className="animate-spin text-yellow-600" size={20} />
-                  <span className="text-gray-600">Đang tải...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải...</span>
                 </div>
               ) : (
                 <div className="flex items-start space-x-3">
@@ -180,7 +180,7 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
               {loadingStates.notes ? (
                 <div className="flex items-center space-x-3">
                   <Loader2 className="animate-spin text-orange-600" size={20} />
-                  <span className="text-gray-600">Đang tải...</span>
+                  <span className="text-gray-600 dark:text-gray-300">Đang tải...</span>
                 </div>
               ) : (
                 <div className="flex items-start space-x-3">
@@ -282,14 +282,14 @@ export const ProvinceRecommendations: React.FC<Props> = ({ provinceCode }) => {
           {!recommendation.season && !recommendation.crops.length && !recommendation.weather && !recommendation.notes.length && (
             <div className="text-center py-8">
               <Bot className="mx-auto mb-3 text-gray-400" size={40} />
-              <p className="text-gray-600">Chưa có dữ liệu tư vấn</p>
+              <p className="text-gray-600 dark:text-gray-300">Chưa có dữ liệu tư vấn</p>
             </div>
           )}
         </div>
       ) : (
         <div className="text-center py-8">
           <Bot className="mx-auto mb-3 text-gray-400" size={40} />
-          <p className="text-gray-600">Chưa có tư vấn</p>
+          <p className="text-gray-600 dark:text-gray-300">Chưa có tư vấn</p>
         </div>
       )}
     </div>

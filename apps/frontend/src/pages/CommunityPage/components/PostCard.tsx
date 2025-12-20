@@ -265,7 +265,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     return `${diffInDays} ngày trước`
   }
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="p-4 flex items-start justify-between">
         <div className="flex items-start gap-3">
@@ -344,7 +344,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       </div>
       {/* Content */}
       <div className="px-4 pb-3">
-        <h2 className="text-lg font-semibold mb-2 text-gray-900">
+        <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
           {post.title}
         </h2>
         <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -487,7 +487,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                         <img
                           src={preview}
                           alt="Preview"
-                          className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
                         />
                         <button
                           type="button"
@@ -525,7 +525,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Xác nhận xóa bài viết
             </h3>

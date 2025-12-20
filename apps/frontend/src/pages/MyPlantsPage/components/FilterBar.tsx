@@ -27,7 +27,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     },
   ]
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
       <div className="flex flex-col md:flex-row gap-4">
         {/* Search */}
         <div className="flex-1 relative">
