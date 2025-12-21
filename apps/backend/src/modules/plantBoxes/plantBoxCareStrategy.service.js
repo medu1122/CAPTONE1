@@ -364,7 +364,13 @@ ${plantBox.plantedDate ? (() => {
     - Cây con mới trồng (1-2 tuần đầu): tưới nhẹ nhưng đều, thường mỗi ngày hoặc cách ngày
     - Đang ra hoa - đậu quả: cần nước ổn định, thường 3-5 lần/tuần
     - Mẹo: chọc tay xuống đất 2-3 cm — nếu khô thì tưới, nếu ẩm thì chưa cần
-  * Kết hợp với "Nhu cầu tưới" từ thời tiết (nếu thời tiết báo cần tưới thì ưu tiên)
+  * 🚨 QUY TẮC QUAN TRỌNG:
+    - Nếu "Nhu cầu tưới" = "Có mưa, không cần tưới" → KHÔNG tưới
+    - Nếu "Nhu cầu tưới" = "Điều kiện bình thường, KHÔNG BẮT BUỘC tưới" → VẪN PHẢI tưới theo tần suất (ví dụ: 3 lần/tuần = ngày 1, 3, 5), nhưng có thể giảm lượng nước
+    - Nếu "Nhu cầu tưới" = "Cần tưới nhiều/vừa phải" → Tưới ngay
+    - KHÔNG PHẢI tưới mỗi ngày, nhưng PHẢI đảm bảo đủ tần suất (ví dụ: 3 lần/tuần = 3 ngày trong 7 ngày)
+  * PHÂN BỐ ĐỀU: Nếu cần tưới 3 lần/tuần, PHẢI tưới đúng 3 lần trong 7 ngày, phân bố đều (ví dụ: ngày 1, 3, 5 hoặc ngày 2, 4, 6)
+  * 🚨 LƯU Ý: Độ ẩm cao (80-90%) KHÔNG có nghĩa là không cần tưới. Vẫn phải tưới theo tần suất, chỉ giảm lượng nước. Chỉ KHÔNG tưới khi có mưa lớn (> 5mm)
   * Tưới buổi sáng sớm (07:00-08:00), tránh tưới lên lá (dễ bệnh)
   * Nếu mưa > 5mm trong ngày thì KHÔNG cần tưới
   * ${plantBox.quantity ? `Lưu ý: ${plantBox.quantity} cây - cần đủ nước cho tất cả` : ''}
@@ -404,16 +410,18 @@ VÍ DỤ (PHẢI CÓ ĐỦ 7 NGÀY):
   {"date":"2024-01-21","actions":[]}
 ],"summary":"Tóm tắt..."}
 ` : `
-VÍ DỤ (PHẢI CÓ ĐỦ 7 NGÀY):
+VÍ DỤ (PHẢI CÓ ĐỦ 7 NGÀY - LƯU Ý TƯỚI NƯỚC):
 ⚠️ LƯU Ý: Trong JSON response, KHÔNG cần trả về "weather" (hệ thống sẽ tự động dùng dữ liệu thực tế từ OpenWeather)
+⚠️ QUAN TRỌNG: Nếu cần tưới 3 lần/tuần, PHẢI có đúng 3 action "water" trong 7 ngày, phân bố đều (ví dụ: ngày 1, 3, 5)
+⚠️ KHÔNG được bỏ qua tưới nước chỉ vì độ ẩm cao, chỉ bỏ khi có mưa lớn (> 5mm)
 {"next7Days":[
-  {"date":"2024-01-15","actions":[{"_id":"a1","type":"water","time":"08:00","description":"Tưới nước","reason":"Cần nước","products":[]}]},
+  {"date":"2024-01-15","actions":[{"_id":"a1","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 1","products":[]}]},
   {"date":"2024-01-16","actions":[]},
-  {"date":"2024-01-17","actions":[{"_id":"a2","type":"water","time":"08:00","description":"Tưới nước","reason":"Cần nước","products":[]}]},
+  {"date":"2024-01-17","actions":[{"_id":"a2","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 3","products":[]}]},
   {"date":"2024-01-18","actions":[]},
-  {"date":"2024-01-19","actions":[]},
-  {"date":"2024-01-20","actions":[{"_id":"a3","type":"water","time":"08:00","description":"Tưới nước","reason":"Cần nước","products":[]}],"weather":{"temp":{"min":20,"max":27},"humidity":70,"rain":0,"alerts":[]}},
-  {"date":"2024-01-21","actions":[],"weather":{"temp":{"min":19,"max":26},"humidity":75,"rain":10,"alerts":[]}}
+  {"date":"2024-01-19","actions":[{"_id":"a3","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 5","products":[]}]},
+  {"date":"2024-01-20","actions":[]},
+  {"date":"2024-01-21","actions":[]}
 ],"summary":"Tóm tắt..."}
 `}
 
@@ -820,16 +828,30 @@ const createFallbackStrategy = (plantBox, weather) => {
       });
     }
 
-    // Watering based on temperature and rain (only if not treating disease on same day)
-    if (day.rain < 5 && (!plantBox.currentDiseases || plantBox.currentDiseases.length === 0 || index >= 3)) {
-      // No rain or light rain, need watering
+    // Watering based on temperature, rain, and frequency (only if not treating disease on same day)
+    // Chỉ tưới khi: mưa < 5mm VÀ (nhiệt độ cao hoặc độ ẩm thấp) VÀ phân bố đều theo tần suất
+    const shouldWater = day.rain < 5 && 
+                       (day.temperature.max > 30 || day.humidity < 50) &&
+                       (!plantBox.currentDiseases || plantBox.currentDiseases.length === 0 || index >= 3);
+    
+    // Phân bố đều: tưới cách 2-3 ngày (ví dụ: ngày 0, 2, 4 hoặc ngày 1, 3, 5)
+    // Tính toán dựa trên index để phân bố đều trong 7 ngày
+    const wateringFrequency = 3; // Tưới 3 lần/tuần (có thể điều chỉnh)
+    const shouldWaterToday = shouldWater && (index % Math.ceil(7 / wateringFrequency) === 0 || 
+                                            (index > 0 && index % Math.ceil(7 / wateringFrequency) === Math.ceil(7 / wateringFrequency) - 1) ||
+                                            (index > 2 && index % Math.ceil(7 / wateringFrequency) === Math.ceil(7 / wateringFrequency) - 2));
+    
+    // Hoặc đơn giản hơn: tưới ngày 0, 2, 4 hoặc ngày 1, 3, 5
+    const simpleWateringSchedule = index % 2 === 0 && index < 6; // Tưới ngày 0, 2, 4 (3 lần/tuần)
+    
+    if (shouldWater && simpleWateringSchedule) {
       const waterAmount = day.temperature.max > 30 ? 'đủ ẩm' : 'vừa phải';
       actions.push({
         _id: `action_${index}_water_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: 'water',
         time: '08:00',
         description: `Tưới nước ${waterAmount} vào sáng sớm`,
-        reason: `Nhiệt độ cao ${day.temperature.max}°C, độ ẩm ${day.humidity}%, cần bổ sung nước`,
+        reason: `Nhiệt độ ${day.temperature.max}°C, độ ẩm ${day.humidity}%, cần bổ sung nước. Phân bố đều theo tần suất 3 lần/tuần.`,
         products: [],
         completed: false,
       });

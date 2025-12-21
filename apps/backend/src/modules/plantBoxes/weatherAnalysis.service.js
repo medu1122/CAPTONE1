@@ -96,7 +96,7 @@ export const analyzeWeather = (weather) => {
     wateringReason = 'Độ ẩm thấp, cần tưới bổ sung';
   } else {
     wateringNeed = 'normal';
-    wateringReason = 'Điều kiện bình thường, tưới theo nhu cầu';
+    wateringReason = 'Điều kiện bình thường, KHÔNG BẮT BUỘC tưới (chỉ tưới nếu đất khô hoặc đã 2-3 ngày chưa tưới)';
   }
   
   // Alerts

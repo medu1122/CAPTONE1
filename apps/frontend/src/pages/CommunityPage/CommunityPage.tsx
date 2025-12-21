@@ -9,6 +9,7 @@ import { usePosts } from './hooks/usePost'
 import { useAuth } from '../../contexts/AuthContext'
 import { LoadingSpinner } from '../../components/common/LoadingStates'
 import { UserMenu } from '../../components/UserMenu'
+import { communityEvents } from '../../utils/communityEvents'
 import type { Post, UpdatePostData } from './types/community.types'
 
 export const CommunityPage: React.FC = () => {
@@ -69,6 +70,38 @@ export const CommunityPage: React.FC = () => {
       await fetchPosts() // Refresh to remove deleted post
     }
   }
+
+  // Listen to real-time community events (instant refresh when notification received)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    console.log('🔔 [CommunityPage] Subscribing to community events');
+    const unsubscribe = communityEvents.subscribe(() => {
+      console.log('🔄 [CommunityPage] Community event received, refreshing posts');
+      fetchPosts();
+    });
+
+    return () => {
+      console.log('🔕 [CommunityPage] Unsubscribing from community events');
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  // Auto-refresh posts every 30 seconds as fallback (for users without notifications)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 [CommunityPage] Periodic auto-refresh');
+      fetchPosts();
+    }, 30000); // 30 seconds
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Scroll to post when postId is in URL (e.g., from notification)
   useEffect(() => {

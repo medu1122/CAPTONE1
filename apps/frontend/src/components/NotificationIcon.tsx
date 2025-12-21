@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { notificationService, Notification } from '../services/notificationService';
+import { notificationService } from '../services/notificationService';
+import type { Notification } from '../services/notificationService';
 import { NotificationDropdown } from './NotificationDropdown';
+import { communityEvents } from '../utils/communityEvents';
 
 export const NotificationIcon: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -37,13 +39,19 @@ export const NotificationIcon: React.FC = () => {
     fetchNotifications();
 
     // Setup SSE connection for realtime updates
-    console.log('🔔 [NotificationIcon] Setting up SSE connection for user:', user?._id);
+    console.log('🔔 [NotificationIcon] Setting up SSE connection for user:', user?.id);
     const eventSource = notificationService.createSSEConnection(
       (notification) => {
         console.log('🔔 [NotificationIcon] Received notification:', notification);
         // Add new notification to the list
         setNotifications((prev) => [notification, ...prev]);
         setUnreadCount((prev) => prev + 1);
+        
+        // Emit community event for real-time post updates
+        if (notification.type === 'like' || notification.type === 'comment' || notification.type === 'reply') {
+          console.log('🔄 [NotificationIcon] Emitting community update event');
+          communityEvents.emit();
+        }
       },
       (count) => {
         console.log('🔔 [NotificationIcon] Unread count updated:', count);
