@@ -281,11 +281,31 @@ ${plantBox.plantedDate ? (() => {
   return `- Tuổi cây: ${monthsSince} tháng (${isYoung ? 'Cây con - CẨN THẬN với thuốc hóa học' : 'Cây trưởng thành - Có thể dùng thuốc hóa học khi cần'})`
 })() : ''}
 - Vị trí: ${plantBox.location.name}
+${(() => {
+  // Suy luận growingType từ area
+  let growingTypeText = ''
+  if (plantBox.location.area) {
+    if (plantBox.location.area <= 5) {
+      growingTypeText = 'Trồng chậu (ban công, sân thượng)'
+    } else if (plantBox.location.area <= 50) {
+      growingTypeText = 'Vườn nhà nhỏ (sân sau, vườn nhỏ)'
+    } else {
+      growingTypeText = 'Ruộng/Nông trại (canh tác lớn)'
+    }
+  }
+  return growingTypeText ? `- Kiểu trồng: ${growingTypeText}\n` : ''
+})()}${plantBox.location.area ? `- Diện tích: ${plantBox.location.area}m²` : ''}
 ${plantBox.location.soilType && plantBox.location.soilType.length > 0 
   ? `- Đất: ${Array.isArray(plantBox.location.soilType) ? plantBox.location.soilType.join(', ') : plantBox.location.soilType}` 
   : ''}
-${plantBox.location.sunlight ? `- Ánh sáng: ${plantBox.location.sunlight === 'full' ? 'Đầy đủ' : plantBox.location.sunlight === 'partial' ? 'Một phần' : 'Bóng râm'}` : ''}
-${plantBox.location.area ? `- Diện tích: ${plantBox.location.area}m²` : ''}
+${plantBox.location.sunlight ? (() => {
+  const sunlightText = plantBox.location.sunlight === 'full' ? 'Đầy đủ' : plantBox.location.sunlight === 'partial' ? 'Một phần' : 'Bóng râm'
+  // Suy luận sunlightHours từ sunlight
+  const sunlightHoursText = plantBox.location.sunlight === 'full' ? '>6h nắng trực tiếp/ngày' : 
+                            plantBox.location.sunlight === 'partial' ? '3-6h nắng trực tiếp/ngày' : 
+                            '<3h nắng trực tiếp/ngày'
+  return `- Ánh sáng: ${sunlightText} (${sunlightHoursText})`
+})() : ''}
 ${plantBox.quantity ? `- Số lượng: ${plantBox.quantity} cây` : ''}
 ${plantBox.growthStage ? `- Giai đoạn: ${plantBox.growthStage === 'seed' ? 'Hạt giống' : plantBox.growthStage === 'seedling' ? 'Cây con' : plantBox.growthStage === 'vegetative' ? 'Sinh trưởng' : plantBox.growthStage === 'flowering' ? 'Ra hoa' : 'Đậu quả'}` : ''}
 ${plantBox.currentHealth ? `- Sức khỏe: ${plantBox.currentHealth === 'excellent' ? 'Tuyệt vời' : plantBox.currentHealth === 'good' ? 'Tốt' : plantBox.currentHealth === 'fair' ? 'Bình thường' : 'Yếu'}` : ''}
@@ -349,7 +369,10 @@ ${activeDiseases.length > 0 ? `
 BẮT BUỘC:
 - Sử dụng TÊN THUỐC CỤ THỂ từ DB (ví dụ: "Phun thuốc Amistar® 250SC (10ml/10 lít)" thay vì "Phun thuốc trị bệnh")
 - Sinh học và canh tác PHẢI là ACTION RIÊNG, KHÔNG phải trong taskAnalysis của action phun thuốc
-- Mỗi action có _id, type, time, description CỤ THỂ, reason dựa trên điểm số và thời tiết
+- Mỗi action có _id, type, time, description CỤ THỂ, reason PHẢI giải thích:
+  * TẠI SAO cần làm task này (dựa trên điểm số bệnh/thời tiết/tình trạng)
+  * TẠI SAO phải làm vào khung giờ đó (dựa trên nhiệt độ, độ ẩm, ánh sáng trong ngày)
+  * Ví dụ: "07:00 - Nhiệt độ thấp 23°C, tránh nắng nóng, thuốc hiệu quả hơn" hoặc "17:00 - Nhiệt độ mát, độ ẩm tăng, phù hợp cho phương pháp sinh học"
 ${plantBox.plantedDate ? (() => {
   const daysSince = Math.floor((new Date().getTime() - new Date(plantBox.plantedDate).getTime()) / (1000 * 60 * 60 * 24))
   const isYoung = daysSince < 60
@@ -376,7 +399,27 @@ ${plantBox.plantedDate ? (() => {
   * ${plantBox.quantity ? `Lưu ý: ${plantBox.quantity} cây - cần đủ nước cho tất cả` : ''}
   * ${plantBox.location.area ? `Diện tích ${plantBox.location.area}m² - tính lượng nước phù hợp` : ''}
   * ${plantBox.wateringMethod ? `Phương pháp ${plantBox.wateringMethod === 'drip' ? 'nhỏ giọt' : plantBox.wateringMethod === 'sprinkler' ? 'phun' : 'tay'} - ${plantBox.wateringMethod === 'drip' ? 'tần suất có thể thấp hơn' : plantBox.wateringMethod === 'sprinkler' ? 'tần suất trung bình' : 'tần suất cao hơn'}` : ''}
-- Mỗi hành động: time cụ thể (07:00, 17:00), description CỤ THỂ, reason dựa trên thời tiết/tình trạng
+- Mỗi hành động: 
+  * time cụ thể (07:00, 17:00, 08:00) - PHẢI giải thích rõ TẠI SAO phải làm vào khung giờ đó
+  * description CỤ THỂ
+  * reason PHẢI bao gồm:
+    - Lý do cần làm task này (dựa trên bệnh/thời tiết/tình trạng)
+    - Lý do TẠI SAO phải làm vào khung giờ đó (dựa trên nhiệt độ, độ ẩm, ánh sáng trong ngày)
+  * 🕐 HƯỚNG DẪN KHUNG GIỜ:
+    - 07:00-08:00 (Sáng sớm): 
+      * Phun thuốc: Nhiệt độ thấp, tránh nắng nóng, thuốc hấp thụ tốt, không bị bay hơi nhanh
+      * Tưới nước: Cây hấp thụ tốt, nước kịp khô trước nắng gắt, tránh úng nước và bệnh nấm
+      * Canh tác: Nhiệt độ mát, dễ quan sát và xử lý
+    - 17:00-18:00 (Chiều tối):
+      * Phun thuốc: Nhiệt độ mát, độ ẩm tăng, thuốc có thời gian hấp thụ qua đêm
+      * Phương pháp sinh học: Môi trường mát, độ ẩm cao, phù hợp cho vi sinh vật hoạt động
+      * Tưới nước: Nếu cần, nhưng tránh tưới quá muộn (dễ úng nước qua đêm)
+    - 08:00-09:00 (Sáng muộn):
+      * Tưới nước: Thời điểm tốt, nhiệt độ ấm dần, cây hấp thụ tốt
+      * Kiểm tra: Ánh sáng đủ, dễ quan sát
+  * Ví dụ reason tốt: "Điều trị bệnh Đốm lá (điểm 5/10). Phun thuốc lúc 07:00 vì nhiệt độ thấp 23°C, tránh nắng nóng buổi trưa (dự báo 32°C), thuốc hấp thụ tốt hơn và không bị bay hơi nhanh"
+  * Ví dụ reason tốt: "Tưới nước lúc 08:00 vì nhiệt độ 24°C, độ ẩm 85%, cây cần nước sau đêm. Tưới sáng sớm để cây hấp thụ tốt, nước kịp khô trước khi nắng gắt (dự báo 32°C), tránh úng nước và bệnh nấm"
+  * Ví dụ reason tốt: "Áp dụng phương pháp sinh học lúc 17:00 vì nhiệt độ mát 25°C, độ ẩm tăng 88%, môi trường phù hợp cho vi sinh vật hoạt động hiệu quả"
 ${fruitingInfo.isFruitingSeason ? '- ⚠️ Đang mùa ra trái, cần chăm sóc đặc biệt' : ''}
 
 🚨 QUAN TRỌNG VỀ PHÒNG NGỪA BỆNH NẤM (KHI KHÔNG CÓ BỆNH ACTIVE):
@@ -401,10 +444,10 @@ ${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
 VÍ DỤ (PHẢI CÓ ĐỦ 7 NGÀY):
 ⚠️ LƯU Ý: Trong JSON response, KHÔNG cần trả về "weather" (hệ thống sẽ tự động dùng dữ liệu thực tế từ OpenWeather)
 {"next7Days":[
-  {"date":"2024-01-15","actions":[{"_id":"a1","type":"protect","time":"07:00","description":"Phun thuốc [Tên thuốc]","reason":"Điều trị bệnh","products":["[Tên thuốc]"]}]},
-  {"date":"2024-01-16","actions":[{"_id":"a2","type":"protect","time":"17:00","description":"[Sinh học]","reason":"Kết hợp","products":[]}]},
-  {"date":"2024-01-17","actions":[{"_id":"a3","type":"prune","time":"08:00","description":"[Canh tác]","reason":"Phòng ngừa","products":[]}]},
-  {"date":"2024-01-18","actions":[{"_id":"a4","type":"water","time":"08:00","description":"Tưới nước","reason":"Cần nước","products":[]}]},
+  {"date":"2024-01-15","actions":[{"_id":"a1","type":"protect","time":"07:00","description":"Phun thuốc [Tên thuốc]","reason":"Điều trị bệnh [Tên bệnh] (điểm 5/10). Phun lúc 07:00 vì nhiệt độ thấp 23°C, tránh nắng nóng buổi trưa, thuốc hấp thụ tốt hơn và không bị bay hơi nhanh","products":["[Tên thuốc]"]}]},
+  {"date":"2024-01-16","actions":[{"_id":"a2","type":"protect","time":"17:00","description":"[Sinh học]","reason":"Kết hợp phương pháp sinh học với thuốc hóa học. Làm lúc 17:00 vì nhiệt độ mát, độ ẩm tăng, môi trường phù hợp cho vi sinh vật hoạt động hiệu quả","products":[]}]},
+  {"date":"2024-01-17","actions":[{"_id":"a3","type":"prune","time":"08:00","description":"[Canh tác]","reason":"Phòng ngừa bệnh tái phát. Làm lúc 08:00 vì nhiệt độ mát, ánh sáng đủ, dễ quan sát và xử lý","products":[]}]},
+  {"date":"2024-01-18","actions":[{"_id":"a4","type":"water","time":"08:00","description":"Tưới nước","reason":"Nhiệt độ 24°C, độ ẩm 85%, cần bổ sung nước. Tưới lúc 08:00 để cây hấp thụ tốt, nước kịp khô trước nắng gắt, tránh úng nước và bệnh nấm","products":[]}]},
   {"date":"2024-01-19","actions":[]},
   {"date":"2024-01-20","actions":[{"_id":"a5","type":"water","time":"08:00","description":"Tưới nước","reason":"Cần nước","products":[]}]},
   {"date":"2024-01-21","actions":[]}
@@ -415,11 +458,11 @@ VÍ DỤ (PHẢI CÓ ĐỦ 7 NGÀY - LƯU Ý TƯỚI NƯỚC):
 ⚠️ QUAN TRỌNG: Nếu cần tưới 3 lần/tuần, PHẢI có đúng 3 action "water" trong 7 ngày, phân bố đều (ví dụ: ngày 1, 3, 5)
 ⚠️ KHÔNG được bỏ qua tưới nước chỉ vì độ ẩm cao, chỉ bỏ khi có mưa lớn (> 5mm)
 {"next7Days":[
-  {"date":"2024-01-15","actions":[{"_id":"a1","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 1","products":[]}]},
+  {"date":"2024-01-15","actions":[{"_id":"a1","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 1. Tưới lúc 08:00 vì nhiệt độ 24°C, độ ẩm 85%, cây cần nước sau đêm. Tưới sáng sớm để cây hấp thụ tốt, nước kịp khô trước nắng gắt, tránh úng nước","products":[]}]},
   {"date":"2024-01-16","actions":[]},
-  {"date":"2024-01-17","actions":[{"_id":"a2","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 3","products":[]}]},
+  {"date":"2024-01-17","actions":[{"_id":"a2","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 3. Tưới lúc 08:00 vì nhiệt độ 25°C, độ ẩm 83%, cần bổ sung nước. Tưới sáng sớm để cây hấp thụ tốt, tránh nắng gắt buổi trưa","products":[]}]},
   {"date":"2024-01-18","actions":[]},
-  {"date":"2024-01-19","actions":[{"_id":"a3","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 5","products":[]}]},
+  {"date":"2024-01-19","actions":[{"_id":"a3","type":"water","time":"08:00","description":"Tưới nước vừa phải","reason":"Theo tần suất 3 lần/tuần, ngày 5. Tưới lúc 08:00 vì nhiệt độ 26°C, độ ẩm 80%, cần bổ sung nước. Tưới sáng sớm để cây hấp thụ tốt, nước kịp khô trước nắng gắt","products":[]}]},
   {"date":"2024-01-20","actions":[]},
   {"date":"2024-01-21","actions":[]}
 ],"summary":"Tóm tắt..."}
@@ -429,10 +472,11 @@ QUAN TRỌNG:
 ${plantBox.currentDiseases && plantBox.currentDiseases.length > 0 ? `
 BẮT BUỘC:
 1. Đưa hành động điều trị vào 2-3 ngày đầu
-2. Mỗi action có: _id, type, time, description CỤ THỂ (tên thuốc/phương pháp từ DB), reason, products
+2. Mỗi action có: _id, type, time, description CỤ THỂ (tên thuốc/phương pháp từ DB), reason PHẢI giải thích TẠI SAO làm vào khung giờ đó, products
 3. Sinh học và canh tác là ACTION RIÊNG (không trong taskAnalysis)
 4. KHÔNG lặp lại hành động giống nhau
 5. Dựa trên điểm số bệnh và thời tiết
+6. Reason PHẢI bao gồm: (1) Lý do cần làm task, (2) Lý do TẠI SAO làm vào khung giờ đó (dựa trên nhiệt độ, độ ẩm, ánh sáng trong ngày)
 ` : ''}
 - CHỈ đưa ra hành động THỰC SỰ CẦN THIẾT, không đưa ra hành động định kỳ không có lý do
 - Nếu một ngày không có hành động nào cần thiết (và không có bệnh), để actions = []

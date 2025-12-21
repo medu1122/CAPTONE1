@@ -6,13 +6,14 @@ import { PlantOverviewCard } from './components/PlantOverviewCard'
 import { TabNavigation } from './components/TabNavigation'
 import { StrategyTab } from './components/StrategyTab'
 import { NotesTab } from './components/NotesTab'
-import { MiniChatBot } from './components/MiniChatBot'
+import { ProgressReportModal } from './components/ProgressReportModal'
 import { DiseaseManagement } from './components/DiseaseManagement'
 import { usePlantDetail } from './hooks/usePlantDetail'
 import { useCareStrategy } from './hooks/useCareStrategy'
-import { Loader2Icon } from 'lucide-react'
+import { Loader2Icon, AlertCircleIcon } from 'lucide-react'
 import type { PlantNote } from '../MyPlantsPage/types/plantBox.types'
 import { useAuth } from '../../contexts/AuthContext'
+import { ComplaintModal } from '../../components/ComplaintModal'
 type TabType = 'strategy' | 'notes'
 export const PlantDetailPage: React.FC = () => {
   const { id } = useParams<{
@@ -21,6 +22,8 @@ export const PlantDetailPage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('strategy')
+  const [showComplaintModal, setShowComplaintModal] = useState(false)
+  const [showProgressReport, setShowProgressReport] = useState(false)
   const { plantBox, loading, error, addNote, refreshPlantBox, updatePlantBox } = usePlantDetail(id || '')
   const {
     strategy,
@@ -102,6 +105,7 @@ export const PlantDetailPage: React.FC = () => {
       <DetailHeader
         plantName={plantBox.name}
         onDelete={handleDelete}
+        onComplaintClick={() => setShowComplaintModal(true)}
       />
 
       <div className="max-w-7xl mx-auto px-8 py-6">
@@ -143,7 +147,89 @@ export const PlantDetailPage: React.FC = () => {
         </div>
       </div>
 
-      <MiniChatBot plantName={plantBox.name} plantBoxId={plantBox._id} />
+      {/* AI Progress Report Button */}
+      <button
+        onClick={() => setShowProgressReport(true)}
+        className="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-4 rounded-full shadow-2xl hover:shadow-green-500/50 transition-all duration-300 transform hover:scale-105 flex items-center gap-3 font-medium text-lg z-40"
+      >
+        <span className="text-2xl">✨</span>
+        <span>Báo Cáo Tiến Độ AI</span>
+      </button>
+
+      {/* Progress Report Modal */}
+      <ProgressReportModal
+        isOpen={showProgressReport}
+        onClose={() => setShowProgressReport(false)}
+        plantBoxId={plantBox._id}
+      />
+
+      {/* Complaint Modal */}
+      <ComplaintModal
+        isOpen={showComplaintModal}
+        onClose={() => setShowComplaintModal(false)}
+        type="my-plants"
+        relatedId={plantBox._id}
+        relatedType="plantBox"
+        contextData={{
+          // Thông tin Plant Box đầy đủ
+          plantBox: {
+            _id: plantBox._id,
+            name: plantBox.name,
+            plantName: plantBox.plantName,
+            scientificName: plantBox.scientificName,
+            type: plantBox.type,
+            plantedDate: plantBox.plantedDate,
+            plannedDate: plantBox.plannedDate,
+            location: {
+              name: plantBox.location.name,
+              coordinates: plantBox.location.coordinates,
+              area: plantBox.location.area,
+              soilType: plantBox.location.soilType,
+              sunlight: plantBox.location.sunlight,
+            },
+            quantity: plantBox.quantity,
+            growthStage: plantBox.growthStage,
+            currentHealth: plantBox.currentHealth,
+            careLevel: plantBox.careLevel,
+            wateringMethod: plantBox.wateringMethod,
+            fertilizerType: plantBox.fertilizerType,
+            specialRequirements: plantBox.specialRequirements,
+            companionPlants: plantBox.companionPlants,
+            healthNotes: plantBox.healthNotes,
+            currentDiseases: plantBox.currentDiseases?.map(d => ({
+              name: d.name,
+              symptoms: d.symptoms,
+              severity: d.severity,
+              severityScore: d.severityScore,
+              status: d.status,
+              detectedDate: d.detectedDate,
+              selectedTreatments: d.selectedTreatments,
+              feedback: d.feedback,
+            })) || [],
+          },
+          // Care Strategy hiện tại (7 ngày)
+          careStrategy: strategy ? {
+            lastUpdated: strategy.lastUpdated,
+            summary: strategy.summary,
+            next7Days: strategy.next7Days?.map(day => ({
+              date: day.date,
+              actions: day.actions?.map(action => ({
+                _id: action._id,
+                type: action.type,
+                time: action.time,
+                description: action.description,
+                reason: action.reason,
+                products: action.products,
+                completed: action.completed,
+              })) || [],
+              weather: day.weather,
+            })) || [],
+          } : null,
+        }}
+        onSuccess={() => {
+          alert('Cảm ơn bạn đã gửi khiếu nại về plant box này. Chúng tôi sẽ xem xét và cải thiện!')
+        }}
+      />
     </div>
   )
 }

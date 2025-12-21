@@ -8,8 +8,6 @@ import {
   EditIcon,
   TrashIcon,
   XIcon,
-  CheckIcon,
-  AlertCircleIcon,
 } from 'lucide-react'
 
 type DataType = 'products' | 'biological' | 'cultural'
@@ -602,8 +600,6 @@ const DataModal: React.FC<{
   onClose: () => void
   onSubmit: () => void
 }> = ({ type, item, formData, setFormData, onClose, onSubmit }) => {
-  const isEditing = !!item
-
   if (type === 'products') {
     return (
       <ProductModal

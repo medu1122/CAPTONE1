@@ -105,6 +105,19 @@ export const createPlantBox = async ({ userId, data }) => {
       ...data,
     });
 
+    // Update user stats - increment totalPlants
+    try {
+      const User = (await import('../auth/auth.model.js')).default;
+      await User.findByIdAndUpdate(
+        userId,
+        { $inc: { 'stats.totalPlants': 1 } },
+        { new: true }
+      );
+      console.log(`✅ [PlantBox] Incremented totalPlants for user ${userId}`);
+    } catch (error) {
+      console.error('⚠️ [PlantBox] Failed to update user stats:', error.message);
+    }
+
     // Generate initial care strategy if plant is existing
     if (plantBox.plantType === 'existing' && plantBox.location.coordinates) {
       try {
@@ -215,10 +228,260 @@ export const deletePlantBox = async ({ boxId, userId }) => {
       throw httpError(404, 'Plant box not found');
     }
 
+    // Update user stats - decrement totalPlants
+    try {
+      const User = (await import('../auth/auth.model.js')).default;
+      await User.findByIdAndUpdate(
+        userId,
+        { $inc: { 'stats.totalPlants': -1 } },
+        { new: true }
+      );
+      console.log(`✅ [PlantBox] Decremented totalPlants for user ${userId}`);
+    } catch (error) {
+      console.error('⚠️ [PlantBox] Failed to update user stats:', error.message);
+    }
+
     return { success: true, message: 'Plant box deleted successfully' };
   } catch (error) {
     if (error.statusCode) throw error;
     throw httpError(500, `Failed to delete plant box: ${error.message}`);
+  }
+};
+
+/**
+ * Check if care strategy needs refresh (older than 7 days)
+ * @param {object} careStrategy - Care strategy object
+ * @returns {boolean} True if needs refresh
+ */
+const needsStrategyRefresh = (careStrategy) => {
+  if (!careStrategy || !careStrategy.lastUpdated) {
+    return true;
+  }
+
+  const now = new Date();
+  const lastUpdated = new Date(careStrategy.lastUpdated);
+  const daysSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60 * 24);
+
+  return daysSinceUpdate >= 7;
+};
+
+/**
+ * Auto-refresh expired care strategies for all active plant boxes
+ * @returns {Promise<object>} Refresh result summary
+ */
+export const autoRefreshExpiredStrategies = async () => {
+  try {
+    console.log('🔄 [Auto Refresh] Checking for expired care strategies...');
+
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const plantBoxes = await PlantBox.find({
+      isActive: true,
+      plantType: 'existing', // Only refresh existing plants
+      'location.coordinates': { $exists: true },
+      $or: [
+        { 'careStrategy.lastUpdated': { $lt: sevenDaysAgo } },
+        { 'careStrategy.lastUpdated': { $exists: false } }
+      ]
+    });
+
+    console.log(`🔄 [Auto Refresh] Found ${plantBoxes.length} plant boxes with expired strategies`);
+
+    let refreshedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (const plantBox of plantBoxes) {
+      try {
+        const weather = await getWeatherData({
+          lat: plantBox.location.coordinates.lat,
+          lon: plantBox.location.coordinates.lon,
+        });
+
+        const careStrategy = await generateCareStrategy({
+          plantBox: plantBox.toObject(),
+          weather,
+        });
+
+        plantBox.careStrategy = careStrategy;
+        plantBox.careStrategy.lastUpdated = new Date();
+        await plantBox.save();
+
+        refreshedCount++;
+        console.log(`✅ [Auto Refresh] Refreshed strategy for ${plantBox.name}`);
+      } catch (error) {
+        console.error(`❌ [Auto Refresh] Error refreshing ${plantBox.name}:`, error.message);
+        errorCount++;
+      }
+    }
+
+    const result = {
+      refreshed: refreshedCount,
+      skipped: skippedCount,
+      errors: errorCount,
+      total: plantBoxes.length
+    };
+
+    console.log(`🔄 [Auto Refresh] Completed: ${JSON.stringify(result)}`);
+    return result;
+  } catch (error) {
+    console.error('❌ [Auto Refresh] Failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get AI progress report for a plant box
+ * @param {object} params - Parameters
+ * @param {string} params.boxId - Plant box ID
+ * @param {string} params.userId - User ID
+ * @returns {Promise<object>} Progress report
+ */
+export const getProgressReport = async ({ boxId, userId }) => {
+  try {
+    const plantBox = await PlantBox.findOne({ _id: boxId, user: userId });
+    
+    if (!plantBox) {
+      throw httpError(404, 'Plant box not found');
+    }
+
+    const careStrategy = plantBox.careStrategy;
+    if (!careStrategy || !careStrategy.next7Days || careStrategy.next7Days.length === 0) {
+      return {
+        plantName: plantBox.name,
+        hasStrategy: false,
+        message: 'Chưa có kế hoạch chăm sóc. Hãy tạo kế hoạch để AI có thể đánh giá!'
+      };
+    }
+
+    // Calculate statistics
+    let totalTasks = 0;
+    let completedTasks = 0;
+    
+    for (const day of careStrategy.next7Days) {
+      if (day.actions && Array.isArray(day.actions)) {
+        totalTasks += day.actions.length;
+        completedTasks += day.actions.filter(a => a.completed).length;
+      }
+    }
+    
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    
+    // Determine health status
+    let healthStatus, healthIcon, healthColor, healthMessage;
+    
+    if (completionRate >= 80) {
+      healthStatus = 'excellent';
+      healthIcon = '🌟';
+      healthColor = '#10B981';
+      healthMessage = 'Xuất sắc! Cây của bạn đang được chăm sóc rất tốt!';
+    } else if (completionRate >= 60) {
+      healthStatus = 'good';
+      healthIcon = '✅';
+      healthColor = '#059669';
+      healthMessage = 'Tốt! Cây đang phát triển khỏe mạnh.';
+    } else if (completionRate >= 40) {
+      healthStatus = 'fair';
+      healthIcon = '⚠️';
+      healthColor = '#F59E0B';
+      healthMessage = 'Tạm ổn. Cần chú ý chăm sóc nhiều hơn!';
+    } else {
+      healthStatus = 'poor';
+      healthIcon = '❌';
+      healthColor = '#EF4444';
+      healthMessage = 'Cảnh báo! Cây có nguy cơ gặp vấn đề do thiếu chăm sóc.';
+    }
+    
+    // Calculate days tracked
+    const now = new Date();
+    const strategyStart = new Date(careStrategy.lastUpdated || plantBox.createdAt);
+    const daysTracked = Math.min(Math.floor((now - strategyStart) / (1000 * 60 * 60 * 24)), 7);
+    
+    // Count current issues
+    const currentDiseases = plantBox.currentDiseases?.length || 0;
+    const hasIssues = currentDiseases > 0;
+    
+    // Generate recommendations
+    const recommendations = [];
+    
+    if (completionRate < 50) {
+      recommendations.push({
+        icon: '📌',
+        type: 'urgent',
+        message: 'Hãy hoàn thành các công việc đã lỡ để cây không bị thiếu chăm sóc!'
+      });
+    }
+    
+    if (currentDiseases > 0) {
+      recommendations.push({
+        icon: '🏥',
+        type: 'health',
+        message: `Cây đang có ${currentDiseases} vấn đề cần xử lý. Hãy kiểm tra và điều trị sớm!`
+      });
+    }
+    
+    if (completionRate >= 80) {
+      recommendations.push({
+        icon: '🎉',
+        type: 'praise',
+        message: 'Tuyệt vời! Tiếp tục duy trì công việc chăm sóc đều đặn!'
+      });
+    }
+    
+    // Add weather-based recommendation
+    const nextDay = careStrategy.next7Days?.[0];
+    if (nextDay && nextDay.weather) {
+      const temp = nextDay.weather.temp?.max || nextDay.weather.temperature;
+      if (temp && temp > 35) {
+        recommendations.push({
+          icon: '🌡️',
+          type: 'weather',
+          message: `Nhiệt độ cao (${Math.round(temp)}°C) - Nhớ tưới nước thường xuyên!`
+        });
+      }
+    }
+
+    // Generate summary
+    let summary;
+    if (completionRate >= 80) {
+      summary = `🌟 Xuất sắc! Bạn đã hoàn thành ${completedTasks}/${totalTasks} công việc (${completionRate}%) trong ${daysTracked} ngày qua. Cây của bạn đang rất khỏe mạnh!`;
+    } else if (completionRate >= 60) {
+      summary = `✅ Tốt! ${completedTasks}/${totalTasks} công việc đã hoàn thành (${completionRate}%). Cây đang phát triển khỏe!`;
+    } else if (completionRate >= 40) {
+      summary = `⚠️ Cần cải thiện! Chỉ ${completedTasks}/${totalTasks} công việc hoàn thành (${completionRate}%). Hãy chăm sóc thêm nhé!`;
+    } else {
+      summary = `❌ Cảnh báo! Chỉ ${completedTasks}/${totalTasks} công việc hoàn thành (${completionRate}%). Cây có nguy cơ gặp vấn đề!`;
+    }
+
+    return {
+      plantName: plantBox.name,
+      hasStrategy: true,
+      statistics: {
+        totalTasks,
+        completedTasks,
+        completionRate,
+        daysTracked,
+      },
+      health: {
+        status: healthStatus,
+        icon: healthIcon,
+        color: healthColor,
+        message: healthMessage,
+      },
+      issues: {
+        count: currentDiseases,
+        hasIssues,
+        message: hasIssues 
+          ? `⚠️ Có ${currentDiseases} vấn đề cần xử lý` 
+          : '✨ Không có vấn đề nào'
+      },
+      recommendations,
+      summary
+    };
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw httpError(500, `Failed to get progress report: ${error.message}`);
   }
 };
 

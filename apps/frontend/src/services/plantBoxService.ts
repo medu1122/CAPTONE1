@@ -153,6 +153,39 @@ export interface RefreshStrategyResponse {
   data: PlantBox
 }
 
+export interface ProgressReportResponse {
+  success: boolean
+  message: string
+  data: {
+    plantName: string
+    hasStrategy: boolean
+    message?: string
+    statistics?: {
+      totalTasks: number
+      completedTasks: number
+      completionRate: number
+      daysTracked: number
+    }
+    health?: {
+      status: 'excellent' | 'good' | 'fair' | 'poor'
+      icon: string
+      color: string
+      message: string
+    }
+    issues?: {
+      count: number
+      hasIssues: boolean
+      message: string
+    }
+    recommendations?: Array<{
+      icon: string
+      type: 'urgent' | 'health' | 'praise' | 'weather'
+      message: string
+    }>
+    summary?: string
+  }
+}
+
 export interface ChatResponse {
   success: boolean
   message: string
@@ -229,6 +262,16 @@ export const refreshCareStrategy = async (
   id: string
 ): Promise<RefreshStrategyResponse> => {
   const response = await api.post(`/plant-boxes/${id}/refresh-strategy`)
+  return response.data
+}
+
+/**
+ * Get AI progress report for plant box
+ */
+export const getProgressReport = async (
+  id: string
+): Promise<ProgressReportResponse> => {
+  const response = await api.get(`/plant-boxes/${id}/progress-report`)
   return response.data
 }
 

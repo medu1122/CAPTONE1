@@ -66,7 +66,7 @@ export const useImageAnalysis = () => {
           isValid: true,
           isPlant: true,
           confidence: 1,
-          message: '',
+          message: 'Hình ảnh đã được phân tích',
           validating: false,
         },
       }
@@ -118,7 +118,7 @@ export const useImageAnalysis = () => {
     })
 
     // Mark as pending analysis
-    setPendingAnalysis((prev) => new Set([id]))
+    setPendingAnalysis(new Set([id]))
 
     // ⚠️ VALIDATION DISABLED - Skip image validation to save Plant.id credits
     // Set validation as valid by default
@@ -234,11 +234,7 @@ export const useImageAnalysis = () => {
     console.log('📊 [analyze] Called with:', { imageId, hasFile: !!imageFile })
     
     // Check validation first
-    let imageToCheck: UploadedImage | null = null
-    setImages((prev) => {
-      imageToCheck = prev.find((img) => img.id === imageId) || null
-      return prev
-    })
+    const imageToCheck = images.find((img) => img.id === imageId)
 
     if (imageToCheck?.validation && !imageToCheck.validation.isValid && !imageToCheck.validation.warning) {
       throw new Error(imageToCheck.validation.message || 'Hình ảnh không hợp lệ')

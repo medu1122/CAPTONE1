@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MapPinIcon, EditIcon, SaveIcon, XIcon } from 'lucide-react'
 import type { UserProfile } from '../types'
+import { vietnamProvinces } from '../../../data/vietnamProvinces'
+import { getDistrictsByProvince, hasDistrictsData } from '../../../data/vietnamDistricts'
 interface AddressSectionProps {
   profile: UserProfile
   onUpdate: (data: Partial<UserProfile>) => Promise<void>
@@ -18,6 +20,46 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
     province: profile.address?.province || '',
     district: profile.address?.district || '',
   })
+  
+  // Track selected province code for dropdown
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>('')
+  const [availableDistricts, setAvailableDistricts] = useState<any[]>([])
+  
+  // Initialize province code from province name when editing starts
+  useEffect(() => {
+    if (isEditing && formData.province) {
+      const matchedProvince = vietnamProvinces.find(p => p.name === formData.province)
+      if (matchedProvince) {
+        setSelectedProvinceCode(matchedProvince.code)
+        const districts = getDistrictsByProvince(matchedProvince.code)
+        setAvailableDistricts(districts)
+      }
+    }
+  }, [isEditing, formData.province])
+  
+  // Load districts when province changes
+  const handleProvinceChange = (provinceCode: string) => {
+    setSelectedProvinceCode(provinceCode)
+    const province = vietnamProvinces.find(p => p.code === provinceCode)
+    
+    if (province) {
+      setFormData({
+        ...formData,
+        province: province.name,
+        district: '', // Reset district when province changes
+      })
+      
+      const districts = getDistrictsByProvince(provinceCode)
+      setAvailableDistricts(districts)
+    }
+  }
+  
+  const handleDistrictChange = (districtName: string) => {
+    setFormData({
+      ...formData,
+      district: districtName,
+    })
+  }
   const handleSave = async () => {
     setLoading(true)
     try {
@@ -29,6 +71,8 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
         },
       })
       showToast('Cập nhật địa chỉ thành công', 'success')
+      setSelectedProvinceCode('')
+      setAvailableDistricts([])
       setIsEditing(false)
     } catch (error) {
       showToast('Có lỗi xảy ra, vui lòng thử lại', 'error')
@@ -42,6 +86,8 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
       province: profile.address?.province || '',
       district: profile.address?.district || '',
     })
+    setSelectedProvinceCode('')
+    setAvailableDistricts([])
     setIsEditing(false)
   }
   return (
@@ -112,18 +158,18 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
             Tỉnh/Thành phố
           </label>
           {isEditing ? (
-            <input
-              type="text"
-              value={formData.province}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  province: e.target.value,
-                })
-              }
-              placeholder="Nhập tỉnh/thành phố"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+            <select
+              value={selectedProvinceCode}
+              onChange={(e) => handleProvinceChange(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+            >
+              <option value="">-- Chọn tỉnh/thành phố --</option>
+              {vietnamProvinces.map((province) => (
+                <option key={province.code} value={province.code}>
+                  {province.name}
+                </option>
+              ))}
+            </select>
           ) : (
             <p className="text-gray-900 py-2">
               {profile.address?.province || (
@@ -138,18 +184,43 @@ export const AddressSection: React.FC<AddressSectionProps> = ({
             Quận/Huyện
           </label>
           {isEditing ? (
-            <input
-              type="text"
-              value={formData.district}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  district: e.target.value,
-                })
-              }
-              placeholder="Nhập quận/huyện"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+            <>
+              {selectedProvinceCode && hasDistrictsData(selectedProvinceCode) ? (
+                <select
+                  value={formData.district}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                  disabled={!selectedProvinceCode}
+                >
+                  <option value="">-- Chọn quận/huyện --</option>
+                  {availableDistricts.map((district) => (
+                    <option key={district.code} value={district.name}>
+                      {district.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div>
+                  <input
+                    type="text"
+                    value={formData.district}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        district: e.target.value,
+                      })
+                    }
+                    placeholder="Nhập quận/huyện"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  {selectedProvinceCode && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Chưa có dữ liệu quận/huyện cho tỉnh này, vui lòng nhập thủ công
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <p className="text-gray-900 py-2">
               {profile.address?.district || (

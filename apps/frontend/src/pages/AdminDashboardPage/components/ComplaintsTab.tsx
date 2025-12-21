@@ -496,6 +496,148 @@ export const ComplaintsTab: React.FC = () => {
                 </div>
               )}
 
+              {/* Context Data for Plant Box complaints */}
+              {isComplaint(selectedItem) && (selectedItem as Complaint).type === 'my-plants' && (selectedItem as any).contextData && (selectedItem as any).contextData.plantBox && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-gray-700 mb-2">
+                    🌱 Thông tin Plant Box đầy đủ:
+                  </div>
+                  <div className="space-y-3">
+                    {/* Basic Plant Box Info */}
+                    <div className="bg-white rounded-lg p-3 border border-blue-100">
+                      <div className="text-xs font-medium text-gray-600 mb-2">Thông tin cơ bản:</div>
+                      <div className="space-y-1 text-xs text-gray-700">
+                        <div><strong>Tên box:</strong> {(selectedItem as any).contextData.plantBox.name}</div>
+                        <div><strong>Tên cây:</strong> {(selectedItem as any).contextData.plantBox.plantName} {(selectedItem as any).contextData.plantBox.scientificName ? `(${(selectedItem as any).contextData.plantBox.scientificName})` : ''}</div>
+                        <div><strong>Loại:</strong> {(selectedItem as any).contextData.plantBox.type === 'active' ? 'Đang trồng' : 'Dự định trồng'}</div>
+                        {(selectedItem as any).contextData.plantBox.plantedDate && (
+                          <div><strong>Ngày trồng:</strong> {new Date((selectedItem as any).contextData.plantBox.plantedDate).toLocaleDateString('vi-VN')}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.plannedDate && (
+                          <div><strong>Ngày dự định:</strong> {new Date((selectedItem as any).contextData.plantBox.plannedDate).toLocaleDateString('vi-VN')}</div>
+                        )}
+                        <div><strong>Vị trí:</strong> {(selectedItem as any).contextData.plantBox.location?.name}</div>
+                        {(selectedItem as any).contextData.plantBox.location?.area && (
+                          <div><strong>Diện tích:</strong> {(selectedItem as any).contextData.plantBox.location.area}m²</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.location?.soilType && Array.isArray((selectedItem as any).contextData.plantBox.location.soilType) && (selectedItem as any).contextData.plantBox.location.soilType.length > 0 && (
+                          <div><strong>Loại đất:</strong> {(selectedItem as any).contextData.plantBox.location.soilType.join(', ')}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.location?.sunlight && (
+                          <div><strong>Ánh sáng:</strong> {(selectedItem as any).contextData.plantBox.location.sunlight === 'full' ? 'Đầy đủ' : (selectedItem as any).contextData.plantBox.location.sunlight === 'partial' ? 'Một phần' : 'Bóng râm'}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.quantity && (
+                          <div><strong>Số lượng:</strong> {(selectedItem as any).contextData.plantBox.quantity} cây</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.growthStage && (
+                          <div><strong>Giai đoạn:</strong> {(selectedItem as any).contextData.plantBox.growthStage === 'seed' ? 'Hạt giống' : (selectedItem as any).contextData.plantBox.growthStage === 'seedling' ? 'Cây con' : (selectedItem as any).contextData.plantBox.growthStage === 'vegetative' ? 'Sinh trưởng' : (selectedItem as any).contextData.plantBox.growthStage === 'flowering' ? 'Ra hoa' : 'Đậu quả'}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.currentHealth && (
+                          <div><strong>Sức khỏe:</strong> {(selectedItem as any).contextData.plantBox.currentHealth === 'excellent' ? 'Tuyệt vời' : (selectedItem as any).contextData.plantBox.currentHealth === 'good' ? 'Tốt' : (selectedItem as any).contextData.plantBox.currentHealth === 'fair' ? 'Bình thường' : 'Yếu'}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.careLevel && (
+                          <div><strong>Mức độ chăm sóc:</strong> {(selectedItem as any).contextData.plantBox.careLevel === 'low' ? 'Thấp' : (selectedItem as any).contextData.plantBox.careLevel === 'medium' ? 'Trung bình' : 'Cao'}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.wateringMethod && (
+                          <div><strong>Phương pháp tưới:</strong> {(selectedItem as any).contextData.plantBox.wateringMethod === 'manual' ? 'Tưới tay' : (selectedItem as any).contextData.plantBox.wateringMethod === 'drip' ? 'Tưới nhỏ giọt' : 'Tưới phun'}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.fertilizerType && (
+                          <div><strong>Loại phân bón:</strong> {(selectedItem as any).contextData.plantBox.fertilizerType}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.specialRequirements && (
+                          <div><strong>Yêu cầu đặc biệt:</strong> {(selectedItem as any).contextData.plantBox.specialRequirements}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.companionPlants && Array.isArray((selectedItem as any).contextData.plantBox.companionPlants) && (selectedItem as any).contextData.plantBox.companionPlants.length > 0 && (
+                          <div><strong>Cây trồng kèm:</strong> {(selectedItem as any).contextData.plantBox.companionPlants.join(', ')}</div>
+                        )}
+                        {(selectedItem as any).contextData.plantBox.healthNotes && (
+                          <div><strong>Ghi chú sức khỏe:</strong> {(selectedItem as any).contextData.plantBox.healthNotes}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Diseases Info */}
+                    {(selectedItem as any).contextData.plantBox.currentDiseases && Array.isArray((selectedItem as any).contextData.plantBox.currentDiseases) && (selectedItem as any).contextData.plantBox.currentDiseases.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <div className="text-xs font-medium text-gray-600 mb-2">Bệnh hiện tại:</div>
+                        <div className="space-y-2 text-xs text-gray-700">
+                          {(selectedItem as any).contextData.plantBox.currentDiseases.map((disease: any, idx: number) => (
+                            <div key={idx} className="border-l-2 border-orange-400 pl-2">
+                              <div className="font-medium">🦠 {disease.name}</div>
+                              {disease.severity && <div>Mức độ: {disease.severity === 'mild' ? 'Nhẹ' : disease.severity === 'moderate' ? 'Trung bình' : 'Nặng'}</div>}
+                              {disease.severityScore !== undefined && disease.severityScore !== null && <div>Điểm số: {disease.severityScore}/10</div>}
+                              {disease.status && <div>Trạng thái: {disease.status === 'active' ? 'Đang hoạt động' : disease.status === 'treating' ? 'Đang điều trị' : 'Đã khỏi'}</div>}
+                              {disease.symptoms && <div>Triệu chứng: {disease.symptoms}</div>}
+                              {disease.selectedTreatments?.chemical && Array.isArray(disease.selectedTreatments.chemical) && disease.selectedTreatments.chemical.length > 0 && (
+                                <div>Thuốc đã chọn: {disease.selectedTreatments.chemical.map((t: any) => t.name).join(', ')}</div>
+                              )}
+                              {disease.feedback && Array.isArray(disease.feedback) && disease.feedback.length > 0 && (
+                                <div>Lịch sử phản hồi: {disease.feedback.map((f: any) => `${f.status} (${new Date(f.date).toLocaleDateString('vi-VN')})`).join(', ')}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Care Strategy Info */}
+                    {(selectedItem as any).contextData.careStrategy && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <div className="text-xs font-medium text-gray-600 mb-2">📅 Chiến lược chăm sóc hiện tại (7 ngày):</div>
+                        <div className="space-y-2 text-xs text-gray-700">
+                          {(selectedItem as any).contextData.careStrategy.summary && (
+                            <div className="mb-2"><strong>Tóm tắt:</strong> {(selectedItem as any).contextData.careStrategy.summary}</div>
+                          )}
+                          {(selectedItem as any).contextData.careStrategy.lastUpdated && (
+                            <div className="mb-2"><strong>Cập nhật lần cuối:</strong> {new Date((selectedItem as any).contextData.careStrategy.lastUpdated).toLocaleString('vi-VN')}</div>
+                          )}
+                          {(selectedItem as any).contextData.careStrategy.next7Days && Array.isArray((selectedItem as any).contextData.careStrategy.next7Days) && (selectedItem as any).contextData.careStrategy.next7Days.length > 0 && (
+                            <div>
+                              <div className="font-medium mb-1">Các task trong 7 ngày:</div>
+                              <div className="pl-2 space-y-2 max-h-60 overflow-y-auto">
+                                {(selectedItem as any).contextData.careStrategy.next7Days.map((day: any, dayIdx: number) => (
+                                  <div key={dayIdx} className="border-l-2 border-green-400 pl-2">
+                                    <div className="font-medium">
+                                      Ngày {dayIdx + 1} ({day.date ? new Date(day.date).toLocaleDateString('vi-VN') : 'N/A'}):
+                                    </div>
+                                    {day.weather && (
+                                      <div className="text-gray-600 text-xs pl-2">
+                                        🌡️ {day.weather.temp?.min || 'N/A'}°C - {day.weather.temp?.max || 'N/A'}°C | 
+                                        💧 {day.weather.humidity || 'N/A'}% | 
+                                        🌧️ {day.weather.rain || 0}mm
+                                      </div>
+                                    )}
+                                    {day.actions && Array.isArray(day.actions) && day.actions.length > 0 ? (
+                                      <div className="pl-2 space-y-1 mt-1">
+                                        {day.actions.map((action: any, actIdx: number) => (
+                                          <div key={actIdx} className="text-gray-600">
+                                            <div className="font-medium">
+                                              • {action.time} - {action.description} {action.completed ? '✓' : ''}
+                                            </div>
+                                            {action.reason && (
+                                              <div className="pl-2 text-gray-500 italic text-xs">Lý do: {action.reason}</div>
+                                            )}
+                                            {action.products && Array.isArray(action.products) && action.products.length > 0 && (
+                                              <div className="pl-2 text-gray-500 text-xs">Sản phẩm: {action.products.join(', ')}</div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="text-gray-500 italic pl-2 text-xs">Không có hành động</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Attachments */}
               {isComplaint(selectedItem) && (selectedItem as any).attachments && (selectedItem as any).attachments.length > 0 && (
                 <div className="p-4 bg-gray-50 rounded-lg">

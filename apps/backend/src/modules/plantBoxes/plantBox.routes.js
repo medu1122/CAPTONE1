@@ -6,6 +6,8 @@ import {
   updatePlantBoxController,
   deletePlantBoxController,
   refreshStrategy,
+  forceRefreshAllStrategies,
+  getProgressReportController,
   chatWithPlantBox,
   addNoteController,
   addImageController,
@@ -80,6 +82,20 @@ router.delete('/:id', authMiddleware, deletePlantBoxController);
  * @access Private
  */
 router.post('/:id/refresh-strategy', authMiddleware, refreshStrategy);
+
+/**
+ * @route GET /api/v1/plant-boxes/:id/progress-report
+ * @desc Get AI progress report for plant box
+ * @access Private
+ */
+router.get('/:id/progress-report', authMiddleware, getProgressReportController);
+
+/**
+ * @route POST /api/v1/plant-boxes/admin/force-refresh-all
+ * @desc Force refresh all expired care strategies (Admin/Dev only)
+ * @access Private (Admin)
+ */
+router.post('/admin/force-refresh-all', authMiddleware, forceRefreshAllStrategies);
 
 /**
  * @route POST /api/v1/plant-boxes/:id/chat

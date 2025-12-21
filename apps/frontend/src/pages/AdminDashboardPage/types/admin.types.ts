@@ -14,7 +14,7 @@ export interface User {
     title: string
     value: number
     icon: string
-    color: 'blue' | 'green' | 'orange' | 'red'
+    color: 'blue' | 'green' | 'orange' | 'red' | 'purple'
     trend?: {
       value: number
       direction: 'up' | 'down'

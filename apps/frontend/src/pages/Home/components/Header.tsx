@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserMenu } from "@/components/UserMenu";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
 
 export function Header() {
   const { isAuthenticated } = useAuth();
@@ -74,7 +73,6 @@ export function Header() {
         
         {/* CTA Buttons - Chỉ hiển thị khi chưa đăng nhập */}
         <div className="flex items-center gap-3">
-          <ThemeToggle className="shadow-lg" />
           {isAuthenticated ? (
             <div className="[&_button]:text-white [&_button]:hover:bg-white/10 [&_span]:text-white [&_img]:ring-white/30">
               <UserMenu />
@@ -82,12 +80,12 @@ export function Header() {
           ) : (
             <>
               <Link to="/login">
-                <Button variant="outline" className="hidden sm:inline-flex border-white/30 text-white hover:bg-white/10 hover:text-white">
+                <Button variant="outline" className="hidden sm:inline-flex border-white/30 text-gray-900 hover:bg-white/10 bg-white/90 backdrop-blur-sm">
                   Đăng Nhập
                 </Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm">
+                <Button className="bg-green-600 hover:bg-green-700 text-white border border-green-600">
                   Đăng Ký
                 </Button>
               </Link>

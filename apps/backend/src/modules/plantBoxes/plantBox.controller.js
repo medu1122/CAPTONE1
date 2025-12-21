@@ -5,6 +5,8 @@ import {
   updatePlantBox,
   deletePlantBox,
   refreshCareStrategy,
+  autoRefreshExpiredStrategies,
+  getProgressReport,
   addNote,
   addImage,
   addDiseaseFeedback,
@@ -259,6 +261,47 @@ export const refreshStrategy = async (req, res) => {
   } catch (error) {
     console.error('❌ [refreshStrategy] Error:', error);
     console.error('❌ [refreshStrategy] Error stack:', error.stack);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Get AI progress report for plant box
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const getProgressReportController = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const { id } = req.params;
+
+    const report = await getProgressReport({
+      boxId: id,
+      userId,
+    });
+
+    res.json({
+      success: true,
+      message: 'Progress report generated successfully',
+      data: report,
+    });
+  } catch (error) {
     if (error.statusCode) {
       return res.status(error.statusCode).json({
         success: false,
@@ -809,6 +852,52 @@ export const completeTaskViaTokenController = async (req, res) => {
   }
 };
 
+/**
+ * Force refresh all expired care strategies (Admin/Dev only)
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ */
+export const forceRefreshAllStrategies = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    // Admin only for now, but can be opened for all users
+    if (userRole !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required',
+      });
+    }
+
+    const result = await autoRefreshExpiredStrategies();
+
+    res.json({
+      success: true,
+      message: 'Force refresh completed',
+      data: result,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export default {
   getMyPlantBoxes,
   getPlantBox,
@@ -816,6 +905,8 @@ export default {
   updatePlantBoxController,
   deletePlantBoxController,
   refreshStrategy,
+  forceRefreshAllStrategies,
+  getProgressReportController,
   chatWithPlantBox,
   addNoteController,
   addImageController,

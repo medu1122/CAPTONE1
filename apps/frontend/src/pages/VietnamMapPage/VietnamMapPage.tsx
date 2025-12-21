@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from '../ChatAnalyzePage/components/layout/Header';
 import { VietnamMapSVG } from './components/VietnamMapSVG';
 import { ProvinceSelect } from './components/ProvinceSelect';
@@ -9,12 +9,61 @@ import { useProvinceInfo } from './hooks/useProvinceInfo';
 import { useProvinceRecommendation } from './hooks/useProvinceRecommendation';
 import { Map, AlertCircleIcon } from 'lucide-react';
 import { ComplaintModal } from '../../components/ComplaintModal';
+import { vietnamProvinces } from '../../data/vietnamProvinces';
+import { profileService } from '../../services/profileService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const VietnamMapPage: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(true);
+  const { user } = useAuth();
   const { data: provinceInfo, loading, error } = useProvinceInfo(selectedProvince);
   const { recommendation } = useProvinceRecommendation(selectedProvince);
+
+  // Auto-select location from profile or default to Đà Nẵng
+  useEffect(() => {
+    const loadLocation = async () => {
+      setLoadingLocation(true);
+      
+      // Default to Đà Nẵng
+      const defaultProvince = 'DN';
+      
+      if (!user) {
+        // If not logged in, default to Đà Nẵng
+        setSelectedProvince(defaultProvince);
+        setLoadingLocation(false);
+        return;
+      }
+
+      try {
+        const profile = await profileService.getProfile();
+        if (profile.address?.province) {
+          // Find province code from province name
+          const province = vietnamProvinces.find(
+            p => p.name === profile.address.province || 
+                 p.name.toLowerCase() === profile.address.province?.toLowerCase()
+          );
+          if (province) {
+            setSelectedProvince(province.code);
+            setLoadingLocation(false);
+            return;
+          }
+        }
+        
+        // If no province in profile, default to Đà Nẵng
+        setSelectedProvince(defaultProvince);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        // Default to Đà Nẵng on error
+        setSelectedProvince(defaultProvince);
+      } finally {
+        setLoadingLocation(false);
+      }
+    };
+
+    loadLocation();
+  }, [user]);
 
   const handleProvinceSelect = (code: string) => {
     setSelectedProvince(code);
